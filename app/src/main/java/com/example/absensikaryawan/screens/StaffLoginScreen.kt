@@ -19,17 +19,25 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import com.example.absensikaryawan.testing.TestAccounts
 
 @Composable
 fun StaffLoginScreen(
@@ -38,6 +46,10 @@ fun StaffLoginScreen(
 ) {
 
     val context = LocalContext.current
+
+    var nomorTelepon by remember {
+        mutableStateOf("")
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -53,7 +65,6 @@ fun StaffLoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            // Tombol kembali
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -73,7 +84,6 @@ fun StaffLoginScreen(
                 modifier = Modifier.height(20.dp)
             )
 
-            // Icon staf
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Staf",
@@ -104,14 +114,81 @@ fun StaffLoginScreen(
             )
 
             Spacer(
-                modifier = Modifier.height(32.dp)
+                modifier = Modifier.height(24.dp)
             )
 
-            // =========================
-            // GOOGLE - MODE TESTING
-            // =========================
+            OutlinedTextField(
+                value = nomorTelepon,
+                onValueChange = {
+                    nomorTelepon = it
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Nomor Telepon")
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Nomor telepon"
+                    )
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Phone
+                )
+            )
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
 
             Button(
+                onClick = {
+
+                    if (nomorTelepon == TestAccounts.STAFF_PHONE) {
+                        Toast.makeText(
+                            context,
+                            "Login Staf berhasil (Mode Testing)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        onLoginSuccess()
+
+                    } else {
+
+                        Toast.makeText(
+                            context,
+                            "Nomor telepon salah",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2563EB)
+                )
+            ) {
+
+                Icon(
+                    imageVector = Icons.Default.Phone,
+                    contentDescription = "Masuk"
+                )
+
+                Text(
+                    text = "  Masuk dengan Nomor Telepon",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
+
+            OutlinedButton(
                 onClick = {
 
                     Toast.makeText(
@@ -125,10 +202,7 @@ fun StaffLoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2563EB)
-                )
+                shape = RoundedCornerShape(12.dp)
             ) {
 
                 Icon(
@@ -138,42 +212,6 @@ fun StaffLoginScreen(
 
                 Text(
                     text = "  Masuk dengan Google",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(14.dp)
-            )
-
-            // =========================
-            // NOMOR TELEPON
-            // =========================
-
-            OutlinedButton(
-                onClick = {
-
-                    Toast.makeText(
-                        context,
-                        "Login nomor telepon akan dibuat berikutnya",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = "Nomor telepon"
-                )
-
-                Text(
-                    text = "  Masuk dengan Nomor Telepon",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )

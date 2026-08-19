@@ -1,151 +1,103 @@
 package com.example.absensikaryawan.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.absensikaryawan.data.AbsensiDataStore
-import com.example.absensikaryawan.screens.AbsenMasukScreen
-import com.example.absensikaryawan.screens.AdminLoginScreen
-import com.example.absensikaryawan.screens.HomeScreen
-import com.example.absensikaryawan.screens.RiwayatAbsensiScreen
+import com.example.absensikaryawan.screens.AdminDashboardScreen
+import com.example.absensikaryawan.screens.ApprovalScreen
+import com.example.absensikaryawan.screens.LoginScreen
+import com.example.absensikaryawan.screens.ScanAbsenScreen
 import com.example.absensikaryawan.screens.StaffDashboardScreen
-import com.example.absensikaryawan.screens.StaffLoginScreen
-import kotlinx.coroutines.launch
+private enum class AppScreen {
+    Login,
+    Admin,
+    Approval,
+    Staff,
+    Scan
+}
 
 @Composable
 fun AppNavigation() {
 
-    val navController = rememberNavController()
-
-    val context = LocalContext.current
-
-    val absensiDataStore = remember {
-        AbsensiDataStore(context)
+    val currentScreen = remember {
+        mutableStateOf(AppScreen.Login)
     }
 
-    val coroutineScope = rememberCoroutineScope()
+    when (currentScreen.value) {
 
-    val sudahAbsen by absensiDataStore.sudahAbsen
-        .collectAsState(initial = false)
+        // =========================
+        // LOGIN
+        // =========================
 
-    val jamAbsen by absensiDataStore.jamAbsen
-        .collectAsState(initial = "")
+        AppScreen.Login -> {
 
-    val tanggalAbsen by absensiDataStore.tanggalAbsen
-        .collectAsState(initial = "")
-
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
-
-        // HOME
-        composable("home") {
-
-            HomeScreen(
-                onStaffClick = {
-                    navController.navigate("staff_login")
+            LoginScreen(
+                onStaffLogin = {
+                    currentScreen.value = AppScreen.Staff
                 },
-                onAdminClick = {
-                    navController.navigate("admin_login")
+
+                onAdminLogin = {
+                    currentScreen.value = AppScreen.Admin
                 }
             )
         }
 
-        // STAFF LOGIN
-        composable("staff_login") {
+        // =========================
+        // ADMIN
+        // =========================
 
-            StaffLoginScreen(
-                onBack = {
-                    navController.popBackStack()
+        AppScreen.Admin -> {
+
+            AdminDashboardScreen(
+                onApproval = {
+                    currentScreen.value = AppScreen.Approval
                 },
-                onLoginSuccess = {
-                    navController.navigate("staff_dashboard")
-                }
-            )
-        }
-
-        // ADMIN LOGIN
-        composable("admin_login") {
-
-            AdminLoginScreen(
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // STAFF DASHBOARD
-        composable("staff_dashboard") {
-
-            StaffDashboardScreen(
-                sudahAbsen = sudahAbsen,
-                jamAbsen = jamAbsen,
 
                 onLogout = {
-                    navController.popBackStack()
-                },
-
-                onAbsenMasuk = {
-                    navController.navigate("absen_masuk")
-                },
-
-                onRiwayat = {
-                    navController.navigate("riwayat_absensi")
+                    currentScreen.value = AppScreen.Login
                 }
             )
         }
 
-        // ABSEN MASUK
-        composable("absen_masuk") {
+        // =========================
+        // APPROVAL
+        // =========================
 
-            AbsenMasukScreen(
+        AppScreen.Approval -> {
 
+            ApprovalScreen(
                 onBack = {
-                    navController.popBackStack()
-                },
-
-                onAbsenSuccess = {
-
-                    val sekarang = java.util.Date()
-
-                    val jam = java.text.SimpleDateFormat(
-                        "HH:mm:ss",
-                        java.util.Locale.getDefault()
-                    ).format(sekarang)
-
-                    val tanggal = java.text.SimpleDateFormat(
-                        "dd/MM/yyyy",
-                        java.util.Locale.getDefault()
-                    ).format(sekarang)
-
-                    coroutineScope.launch {
-
-                        absensiDataStore.simpanAbsensi(
-                            jam = jam,
-                            tanggal = tanggal
-                        )
-
-                        navController.popBackStack()
-                    }
+                    currentScreen.value = AppScreen.Admin
                 }
             )
         }
 
-        // RIWAYAT ABSENSI
-        composable("riwayat_absensi") {
+        // =========================
+        // STAFF
+        // =========================
 
-            RiwayatAbsensiScreen(
-                dataStore = absensiDataStore,
+        AppScreen.Staff -> {
 
+            StaffDashboardScreen(
+            onScan = {
+                    currentScreen.value = AppScreen.Scan
+                },
+
+                onLogout = {
+                    currentScreen.value = AppScreen.Login
+                }
+            )
+        }
+
+        // =========================
+        // SCAN ABSEN
+        // =========================
+
+        AppScreen.Scan -> {
+
+            ScanAbsenScreen(
                 onBack = {
-                    navController.popBackStack()
+                    currentScreen.value = AppScreen.Staff
                 }
             )
         }
