@@ -1,11 +1,10 @@
 package com.example.absensikaryawan.navigation
 
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,20 +13,23 @@ import com.example.absensikaryawan.data.AbsensiDataStore
 import com.example.absensikaryawan.screens.AbsenMasukScreen
 import com.example.absensikaryawan.screens.AdminLoginScreen
 import com.example.absensikaryawan.screens.HomeScreen
+import com.example.absensikaryawan.screens.RiwayatAbsensiScreen
 import com.example.absensikaryawan.screens.StaffDashboardScreen
 import com.example.absensikaryawan.screens.StaffLoginScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavigation() {
 
     val navController = rememberNavController()
-    val coroutineScope = rememberCoroutineScope()
 
     val context = LocalContext.current
 
     val absensiDataStore = remember {
         AbsensiDataStore(context)
     }
+
+    val coroutineScope = rememberCoroutineScope()
 
     val sudahAbsen by absensiDataStore.sudahAbsen
         .collectAsState(initial = false)
@@ -43,10 +45,7 @@ fun AppNavigation() {
         startDestination = "home"
     ) {
 
-        // =========================
         // HOME
-        // =========================
-
         composable("home") {
 
             HomeScreen(
@@ -59,10 +58,7 @@ fun AppNavigation() {
             )
         }
 
-        // =========================
         // STAFF LOGIN
-        // =========================
-
         composable("staff_login") {
 
             StaffLoginScreen(
@@ -75,10 +71,7 @@ fun AppNavigation() {
             )
         }
 
-        // =========================
         // ADMIN LOGIN
-        // =========================
-
         composable("admin_login") {
 
             AdminLoginScreen(
@@ -88,10 +81,7 @@ fun AppNavigation() {
             )
         }
 
-        // =========================
         // STAFF DASHBOARD
-        // =========================
-
         composable("staff_dashboard") {
 
             StaffDashboardScreen(
@@ -104,14 +94,15 @@ fun AppNavigation() {
 
                 onAbsenMasuk = {
                     navController.navigate("absen_masuk")
+                },
+
+                onRiwayat = {
+                    navController.navigate("riwayat_absensi")
                 }
             )
         }
 
-        // =========================
         // ABSEN MASUK
-        // =========================
-
         composable("absen_masuk") {
 
             AbsenMasukScreen(
@@ -143,6 +134,18 @@ fun AppNavigation() {
 
                         navController.popBackStack()
                     }
+                }
+            )
+        }
+
+        // RIWAYAT ABSENSI
+        composable("riwayat_absensi") {
+
+            RiwayatAbsensiScreen(
+                dataStore = absensiDataStore,
+
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

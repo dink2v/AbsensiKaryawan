@@ -37,7 +37,8 @@ fun StaffDashboardScreen(
     sudahAbsen: Boolean,
     jamAbsen: String,
     onLogout: () -> Unit,
-    onAbsenMasuk: () -> Unit
+    onAbsenMasuk: () -> Unit,
+    onRiwayat: () -> Unit
 ) {
 
     Surface(
@@ -199,6 +200,18 @@ fun StaffDashboardScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    Button(
+                        onClick = onRiwayat,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Riwayat Absensi"
+                        )
                     }
                 }
             }

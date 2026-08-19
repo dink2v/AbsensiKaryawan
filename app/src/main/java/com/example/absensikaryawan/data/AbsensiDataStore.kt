@@ -65,4 +65,16 @@ class AbsensiDataStore(
             preferences.remove(Keys.TANGGAL_ABSEN)
         }
     }
+    suspend fun simpanRiwayat(
+        tanggal: String,
+        jam: String
+    ) {
+
+        context.absensiDataStore.edit { preferences ->
+
+            preferences[Keys.SUDAH_ABSEN] = true
+            preferences[Keys.JAM_ABSEN] = jam
+            preferences[Keys.TANGGAL_ABSEN] = tanggal
+        }
+    }
 }
