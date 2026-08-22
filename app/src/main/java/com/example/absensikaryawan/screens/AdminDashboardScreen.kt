@@ -18,27 +18,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,21 +45,78 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import com.example.absensikaryawan.data.AdminProfile
+import com.example.absensikaryawan.data.AdminRepository
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-private val PrimaryGreen = Color(0xFF1F3A2D)
-private val DarkGreen = Color(0xFF093628)
-private val Background = Color(0xFFF6F8F7)
-private val TextDark = Color(0xFF17221C)
-private val TextGray = Color(0xFF6B7280)
 
 @Composable
 fun AdminDashboardScreen(
     onLogout: () -> Unit,
     onApproval: () -> Unit
 ) {
+    val currentDate = remember {
+        SimpleDateFormat(
+            "dd MMMM yyyy",
+            Locale("id", "ID")
+        ).format(Date())
+    }
 
     var sidebarOpen by remember {
         mutableStateOf(false)
+    }
+
+    var adminProfile by remember {
+        mutableStateOf<AdminProfile?>(null)
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf("")
+    }
+
+    val adminRepository = remember {
+        AdminRepository()
+    }
+
+    // =========================
+    // LOAD DATA ADMIN
+    // =========================
+
+    LaunchedEffect(Unit) {
+
+        isLoading = true
+        errorMessage = ""
+
+        val result =
+            adminRepository.getCurrentAdmin()
+
+        if (result.isSuccess) {
+
+            adminProfile =
+                result.getOrNull()
+
+        } else {
+
+            errorMessage =
+                result.exceptionOrNull()
+                    ?.message
+                    ?: "Gagal mengambil data Admin."
+        }
+
+        isLoading = false
     }
 
     Surface(
@@ -80,7 +131,9 @@ fun AdminDashboardScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
                     .padding(20.dp)
             ) {
 
@@ -125,7 +178,15 @@ fun AdminDashboardScreen(
                         )
 
                         Text(
-                            text = "Budi Hartono",
+                            text = when {
+                                isLoading -> "Memuat..."
+                                adminProfile != null ->
+                                    adminProfile!!.nama.ifBlank {
+                                        "Admin"
+                                    }
+
+                                else -> "Admin"
+                            },
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextDark
@@ -136,10 +197,22 @@ fun AdminDashboardScreen(
                         )
 
                         Text(
-                            text = "19 Agustus 2026",
+                            text = when {
+                                adminProfile != null &&
+                                        adminProfile!!.divisi.isNotBlank() ->
+                                    "${adminProfile!!.jabatan} • ${adminProfile!!.divisi}"
+
+                                adminProfile != null &&
+                                        adminProfile!!.jabatan.isNotBlank() ->
+                                    adminProfile!!.jabatan
+
+                                else ->
+                                    "Sistem Absensi Karyawan"
+                            },
                             fontSize = 13.sp,
                             color = TextGray
                         )
+
                     }
 
                     Card(
@@ -150,7 +223,9 @@ fun AdminDashboardScreen(
                     ) {
 
                         Text(
-                            text = "BH",
+                            text = getInitials(
+                                adminProfile?.nama ?: "Admin"
+                            ),
                             modifier = Modifier.padding(
                                 horizontal = 14.dp,
                                 vertical = 10.dp
@@ -164,6 +239,33 @@ fun AdminDashboardScreen(
                 Spacer(
                     modifier = Modifier.height(24.dp)
                 )
+
+                // =========================
+                // ERROR DATA ADMIN
+                // =========================
+
+                if (errorMessage.isNotBlank()) {
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFE4E6)
+                        )
+                    ) {
+
+                        Text(
+                            text = errorMessage,
+                            modifier = Modifier.padding(16.dp),
+                            fontSize = 13.sp,
+                            color = Color(0xFFB91C1C)
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(16.dp)
+                    )
+                }
 
                 // =========================
                 // RINGKASAN
@@ -289,7 +391,9 @@ fun AdminDashboardScreen(
                         Text(
                             text = "Ketuk untuk meninjau pengajuan karyawan",
                             fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.75f)
+                            color = Color.White.copy(
+                                alpha = 0.75f
+                            )
                         )
                     }
                 }
@@ -304,8 +408,10 @@ fun AdminDashboardScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Text(
@@ -374,7 +480,8 @@ fun AdminDashboardScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp)
                 ) {
 
                     QuickMenuCard(
@@ -414,13 +521,17 @@ fun AdminDashboardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement =
+                            Arrangement.Center,
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "Keluar",
+                            imageVector =
+                                Icons.Default.Logout,
+                            contentDescription =
+                                "Keluar",
                             tint = Color(0xFFB91C1C)
                         )
 
@@ -430,8 +541,10 @@ fun AdminDashboardScreen(
 
                         Text(
                             text = "Keluar",
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFB91C1C)
+                            fontWeight =
+                                FontWeight.SemiBold,
+                            color =
+                                Color(0xFFB91C1C)
                         )
                     }
                 }
@@ -451,7 +564,9 @@ fun AdminDashboardScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            Color.Black.copy(alpha = 0.35f)
+                            Color.Black.copy(
+                                alpha = 0.35f
+                            )
                         )
                         .clickable {
                             sidebarOpen = false
@@ -472,11 +587,44 @@ fun AdminDashboardScreen(
     }
 }
 
+private fun getInitials(
+    name: String
+): String {
+
+    val parts =
+        name.trim()
+            .split(" ")
+            .filter {
+                it.isNotBlank()
+            }
+
+    return when {
+
+        parts.isEmpty() ->
+            "A"
+
+        parts.size == 1 ->
+            parts[0]
+                .take(2)
+                .uppercase()
+
+        else ->
+            "${parts.first().first()}${parts.last().first()}"
+                .uppercase()
+    }
+}
+
 @Composable
 private fun AdminSidebar(
     onClose: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val currentDate = remember {
+        SimpleDateFormat(
+            "dd MMMM yyyy",
+            Locale("id", "ID")
+        ).format(Date())
+    }
 
     Box(
         modifier = Modifier
@@ -500,41 +648,66 @@ private fun AdminSidebar(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Card(
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = DarkGreen
-                    )
+                    shape =
+                        RoundedCornerShape(14.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                DarkGreen
+                        )
                 ) {
 
                     Text(
                         text = "A",
-                        modifier = Modifier.padding(12.dp),
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        modifier =
+                            Modifier.padding(12.dp),
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            Color.White
                     )
                 }
 
                 Spacer(
-                    modifier = Modifier.width(12.dp)
+                    modifier =
+                        Modifier.width(12.dp)
                 )
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text = "Absensi Karyawan",
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
+                        text =
+                            "Absensi Karyawan",
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            TextDark
                     )
 
                     Text(
-                        text = "Admin / HRD",
-                        fontSize = 12.sp,
+                        text =
+                            "Admin / HRD",
+                        fontSize =
+                            12.sp,
+                        color =
+                            TextGray
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(2.dp)
+                    )
+
+                    Text(
+                        text = currentDate,
+                        fontSize = 13.sp,
                         color = TextGray
                     )
                 }
@@ -544,52 +717,72 @@ private fun AdminSidebar(
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Tutup",
-                        tint = TextDark
+                        imageVector =
+                            Icons.Default.Close,
+                        contentDescription =
+                            "Tutup",
+                        tint =
+                            TextDark
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(28.dp)
+                modifier =
+                    Modifier.height(28.dp)
             )
 
             AdminMenuItem(
-                icon = Icons.Default.Dashboard,
-                title = "Dashboard",
-                selected = true
+                icon =
+                    Icons.Default.Dashboard,
+                title =
+                    "Dashboard",
+                selected =
+                    true
             )
 
             AdminMenuItem(
-                icon = Icons.Default.Group,
-                title = "Data Karyawan"
+                icon =
+                    Icons.Default.Group,
+                title =
+                    "Data Karyawan"
             )
 
             AdminMenuItem(
-                icon = Icons.Default.CheckCircle,
-                title = "Approval Pengajuan"
+                icon =
+                    Icons.Default.CheckCircle,
+                title =
+                    "Approval Pengajuan"
             )
 
             AdminMenuItem(
-                icon = Icons.Default.Assessment,
-                title = "Rekap Kehadiran"
+                icon =
+                    Icons.Default.Assessment,
+                title =
+                    "Rekap Kehadiran"
             )
 
             AdminMenuItem(
-                icon = Icons.Default.Settings,
-                title = "Setting"
+                icon =
+                    Icons.Default.Settings,
+                title =
+                    "Setting"
             )
 
             Spacer(
-                modifier = Modifier.weight(1f)
+                modifier =
+                    Modifier.weight(1f)
             )
 
             AdminMenuItem(
-                icon = Icons.Default.Logout,
-                title = "Keluar",
-                danger = true,
-                onClick = onLogout
+                icon =
+                    Icons.Default.Logout,
+                title =
+                    "Keluar",
+                danger =
+                    true,
+                onClick =
+                    onLogout
             )
         }
     }
@@ -605,13 +798,22 @@ private fun AdminMenuItem(
 ) {
 
     val backgroundColor =
-        if (selected) DarkGreen else Color.Transparent
+        if (selected) {
+            DarkGreen
+        } else {
+            Color.Transparent
+        }
 
     val contentColor =
         when {
-            danger -> Color(0xFFB91C1C)
-            selected -> Color.White
-            else -> TextDark
+            danger ->
+                Color(0xFFB91C1C)
+
+            selected ->
+                Color.White
+
+            else ->
+                TextDark
         }
 
     Row(
@@ -628,34 +830,45 @@ private fun AdminMenuItem(
                 horizontal = 14.dp,
                 vertical = 14.dp
             ),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = contentColor,
-            modifier = Modifier.size(22.dp)
+            imageVector =
+                icon,
+            contentDescription =
+                title,
+            tint =
+                contentColor,
+            modifier =
+                Modifier.size(22.dp)
         )
 
         Spacer(
-            modifier = Modifier.width(14.dp)
+            modifier =
+                Modifier.width(14.dp)
         )
 
         Text(
-            text = title,
-            fontSize = 15.sp,
-            fontWeight = if (selected) {
-                FontWeight.Bold
-            } else {
-                FontWeight.Medium
-            },
-            color = contentColor
+            text =
+                title,
+            fontSize =
+                15.sp,
+            fontWeight =
+                if (selected) {
+                    FontWeight.Bold
+                } else {
+                    FontWeight.Medium
+                },
+            color =
+                contentColor
         )
     }
 
     Spacer(
-        modifier = Modifier.height(6.dp)
+        modifier =
+            Modifier.height(6.dp)
     )
 }
 
@@ -669,42 +882,59 @@ private fun AdminSummaryCard(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        shape =
+            RoundedCornerShape(16.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
         ) {
 
             Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = PrimaryGreen
+                imageVector =
+                    icon,
+                contentDescription =
+                    label,
+                tint =
+                    PrimaryGreen
             )
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier =
+                    Modifier.height(10.dp)
             )
 
             Text(
-                text = number,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
+                text =
+                    number,
+                fontSize =
+                    26.sp,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    TextDark
             )
 
             Text(
-                text = label,
-                fontSize = 13.sp,
-                color = TextGray
+                text =
+                    label,
+                fontSize =
+                    13.sp,
+                color =
+                    TextGray
             )
         }
     }
@@ -718,68 +948,96 @@ private fun AdminApprovalCard(
 ) {
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        modifier =
+            Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(16.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
     ) {
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
 
             Card(
-                shape = RoundedCornerShape(50.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFE6EEE9)
-                )
+                shape =
+                    RoundedCornerShape(50.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            Color(0xFFE6EEE9)
+                    )
             ) {
 
                 Text(
-                    text = initials,
-                    modifier = Modifier.padding(12.dp),
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryGreen
+                    text =
+                        initials,
+                    modifier =
+                        Modifier.padding(12.dp),
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        PrimaryGreen
                 )
             }
 
             Spacer(
-                modifier = Modifier.width(12.dp)
+                modifier =
+                    Modifier.width(12.dp)
             )
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier =
+                    Modifier.weight(1f)
             ) {
 
                 Text(
-                    text = name,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
+                    text =
+                        name,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        TextDark
                 )
 
                 Spacer(
-                    modifier = Modifier.height(3.dp)
+                    modifier =
+                        Modifier.height(3.dp)
                 )
 
                 Text(
-                    text = type,
-                    fontSize = 13.sp,
-                    color = TextGray
+                    text =
+                        type,
+                    fontSize =
+                        13.sp,
+                    color =
+                        TextGray
                 )
             }
 
             Text(
-                text = "Menunggu",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFD97706)
+                text =
+                    "Menunggu",
+                fontSize =
+                    12.sp,
+                fontWeight =
+                    FontWeight.SemiBold,
+                color =
+                    Color(0xFFD97706)
             )
         }
     }
@@ -793,38 +1051,54 @@ private fun QuickMenuCard(
 ) {
 
     Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        modifier =
+            modifier,
+        shape =
+            RoundedCornerShape(16.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
 
             Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = PrimaryGreen
+                imageVector =
+                    icon,
+                contentDescription =
+                    title,
+                tint =
+                    PrimaryGreen
             )
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier =
+                    Modifier.height(8.dp)
             )
 
             Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                color = TextDark,
-                textAlign = TextAlign.Center
+                text =
+                    title,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    TextDark,
+                textAlign =
+                    TextAlign.Center
             )
         }
     }

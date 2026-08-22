@@ -15,14 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,22 +29,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-private val PrimaryGreen = Color(0xFF1F3A2D)
-private val DarkGreen = Color(0xFF093628)
-private val Background = Color(0xFFF6F8F7)
-private val TextDark = Color(0xFF17221C)
-private val TextGray = Color(0xFF6B7280)
+import com.example.absensikaryawan.data.UserRepository
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun LoginScreen(
@@ -56,16 +50,30 @@ fun LoginScreen(
     onAdminLogin: () -> Unit
 ) {
 
-    var selectedRole by remember {
-        mutableStateOf("Staff")
-    }
+    // =========================
+    // STATE
+    // =========================
 
-    var username by remember {
+    var email by remember {
         mutableStateOf("")
     }
 
     var password by remember {
         mutableStateOf("")
+    }
+
+    var isLoading by remember {
+        mutableStateOf(false)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf("")
+    }
+
+    val scope = rememberCoroutineScope()
+
+    val userRepository = remember {
+        UserRepository()
     }
 
     Surface(
@@ -81,7 +89,7 @@ fun LoginScreen(
         ) {
 
             Spacer(
-                modifier = Modifier.height(40.dp)
+                modifier = Modifier.height(55.dp)
             )
 
             // =========================
@@ -92,6 +100,9 @@ fun LoginScreen(
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = DarkGreen
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 5.dp
                 )
             ) {
 
@@ -127,126 +138,315 @@ fun LoginScreen(
             )
 
             Spacer(
-                modifier = Modifier.height(32.dp)
+                modifier = Modifier.height(30.dp)
             )
 
             // =========================
-            // PILIH ROLE
+            // LOGIN CARD
             // =========================
 
-            Text(
-                text = "Masuk sebagai",
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 3.dp
+                )
             ) {
 
-                LoginRoleCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Person,
-                    title = "Saya Staff",
-                    selected = selectedRole == "Staff",
-                    onClick = {
-                        selectedRole = "Staff"
-                    }
-                )
-
-                LoginRoleCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.AdminPanelSettings,
-                    title = "Saya Admin",
-                    selected = selectedRole == "Admin",
-                    onClick = {
-                        selectedRole = "Admin"
-                    }
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
-
-            // =========================
-            // FORM STAFF
-            // =========================
-
-            if (selectedRole == "Staff") {
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
                 ) {
 
-                    Column(
+                    Text(
+                        text = "Masuk ke Akun",
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(5.dp)
+                    )
+
+                    Text(
+                        text = "Gunakan akun yang telah didaftarkan Admin.",
+                        fontSize = 13.sp,
+                        color = TextGray
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(20.dp)
+                    )
+
+                    // =========================
+                    // EMAIL
+                    // =========================
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { value ->
+                            email = value
+                            errorMessage = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text("Email")
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = PrimaryGreen
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(13.dp)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // =========================
+                    // PASSWORD
+                    // =========================
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { value ->
+                            password = value
+                            errorMessage = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text("Password")
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = PrimaryGreen
+                            )
+                        },
+                        visualTransformation =
+                            PasswordVisualTransformation(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(13.dp)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(18.dp)
+                    )
+
+                    // =========================
+                    // LOGIN BUTTON
+                    // =========================
+
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(18.dp)
+                            .background(
+                                color = DarkGreen,
+                                shape = RoundedCornerShape(13.dp)
+                            )
+                            .clickable(
+                                enabled = !isLoading
+                            ) {
+
+                                if (
+                                    email.isBlank() ||
+                                    password.isBlank()
+                                ) {
+
+                                    errorMessage =
+                                        "Email dan password wajib diisi."
+
+                                    return@clickable
+                                }
+
+                                scope.launch {
+
+                                    isLoading = true
+                                    errorMessage = ""
+
+                                    try {
+
+                                        // =========================
+                                        // FIREBASE AUTH
+                                        // =========================
+
+                                        FirebaseAuth
+                                            .getInstance()
+                                            .signInWithEmailAndPassword(
+                                                email.trim(),
+                                                password
+                                            )
+                                            .await()
+
+                                        // =========================
+                                        // USER FIREBASE
+                                        // =========================
+
+                                        val currentUser =
+                                            FirebaseAuth
+                                                .getInstance()
+                                                .currentUser
+
+                                        if (currentUser == null) {
+
+                                            errorMessage =
+                                                "Login gagal. User Firebase tidak ditemukan."
+
+                                            return@launch
+                                        }
+
+                                        // =========================
+                                        // EMAIL FIREBASE
+                                        // =========================
+
+                                        val userEmail =
+                                            currentUser.email
+
+                                        if (userEmail.isNullOrEmpty()) {
+
+                                            errorMessage =
+                                                "Email akun Firebase tidak ditemukan."
+
+                                            FirebaseAuth
+                                                .getInstance()
+                                                .signOut()
+
+                                            return@launch
+                                        }
+
+                                        // =========================
+                                        // PROFILE FIRESTORE
+                                        // =========================
+
+                                        val userProfile =
+                                            userRepository
+                                                .getUserByEmail(
+                                                    userEmail
+                                                )
+
+                                        if (userProfile == null) {
+
+                                            errorMessage =
+                                                "Email $userEmail belum terdaftar di data users Firebase."
+
+                                            FirebaseAuth
+                                                .getInstance()
+                                                .signOut()
+
+                                            return@launch
+                                        }
+
+                                        // =========================
+                                        // ROLE
+                                        // =========================
+
+                                        if (userProfile.isAdmin) {
+
+                                            onAdminLogin()
+
+                                        } else {
+
+                                            onStaffLogin()
+                                        }
+
+                                    } catch (e: Exception) {
+
+                                        errorMessage =
+                                            when {
+                                                e.message
+                                                    ?.contains(
+                                                        "password",
+                                                        ignoreCase = true
+                                                    ) == true ->
+                                                    "Password salah."
+
+                                                e.message
+                                                    ?.contains(
+                                                        "no user record",
+                                                        ignoreCase = true
+                                                    ) == true ->
+                                                    "Email belum terdaftar di Firebase Authentication."
+
+                                                e.message
+                                                    ?.contains(
+                                                        "badly formatted",
+                                                        ignoreCase = true
+                                                    ) == true ->
+                                                    "Format email tidak valid."
+
+                                                else ->
+                                                    e.message
+                                                        ?: "Login gagal."
+                                            }
+
+                                    } finally {
+
+                                        isLoading = false
+                                    }
+                                }
+                            }
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = 15.dp
+                            ),
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.Center
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(8.dp)
+                        )
+
+                        Text(
+                            text =
+                                if (isLoading) {
+                                    "Memproses..."
+                                } else {
+                                    "Masuk"
+                                },
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(18.dp)
+                    )
+
+                    // =========================
+                    // INFO LOGIN
+                    // =========================
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
 
                         Text(
-                            text = "Login Staff",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(6.dp)
-                        )
-
-                        Text(
-                            text = "Gunakan akun yang sudah terdaftar.",
-                            fontSize = 13.sp,
-                            color = TextGray
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(18.dp)
-                        )
-
-                        LoginActionButton(
-                            icon = Icons.Default.Person,
-                            text = "Masuk dengan Google",
-                            dark = true,
-                            onClick = onStaffLogin
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(10.dp)
-                        )
-
-                        LoginActionButton(
-                            icon = Icons.Default.Phone,
-                            text = "Masuk dengan Nomor Telepon",
-                            dark = false,
-                            onClick = onStaffLogin
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
-
-                        Text(
-                            text = "Belum terdaftar? Hubungi HRD.",
+                            text = "Akun dibuat dan dikelola oleh Admin / HRD.",
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = TextGray
                         )
                     }
@@ -254,103 +454,31 @@ fun LoginScreen(
             }
 
             // =========================
-            // FORM ADMIN
+            // ERROR
             // =========================
 
-            if (selectedRole == "Admin") {
+            if (errorMessage.isNotBlank()) {
+
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
+                        containerColor = Color(0xFFFFF0F0)
                     )
                 ) {
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp)
-                    ) {
-
-                        Text(
-                            text = "Login Admin / HRD",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(6.dp)
-                        )
-
-                        Text(
-                            text = "Masukkan akun administrator.",
-                            fontSize = 13.sp,
-                            color = TextGray
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(16.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = username,
-                            onValueChange = {
-                                username = it
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = {
-                                Text("Username")
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null
-                                )
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = {
-                                password = it
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = {
-                                Text("Password")
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = null
-                                )
-                            },
-                            visualTransformation = PasswordVisualTransformation(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(16.dp)
-                        )
-
-                        LoginActionButton(
-                            icon = Icons.Default.ArrowForward,
-                            text = "Masuk sebagai Admin",
-                            dark = true,
-                            onClick = onAdminLogin
-                        )
-                    }
+                    Text(
+                        text = errorMessage,
+                        modifier = Modifier.padding(14.dp),
+                        textAlign = TextAlign.Center,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFC62828)
+                    )
                 }
             }
 
@@ -363,6 +491,27 @@ fun LoginScreen(
             // =========================
 
             Text(
+                text = "Belum memiliki akun?",
+                fontSize = 12.sp,
+                color = TextGray
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
+                text = "Hubungi Admin / HRD untuk mendapatkan akses.",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = PrimaryGreen
+            )
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            Text(
                 text = "Absensi Karyawan • Versi 1.0",
                 fontSize = 11.sp,
                 color = TextGray
@@ -372,113 +521,5 @@ fun LoginScreen(
                 modifier = Modifier.height(8.dp)
             )
         }
-    }
-}
-
-@Composable
-private fun LoginRoleCard(
-    modifier: Modifier,
-    icon: ImageVector,
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-
-    val backgroundColor =
-        if (selected) DarkGreen else Color.White
-
-    val contentColor =
-        if (selected) Color.White else TextDark
-
-    Card(
-        modifier = modifier.clickable {
-            onClick()
-        },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
-    ) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = contentColor,
-                modifier = Modifier.size(28.dp)
-            )
-
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
-
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = contentColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoginActionButton(
-    icon: ImageVector,
-    text: String,
-    dark: Boolean,
-    onClick: () -> Unit
-) {
-
-    val backgroundColor =
-        if (dark) DarkGreen else Color(0xFFE6EEE9)
-
-    val contentColor =
-        if (dark) Color.White else PrimaryGreen
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = backgroundColor,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clickable {
-                onClick()
-            }
-            .padding(
-                horizontal = 16.dp,
-                vertical = 14.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp)
-        )
-
-        Spacer(
-            modifier = Modifier.width(8.dp)
-        )
-
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = contentColor
-        )
     }
 }

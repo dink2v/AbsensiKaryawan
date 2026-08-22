@@ -37,11 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val PrimaryGreen = Color(0xFF1F3A2D)
-private val DarkGreen = Color(0xFF093628)
-private val Background = Color(0xFFF6F8F7)
-private val TextDark = Color(0xFF17221C)
-private val TextGray = Color(0xFF6B7280)
 
 @Composable
 fun ApprovalScreen(

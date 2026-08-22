@@ -20,40 +20,173 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.data.AbsensiDataStore
+import com.example.absensikaryawan.data.UserRepository
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-private val PrimaryGreen = Color(0xFF1F3A2D)
-private val DarkGreen = Color(0xFF093628)
-private val Background = Color(0xFFF6F8F7)
-private val TextDark = Color(0xFF17221C)
-private val TextGray = Color(0xFF6B7280)
-private val LightGreen = Color(0xFFE6EEE9)
 
 @Composable
 fun StaffDashboardScreen(
     onScan: () -> Unit,
+    onProfile: () -> Unit,
+    onHistory: () -> Unit,
+    onSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
+
+    val context = LocalContext.current
+
+    // ======================================================
+    // DATASTORE ABSENSI
+    // ======================================================
+
+    val absensiDataStore = remember {
+        AbsensiDataStore(context)
+    }
+
+    val sudahAbsen by absensiDataStore
+        .sudahAbsen
+        .collectAsState(initial = false)
+
+    val jamAbsen by absensiDataStore
+        .jamAbsen
+        .collectAsState(initial = "")
+
+    val jamPulang by absensiDataStore
+        .jamPulang
+        .collectAsState(initial = "")
+
+    // ======================================================
+    // USER FIREBASE
+    // ======================================================
+
+    val userRepository = remember {
+        UserRepository()
+    }
+
+    var namaUser by remember {
+        mutableStateOf("Memuat...")
+    }
+
+    LaunchedEffect(Unit) {
+
+        val result =
+            userRepository.getCurrentUserName()
+
+        if (result.isSuccess) {
+
+            namaUser =
+                result.getOrNull()
+                    ?.takeIf {
+                        it.isNotBlank()
+                    }
+                    ?: "User"
+
+        } else {
+
+            namaUser = "User"
+        }
+    }
+
+    // ======================================================
+    // STATE RIWAYAT
+    // ======================================================
+
+    var showHistory by remember {
+        mutableStateOf(false)
+    }
+
+    // ======================================================
+    // JAM REALTIME
+    // ======================================================
+
+    var jamSekarang by remember {
+
+        mutableStateOf(
+            SimpleDateFormat(
+                "HH:mm:ss",
+                Locale.getDefault()
+            ).format(Date())
+        )
+    }
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            jamSekarang =
+                SimpleDateFormat(
+                    "HH:mm:ss",
+                    Locale.getDefault()
+                ).format(Date())
+
+            delay(1000)
+        }
+    }
+
+    // ======================================================
+    // TANGGAL REALTIME
+    // ======================================================
+
+    var tanggalSekarang by remember {
+
+        mutableStateOf(
+            SimpleDateFormat(
+                "EEEE, dd MMMM yyyy",
+                Locale("id", "ID")
+            ).format(Date())
+        )
+    }
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            tanggalSekarang =
+                SimpleDateFormat(
+                    "EEEE, dd MMMM yyyy",
+                    Locale("id", "ID")
+                ).format(Date())
+
+            delay(1000)
+        }
+    }
+
+    // ======================================================
+    // ROOT
+    // ======================================================
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -64,11 +197,17 @@ fun StaffDashboardScreen(
             modifier = Modifier.fillMaxSize()
         ) {
 
+            // ==================================================
+            // ISI BERANDA
+            // ==================================================
+
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
                     .padding(
                         start = 20.dp,
                         end = 20.dp,
@@ -76,14 +215,19 @@ fun StaffDashboardScreen(
                     )
             ) {
 
+                // ==================================================
                 // HEADER
+                // ==================================================
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Column(
-                        modifier = Modifier.weight(1f)
+                        modifier =
+                            Modifier.weight(1f)
                     ) {
 
                         Text(
@@ -92,503 +236,973 @@ fun StaffDashboardScreen(
                             color = TextGray
                         )
 
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.height(3.dp)
+                        )
 
                         Text(
-                            text = "Budi Hartono",
+                            text = "Absensi",
                             fontSize = 25.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight =
+                                FontWeight.Bold,
                             color = TextDark
                         )
 
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.height(3.dp)
+                        )
 
                         Text(
-                            text = "Rabu, 19 Agustus 2026",
+                            text = tanggalSekarang,
                             fontSize = 13.sp,
                             color = TextGray
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(6.dp)
+                        )
+
+                        Text(
+                            text = jamSekarang,
+                            fontSize = 22.sp,
+                            fontWeight =
+                                FontWeight.Bold,
+                            color = PrimaryGreen
                         )
                     }
 
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         IconButton(
                             onClick = {}
                         ) {
+
                             Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifikasi",
-                                tint = PrimaryGreen
+                                imageVector =
+                                    Icons.Default.Notifications,
+                                contentDescription =
+                                    "Notifikasi",
+                                tint =
+                                    PrimaryGreen
                             )
                         }
 
+                        // ==================================================
+                        // AVATAR PROFILE
+                        // ==================================================
+
                         Card(
-                            shape = CircleShape,
-                            colors = CardDefaults.cardColors(
-                                containerColor = DarkGreen
-                            )
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable {
+                                    onProfile()
+                                },
+
+                            shape =
+                                CircleShape,
+
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        DarkGreen
+                                )
                         ) {
 
-                            Text(
-                                text = "BH",
-                                modifier = Modifier.padding(12.dp),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Box(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+
+                                contentAlignment =
+                                    Alignment.Center
+                            ) {
+
+                                Text(
+                                    text =
+                                        namaUser
+                                            .trim()
+                                            .split(" ")
+                                            .filter {
+                                                it.isNotEmpty()
+                                            }
+                                            .take(2)
+                                            .joinToString("") {
+                                                it.first()
+                                                    .uppercase()
+                                            }
+                                            .ifEmpty {
+                                                "PF"
+                                            },
+
+                                    fontSize = 13.sp,
+
+                                    fontWeight =
+                                        FontWeight.Bold,
+
+                                    color =
+                                        Color.White
+                                )
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(
+                    modifier =
+                        Modifier.height(24.dp)
+                )
 
+                // ==================================================
                 // STATUS KEHADIRAN
+                // ==================================================
+
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = DarkGreen
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 3.dp
-                    )
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(22.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                DarkGreen
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = 3.dp
+                        )
                 ) {
 
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(22.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(22.dp),
+
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
                     ) {
 
                         Text(
-                            text = "STATUS KEHADIRAN",
+                            text =
+                                "STATUS KEHADIRAN",
+
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.75f)
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.75f
+                                )
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.height(12.dp)
+                        )
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
 
                             Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF69C27D))
+                                modifier =
+                                    Modifier
+                                        .size(12.dp)
+                                        .clip(
+                                            CircleShape
+                                        )
+                                        .background(
+                                            Color(0xFF69C27D)
+                                        )
                             )
 
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(
+                                modifier =
+                                    Modifier.width(8.dp)
+                            )
 
                             Text(
-                                text = "BELUM ABSEN",
+                                text =
+                                    if (sudahAbsen) {
+                                        "SUDAH ABSEN"
+                                    } else {
+                                        "BELUM ABSEN"
+                                    },
+
                                 fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color.White
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.height(20.dp)
+                        )
 
-                        // SCAN BESAR
+                        // ==================================================
+                        // TOMBOL SCAN
+                        // ==================================================
+
                         Card(
-                            modifier = Modifier
-                                .size(145.dp)
-                                .clickable {
-                                    onScan()
-                                },
-                            shape = RoundedCornerShape(28.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(
-                                defaultElevation = 5.dp
-                            )
+                            modifier =
+                                Modifier
+                                    .size(145.dp)
+                                    .clickable {
+                                        onScan()
+                                    },
+
+                            shape =
+                                RoundedCornerShape(28.dp),
+
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        Color.White
+                                ),
+
+                            elevation =
+                                CardDefaults.cardElevation(
+                                    defaultElevation = 5.dp
+                                )
                         ) {
 
                             Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(18.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(18.dp),
+
+                                horizontalAlignment =
+                                    Alignment.CenterHorizontally,
+
+                                verticalArrangement =
+                                    Arrangement.Center
                             ) {
 
                                 Icon(
-                                    imageVector = Icons.Default.QrCodeScanner,
-                                    contentDescription = "Scan Absen",
-                                    tint = PrimaryGreen,
-                                    modifier = Modifier.size(52.dp)
+                                    imageVector =
+                                        Icons.Default.QrCodeScanner,
+
+                                    contentDescription =
+                                        "Scan Absen",
+
+                                    tint =
+                                        PrimaryGreen,
+
+                                    modifier =
+                                        Modifier.size(52.dp)
                                 )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(
+                                    modifier =
+                                        Modifier.height(8.dp)
+                                )
 
                                 Text(
                                     text = "ABSEN",
+
                                     fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryGreen
+
+                                    fontWeight =
+                                        FontWeight.Bold,
+
+                                    color =
+                                        PrimaryGreen
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.height(14.dp)
+                        )
 
                         Text(
-                            text = "Scan QR untuk melakukan absensi",
+                            text =
+                                if (sudahAbsen) {
+                                    "Scan kembali untuk melakukan absen pulang"
+                                } else {
+                                    "Scan QR untuk melakukan absen masuk"
+                                },
+
                             fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.75f)
+
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.75f
+                                )
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(
+                    modifier =
+                        Modifier.height(20.dp)
+                )
 
+                // ==================================================
                 // KEHADIRAN HARI INI
+                // ==================================================
+
                 Text(
                     text = "Kehadiran Hari Ini",
+
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
                     color = TextDark
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    )
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color.White
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = 2.dp
+                        )
                 ) {
 
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp)
                     ) {
 
+                        // ==================================================
+                        // JAM MASUK
+                        // KLIK UNTUK RIWAYAT
+                        // ==================================================
+
                         AttendanceInfoRow(
-                            icon = Icons.Default.AccessTime,
-                            title = "Jam Masuk",
-                            value = "--:--"
+                            icon =
+                                Icons.Default.AccessTime,
+
+                            title =
+                                "Jam Masuk",
+
+                            value =
+                                if (
+                                    sudahAbsen &&
+                                    jamAbsen.isNotEmpty()
+                                ) {
+                                    jamAbsen
+                                } else {
+                                    "--:--"
+                                },
+
+                            onClick = {
+                                showHistory = true
+                            }
                         )
 
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        AttendanceInfoRow(
-                            icon = Icons.Default.ExitToApp,
-                            title = "Jam Pulang",
-                            value = "--:--"
+                        Spacer(
+                            modifier =
+                                Modifier.height(14.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        // ==================================================
+                        // JAM PULANG
+                        // KLIK UNTUK RIWAYAT
+                        // ==================================================
 
                         AttendanceInfoRow(
-                            icon = Icons.Default.LocationOn,
-                            title = "Lokasi",
-                            value = "Belum dicek"
+                            icon =
+                                Icons.Default.ExitToApp,
+
+                            title =
+                                "Jam Pulang",
+
+                            value =
+                                if (
+                                    jamPulang.isNotEmpty()
+                                ) {
+                                    jamPulang
+                                } else {
+                                    "--:--"
+                                },
+
+                            onClick = {
+                                showHistory = true
+                            }
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(
+                    modifier =
+                        Modifier.height(20.dp)
+                )
 
+                // ==================================================
                 // PENGAJUAN
+                // ==================================================
+
                 Text(
                     text = "Pengajuan Saya",
+
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
                     color = TextDark
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    )
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color.White
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = 2.dp
+                        )
                 ) {
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Card(
-                            shape = RoundedCornerShape(13.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = LightGreen
-                            )
+                            shape =
+                                RoundedCornerShape(13.dp),
+
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        SoftGreen
+                                )
                         ) {
 
                             Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = "Pengajuan",
-                                tint = PrimaryGreen,
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .size(24.dp)
+                                imageVector =
+                                    Icons.Default.Schedule,
+
+                                contentDescription =
+                                    "Pengajuan",
+
+                                tint =
+                                    PrimaryGreen,
+
+                                modifier =
+                                    Modifier
+                                        .padding(12.dp)
+                                        .size(24.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.width(12.dp)
+                        )
 
                         Column(
-                            modifier = Modifier.weight(1f)
+                            modifier =
+                                Modifier.weight(1f)
                         ) {
 
                             Text(
-                                text = "1 Pengajuan",
+                                text =
+                                    "1 Pengajuan",
+
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
                             )
 
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(
+                                modifier =
+                                    Modifier.height(3.dp)
+                            )
 
                             Text(
-                                text = "Menunggu persetujuan HRD",
+                                text =
+                                    "Menunggu persetujuan HRD",
+
                                 fontSize = 12.sp,
-                                color = TextGray
+
+                                color =
+                                    TextGray
                             )
                         }
 
                         Text(
-                            text = "Menunggu",
+                            text =
+                                "Menunggu",
+
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF9A6700)
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color(0xFF9A6700)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // LOKASI
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = LightGreen
-                    )
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = PrimaryGreen,
-                            modifier = Modifier.size(22.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        Column {
-
-                            Text(
-                                text = "Lokasi absensi",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
-
-                            Spacer(modifier = Modifier.height(2.dp))
-
-                            Text(
-                                text = "GPS akan diperiksa saat melakukan absensi.",
-                                fontSize = 12.sp,
-                                color = TextGray
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // LOGOUT
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onLogout()
-                        },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    )
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(15.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Keluar",
-                            tint = Color(0xFFB91C1C),
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = "Keluar",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFB91C1C)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(
+                    modifier =
+                        Modifier.height(20.dp)
+                )
             }
 
+            // ==================================================
             // BOTTOM NAVIGATION
+            // ==================================================
+
             StaffBottomNavigation(
-                onScan = onScan
+                onScan = onScan,
+                onProfile = onProfile
+            )
+        }
+
+        // ======================================================
+        // DIALOG RIWAYAT ABSENSI
+        // ======================================================
+
+        if (showHistory) {
+
+            AttendanceHistoryDialog(
+                tanggal = tanggalSekarang,
+                jamMasuk = jamAbsen,
+                jamPulang = jamPulang,
+                onDismiss = {
+                    showHistory = false
+                }
             )
         }
     }
 }
 
+
+// ======================================================
+// ATTENDANCE INFO ROW
+// ======================================================
+
 @Composable
 private fun AttendanceInfoRow(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+                    onClick()
+                }
+                .padding(vertical = 4.dp),
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Card(
+            shape =
+                RoundedCornerShape(11.dp),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        SoftGreen
+                )
+        ) {
+
+            Icon(
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    title,
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier
+                        .padding(10.dp)
+                        .size(20.dp)
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.width(12.dp)
+        )
+
+        Text(
+            text = title,
+
+            modifier =
+                Modifier.weight(1f),
+
+            fontSize = 14.sp,
+
+            color =
+                TextGray
+        )
+
+        Text(
+            text = value,
+
+            fontSize = 14.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextDark
+        )
+    }
+}
+
+
+// ======================================================
+// DIALOG RIWAYAT ABSENSI
+// ======================================================
+
+@Composable
+private fun AttendanceHistoryDialog(
+    tanggal: String,
+    jamMasuk: String,
+    jamPulang: String,
+    onDismiss: () -> Unit
+) {
+
+    AlertDialog(
+
+        onDismissRequest = onDismiss,
+
+        title = {
+
+            Text(
+                text = "Riwayat Absensi",
+                fontWeight = FontWeight.Bold
+            )
+        },
+
+        text = {
+
+            Column {
+
+                Text(
+                    text = tanggal,
+                    fontSize = 13.sp,
+                    color = TextGray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(18.dp)
+                )
+
+                HistoryItem(
+                    icon =
+                        Icons.Default.AccessTime,
+
+                    title =
+                        "Jam Masuk",
+
+                    value =
+                        if (
+                            jamMasuk.isNotEmpty()
+                        ) {
+                            jamMasuk
+                        } else {
+                            "Belum absen"
+                        }
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
+
+                HistoryItem(
+                    icon =
+                        Icons.Default.ExitToApp,
+
+                    title =
+                        "Jam Pulang",
+
+                    value =
+                        if (
+                            jamPulang.isNotEmpty()
+                        ) {
+                            jamPulang
+                        } else {
+                            "Belum absen pulang"
+                        }
+                )
+            }
+        },
+
+        confirmButton = {
+
+            TextButton(
+                onClick = onDismiss
+            ) {
+
+                Text(
+                    text = "Tutup",
+                    color = PrimaryGreen
+                )
+            }
+        }
+    )
+}
+
+
+// ======================================================
+// HISTORY ITEM
+// ======================================================
+
+@Composable
+private fun HistoryItem(
     icon: ImageVector,
     title: String,
     value: String
 ) {
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         Card(
-            shape = RoundedCornerShape(11.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = LightGreen
-            )
+            shape =
+                RoundedCornerShape(10.dp),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        SoftGreen
+                )
         ) {
 
             Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = PrimaryGreen,
-                modifier = Modifier
-                    .padding(10.dp)
-                    .size(20.dp)
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    title,
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier
+                        .padding(9.dp)
+                        .size(20.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Text(
-            text = title,
-            modifier = Modifier.weight(1f),
-            fontSize = 14.sp,
-            color = TextGray
+        Spacer(
+            modifier =
+                Modifier.width(12.dp)
         )
 
-        Text(
-            text = value,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextDark
-        )
+        Column {
+
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                color = TextGray
+            )
+
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+        }
     }
 }
 
+
+// ======================================================
+// BOTTOM NAVIGATION
+// ======================================================
+
 @Composable
 private fun StaffBottomNavigation(
-    onScan: () -> Unit
+    onScan: () -> Unit,
+    onProfile: () -> Unit
 ) {
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        color =
+            Color.White,
+
         shadowElevation = 8.dp
     ) {
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 10.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp,
+                        vertical = 10.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically,
+
+            horizontalArrangement =
+                Arrangement.SpaceAround
         ) {
 
             BottomNavItem(
-                icon = Icons.Default.WbSunny,
-                title = "Beranda",
+                icon =
+                    Icons.Default.WbSunny,
+
+                title =
+                    "Beranda",
+
                 selected = true
             )
 
             Card(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clickable {
-                        onScan()
-                    },
-                shape = CircleShape,
-                colors = CardDefaults.cardColors(
-                    containerColor = DarkGreen
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 5.dp
-                )
+                modifier =
+                    Modifier
+                        .size(64.dp)
+                        .clickable {
+                            onScan()
+                        },
+
+                shape =
+                    CircleShape,
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            DarkGreen
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation = 5.dp
+                    )
             ) {
 
                 Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier.fillMaxSize(),
+
+                    contentAlignment =
+                        Alignment.Center
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.QrCodeScanner,
-                        contentDescription = "Scan Absen",
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
+                        imageVector =
+                            Icons.Default.QrCodeScanner,
+
+                        contentDescription =
+                            "Scan Absen",
+
+                        tint =
+                            Color.White,
+
+                        modifier =
+                            Modifier.size(30.dp)
                     )
                 }
             }
 
-            BottomNavItem(
-                icon = Icons.Default.Person,
-                title = "Rekap",
-                selected = false
-            )
+            Box(
+                modifier =
+                    Modifier.clickable {
+                        onProfile()
+                    }
+            ) {
+
+                BottomNavItem(
+                    icon =
+                        Icons.Default.Person,
+
+                    title =
+                        "Profile",
+
+                    selected = false
+                )
+            }
         }
     }
 }
+
+
+// ======================================================
+// BOTTOM NAV ITEM
+// ======================================================
 
 @Composable
 private fun BottomNavItem(
@@ -598,30 +1212,50 @@ private fun BottomNavItem(
 ) {
 
     val color =
-        if (selected) PrimaryGreen else TextGray
+        if (selected) {
+            PrimaryGreen
+        } else {
+            TextGray
+        }
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
 
         Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = color,
-            modifier = Modifier.size(23.dp)
+            imageVector =
+                icon,
+
+            contentDescription =
+                title,
+
+            tint =
+                color,
+
+            modifier =
+                Modifier.size(23.dp)
         )
 
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(
+            modifier =
+                Modifier.height(3.dp)
+        )
 
         Text(
             text = title,
+
             fontSize = 11.sp,
-            fontWeight = if (selected) {
-                FontWeight.Bold
-            } else {
-                FontWeight.Medium
-            },
-            color = color
+
+            fontWeight =
+                if (selected) {
+                    FontWeight.Bold
+                } else {
+                    FontWeight.Medium
+                },
+
+            color =
+                color
         )
     }
 }
