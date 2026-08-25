@@ -12,7 +12,7 @@ import java.util.Date
 import java.util.Locale
 
 private val Context.absensiDataStore by preferencesDataStore(
-    name = "absensi_data"
+    name = "absensi"
 )
 
 class AbsensiDataStore(
@@ -21,9 +21,9 @@ class AbsensiDataStore(
 
     companion object {
 
-        // =====================================
-        // KEY DATA ABSENSI
-        // =====================================
+        // ==================================================
+        // KEY
+        // ==================================================
 
         private val SUDAH_ABSEN =
             booleanPreferencesKey("sudah_absen")
@@ -37,16 +37,17 @@ class AbsensiDataStore(
         private val JAM_PULANG =
             stringPreferencesKey("jam_pulang")
 
-        private val QR_DATA =
-            stringPreferencesKey("qr_data")
+        private val QR_ABSEN =
+            stringPreferencesKey("qr_absen")
 
         private val CATATAN_ABSEN =
             stringPreferencesKey("catatan_absen")
     }
 
-    // =====================================
+
+    // ==================================================
     // TANGGAL HARI INI
-    // =====================================
+    // ==================================================
 
     private fun tanggalHariIni(): String {
 
@@ -56,161 +57,160 @@ class AbsensiDataStore(
         ).format(Date())
     }
 
-    // =====================================
+
+    // ==================================================
     // SUDAH ABSEN
-    // =====================================
+    // ==================================================
 
     val sudahAbsen: Flow<Boolean> =
         context.absensiDataStore.data.map { preferences ->
 
             val tanggalTersimpan =
-                preferences[TANGGAL_ABSEN] ?: ""
+                preferences[TANGGAL_ABSEN]
 
-            val sudahAbsen =
-                preferences[SUDAH_ABSEN] ?: false
+            val tanggalHariIni =
+                tanggalHariIni()
 
-            sudahAbsen &&
-                    tanggalTersimpan == tanggalHariIni()
+            if (
+                tanggalTersimpan != null &&
+                tanggalTersimpan != tanggalHariIni
+            ) {
+
+                false
+
+            } else {
+
+                preferences[SUDAH_ABSEN]
+                    ?: false
+            }
         }
 
-    // =====================================
-    // JAM MASUK
-    // =====================================
+
+    // ==================================================
+    // JAM ABSEN
+    // ==================================================
 
     val jamAbsen: Flow<String> =
         context.absensiDataStore.data.map { preferences ->
 
             val tanggalTersimpan =
-                preferences[TANGGAL_ABSEN] ?: ""
+                preferences[TANGGAL_ABSEN]
 
             if (
-                tanggalTersimpan ==
-                tanggalHariIni()
+                tanggalTersimpan != null &&
+                tanggalTersimpan != tanggalHariIni()
             ) {
 
-                preferences[JAM_ABSEN] ?: ""
+                ""
 
             } else {
 
-                ""
+                preferences[JAM_ABSEN]
+                    ?: ""
             }
         }
 
-    // =====================================
+
+    // ==================================================
     // TANGGAL ABSEN
-    // =====================================
+    // ==================================================
 
     val tanggalAbsen: Flow<String> =
         context.absensiDataStore.data.map { preferences ->
 
-            preferences[TANGGAL_ABSEN] ?: ""
+            preferences[TANGGAL_ABSEN]
+                ?: ""
         }
 
-    // =====================================
+
+    // ==================================================
     // JAM PULANG
-    // =====================================
+    // ==================================================
 
     val jamPulang: Flow<String> =
         context.absensiDataStore.data.map { preferences ->
 
             val tanggalTersimpan =
-                preferences[TANGGAL_ABSEN] ?: ""
+                preferences[TANGGAL_ABSEN]
 
             if (
-                tanggalTersimpan ==
-                tanggalHariIni()
+                tanggalTersimpan != null &&
+                tanggalTersimpan != tanggalHariIni()
             ) {
 
-                preferences[JAM_PULANG] ?: ""
+                ""
 
             } else {
 
-                ""
+                preferences[JAM_PULANG]
+                    ?: ""
             }
         }
 
-    // =====================================
-    // QR DATA
-    // =====================================
 
-    val qrData: Flow<String> =
+    // ==================================================
+    // QR ABSEN
+    // ==================================================
+
+    val qrAbsen: Flow<String> =
         context.absensiDataStore.data.map { preferences ->
 
-            val tanggalTersimpan =
-                preferences[TANGGAL_ABSEN] ?: ""
-
-            if (
-                tanggalTersimpan ==
-                tanggalHariIni()
-            ) {
-
-                preferences[QR_DATA] ?: ""
-
-            } else {
-
-                ""
-            }
+            preferences[QR_ABSEN]
+                ?: ""
         }
 
-    // =====================================
-    // CATATAN ABSENSI
-    // =====================================
+
+    // ==================================================
+    // CATATAN ABSEN
+    // ==================================================
 
     val catatanAbsen: Flow<String> =
         context.absensiDataStore.data.map { preferences ->
 
-            val tanggalTersimpan =
-                preferences[TANGGAL_ABSEN] ?: ""
-
-            if (
-                tanggalTersimpan ==
-                tanggalHariIni()
-            ) {
-
-                preferences[CATATAN_ABSEN] ?: ""
-
-            } else {
-
-                ""
-            }
+            preferences[CATATAN_ABSEN]
+                ?: ""
         }
 
-    // =====================================
+
+    // ==================================================
     // SIMPAN ABSEN MASUK
-    // =====================================
+    // ==================================================
 
     suspend fun simpanAbsen(
         jam: String,
         tanggal: String,
-        qrData: String = "",
+        qrData: String,
         catatan: String = ""
     ) {
 
         context.absensiDataStore.edit { preferences ->
 
-            // Tandai sudah absen
-            preferences[SUDAH_ABSEN] = true
+            preferences[SUDAH_ABSEN] =
+                true
 
-            // Simpan jam masuk
-            preferences[JAM_ABSEN] = jam
+            preferences[JAM_ABSEN] =
+                jam
 
-            // Simpan tanggal
-            preferences[TANGGAL_ABSEN] = tanggal
+            preferences[TANGGAL_ABSEN] =
+                tanggal
 
-            // Simpan QR
-            preferences[QR_DATA] = qrData
+            preferences[QR_ABSEN] =
+                qrData
 
-            // Simpan catatan
-            preferences[CATATAN_ABSEN] = catatan
+            preferences[CATATAN_ABSEN] =
+                catatan
 
-            // Absensi baru = belum pulang
-            preferences[JAM_PULANG] = ""
+            // Reset jam pulang ketika
+            // membuat absensi masuk baru.
+            preferences[JAM_PULANG] =
+                ""
         }
     }
 
-    // =====================================
+
+    // ==================================================
     // SIMPAN ABSEN PULANG
-    // =====================================
+    // ==================================================
 
     suspend fun simpanPulang(
         jam: String
@@ -218,38 +218,76 @@ class AbsensiDataStore(
 
         context.absensiDataStore.edit { preferences ->
 
-            val tanggalTersimpan =
-                preferences[TANGGAL_ABSEN] ?: ""
-
-            if (
-                tanggalTersimpan ==
-                tanggalHariIni()
-            ) {
-
-                preferences[JAM_PULANG] = jam
-            }
+            preferences[JAM_PULANG] =
+                jam
         }
     }
 
-    // =====================================
-    // RESET ABSEN
-    // =====================================
 
-    suspend fun resetAbsen() {
+    // ==================================================
+    // RESET ABSENSI
+    // ==================================================
+
+    suspend fun resetAbsensi() {
 
         context.absensiDataStore.edit { preferences ->
 
-            preferences[SUDAH_ABSEN] = false
+            preferences[SUDAH_ABSEN] =
+                false
 
-            preferences[JAM_ABSEN] = ""
+            preferences[JAM_ABSEN] =
+                ""
 
-            preferences[TANGGAL_ABSEN] = ""
+            preferences[TANGGAL_ABSEN] =
+                ""
 
-            preferences[JAM_PULANG] = ""
+            preferences[JAM_PULANG] =
+                ""
 
-            preferences[QR_DATA] = ""
+            preferences[QR_ABSEN] =
+                ""
 
-            preferences[CATATAN_ABSEN] = ""
+            preferences[CATATAN_ABSEN] =
+                ""
+        }
+    }
+    // ==================================================
+// CEK DAN RESET JIKA TANGGAL BERUBAH
+// ==================================================
+
+    suspend fun cekDanResetJikaTanggalBerubah() {
+
+        context.absensiDataStore.edit { preferences ->
+
+            val tanggalTersimpan =
+                preferences[TANGGAL_ABSEN]
+
+            val tanggalHariIni =
+                tanggalHariIni()
+
+            if (
+                tanggalTersimpan != null &&
+                tanggalTersimpan != tanggalHariIni
+            ) {
+
+                preferences[SUDAH_ABSEN] =
+                    false
+
+                preferences[JAM_ABSEN] =
+                    ""
+
+                preferences[TANGGAL_ABSEN] =
+                    ""
+
+                preferences[JAM_PULANG] =
+                    ""
+
+                preferences[QR_ABSEN] =
+                    ""
+
+                preferences[CATATAN_ABSEN] =
+                    ""
+            }
         }
     }
 }

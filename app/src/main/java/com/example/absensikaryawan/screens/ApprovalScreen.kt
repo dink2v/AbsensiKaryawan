@@ -21,7 +21,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,6 +31,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,12 +44,85 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.data.FirestoreRepository
+import com.example.absensikaryawan.data.PengajuanData
+import kotlinx.coroutines.launch
 
+// ==========================================================
+// DATA MODEL PENGAJUAN
+// ==========================================================
+
+data class PengajuanData(
+    val id: String,
+    val nama: String,
+    val jenis: String,
+    val tanggal: String,
+    val jamPulang: String,
+    val jamKeluar: String,
+    val jamKembali: String,
+    val tanggalMulai: String,
+    val tanggalSelesai: String,
+    val alasan: String,
+    val status: String
+)
+
+
+// ==========================================================
+// APPROVAL SCREEN
+// ==========================================================
 
 @Composable
 fun ApprovalScreen(
     onBack: () -> Unit
 ) {
+
+    val repository = remember {
+        FirestoreRepository()
+    }
+
+    // SCOPE HARUS DI DALAM @Composable
+    val scope = rememberCoroutineScope()
+
+    var daftarPengajuan by remember {
+        mutableStateOf<List<PengajuanData>>(emptyList())
+    }
+
+    var sedangMemuat by remember {
+        mutableStateOf(true)
+    }
+
+    // ======================================================
+    // LOAD DATA FIRESTORE
+    // ======================================================
+
+    fun loadPengajuan() {
+
+        scope.launch {
+
+            sedangMemuat = true
+
+            val hasil =
+                repository.getPengajuanMenunggu()
+
+            if (hasil.isSuccess) {
+
+                daftarPengajuan =
+                    hasil.getOrNull()
+                        ?: emptyList()
+            }
+
+            sedangMemuat = false
+        }
+    }
+
+    // Load pertama kali
+    LaunchedEffect(Unit) {
+        loadPengajuan()
+    }
+
+    // ======================================================
+    // UI
+    // ======================================================
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -51,13 +132,15 @@ fun ApprovalScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(
+                    rememberScrollState()
+                )
                 .padding(20.dp)
         ) {
 
-            // =========================
+            // ==================================================
             // HEADER
-            // =========================
+            // ==================================================
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -69,9 +152,14 @@ fun ApprovalScreen(
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Kembali",
-                        tint = PrimaryGreen
+                        imageVector =
+                            Icons.Default.ArrowBack,
+
+                        contentDescription =
+                            "Kembali",
+
+                        tint =
+                            PrimaryGreen
                     )
                 }
 
@@ -100,9 +188,9 @@ fun ApprovalScreen(
                 modifier = Modifier.height(24.dp)
             )
 
-            // =========================
+            // ==================================================
             // RINGKASAN
-            // =========================
+            // ==================================================
 
             Text(
                 text = "Pengajuan Menunggu",
@@ -117,21 +205,36 @@ fun ApprovalScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement =
+                    Arrangement.spacedBy(10.dp)
             ) {
 
                 ApprovalSummaryCard(
-                    modifier = Modifier.weight(1f),
-                    number = "3",
-                    label = "Menunggu",
-                    icon = Icons.Default.Schedule
+                    modifier =
+                        Modifier.weight(1f),
+
+                    number =
+                        daftarPengajuan.size.toString(),
+
+                    label =
+                        "Menunggu",
+
+                    icon =
+                        Icons.Default.Schedule
                 )
 
                 ApprovalSummaryCard(
-                    modifier = Modifier.weight(1f),
-                    number = "8",
-                    label = "Disetujui",
-                    icon = Icons.Default.CheckCircle
+                    modifier =
+                        Modifier.weight(1f),
+
+                    number =
+                        "-",
+
+                    label =
+                        "Disetujui",
+
+                    icon =
+                        Icons.Default.CheckCircle
                 )
             }
 
@@ -139,9 +242,9 @@ fun ApprovalScreen(
                 modifier = Modifier.height(24.dp)
             )
 
-            // =========================
-            // DAFTAR PENGAJUAN
-            // =========================
+            // ==================================================
+            // JUDUL DAFTAR
+            // ==================================================
 
             Text(
                 text = "Daftar Pengajuan",
@@ -154,85 +257,239 @@ fun ApprovalScreen(
                 modifier = Modifier.height(12.dp)
             )
 
-            ApprovalRequestCard(
-                initials = "AW",
-                name = "Andi Wijaya",
-                department = "IT",
-                type = "Cuti Reguler",
-                date = "20 - 21 Agustus 2026"
-            )
+            // ==================================================
+            // LOADING
+            // ==================================================
 
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
+            if (sedangMemuat) {
 
-            ApprovalRequestCard(
-                initials = "SN",
-                name = "Siti Nurhaliza",
-                department = "Keuangan",
-                type = "Izin Sakit",
-                date = "19 Agustus 2026"
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            ApprovalRequestCard(
-                initials = "DL",
-                name = "Dewi Lestari",
-                department = "Marketing",
-                type = "Pulang Cepat",
-                date = "19 Agustus 2026"
-            )
-
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
-
-            // =========================
-            // INFO
-            // =========================
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFE6EEE9)
+                Text(
+                    text = "Memuat pengajuan...",
+                    fontSize = 14.sp,
+                    color = TextGray,
+                    modifier = Modifier.padding(
+                        vertical = 20.dp
+                    )
                 )
-            ) {
+            }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // ==================================================
+            // TIDAK ADA DATA
+            // ==================================================
+
+            else if (daftarPengajuan.isEmpty()) {
+
+                Card(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(16.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color.White
+                        )
                 ) {
 
-                    Icon(
-                        imageVector = Icons.Default.Group,
-                        contentDescription = null,
-                        tint = PrimaryGreen
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Group,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                TextGray,
+
+                            modifier =
+                                Modifier.size(42.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(10.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Belum ada pengajuan",
+
+                            fontSize =
+                                15.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                TextDark
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(4.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Pengajuan dari staff akan muncul di sini.",
+
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                TextGray
+                        )
+                    }
+                }
+            }
+
+            // ==================================================
+            // DAFTAR DATA FIRESTORE
+            // ==================================================
+
+            else {
+
+                daftarPengajuan.forEach { pengajuan ->
+
+                    ApprovalRequestCard(
+
+                        pengajuan =
+                            pengajuan,
+
+                        onApprove = {
+
+                            scope.launch {
+
+                                val hasil =
+                                    repository.updateStatusPengajuan(
+                                        documentId =
+                                            pengajuan.id,
+
+                                        status =
+                                            "disetujui"
+                                    )
+
+                                if (hasil.isSuccess) {
+
+                                    loadPengajuan()
+                                }
+                            }
+                        },
+
+                        onReject = {
+
+                            scope.launch {
+
+                                val hasil =
+                                    repository.updateStatusPengajuan(
+                                        documentId =
+                                            pengajuan.id,
+
+                                        status =
+                                            "ditolak"
+                                    )
+
+                                if (hasil.isSuccess) {
+
+                                    loadPengajuan()
+                                }
+                            }
+                        }
                     )
 
                     Spacer(
-                        modifier = Modifier.width(12.dp)
-                    )
-
-                    Text(
-                        text = "Ketuk pengajuan untuk melihat detail dan melakukan approval.",
-                        fontSize = 13.sp,
-                        color = TextDark
+                        modifier =
+                            Modifier.height(12.dp)
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(20.dp)
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+            // ==================================================
+            // INFO
+            // ==================================================
+
+            Card(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                shape =
+                    RoundedCornerShape(16.dp),
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            Color(0xFFE6EEE9)
+                    )
+            ) {
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Group,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            PrimaryGreen
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(12.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Pengajuan yang masuk dapat disetujui atau ditolak oleh Admin / HRD.",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            TextDark
+                    )
+                }
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(20.dp)
             )
         }
     }
 }
+
+
+// ==========================================================
+// SUMMARY CARD
+// ==========================================================
 
 @Composable
 private fun ApprovalSummaryCard(
@@ -244,273 +501,731 @@ private fun ApprovalSummaryCard(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+
+        shape =
+            RoundedCornerShape(16.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            )
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
         ) {
 
             Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = PrimaryGreen,
-                modifier = Modifier.size(22.dp)
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    label,
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier.size(22.dp)
             )
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier =
+                    Modifier.height(10.dp)
             )
 
             Text(
-                text = number,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
+                text =
+                    number,
+
+                fontSize =
+                    25.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
             )
 
             Text(
-                text = label,
-                fontSize = 13.sp,
-                color = TextGray
+                text =
+                    label,
+
+                fontSize =
+                    13.sp,
+
+                color =
+                    TextGray
             )
         }
     }
 }
 
+
+// ==========================================================
+// APPROVAL REQUEST CARD
+// ==========================================================
+
 @Composable
 private fun ApprovalRequestCard(
-    initials: String,
-    name: String,
-    department: String,
-    type: String,
-    date: String
+    pengajuan: PengajuanData,
+    onApprove: () -> Unit,
+    onReject: () -> Unit
 ) {
 
+    val initials =
+        pengajuan.nama
+            .trim()
+            .split(" ")
+            .filter {
+                it.isNotEmpty()
+            }
+            .take(2)
+            .joinToString("") {
+                it.first().uppercase()
+            }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                // Detail approval kita buat pada step berikutnya
-            },
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(18.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            )
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp)
         ) {
 
+            // ==================================================
+            // NAMA STAFF
+            // ==================================================
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Card(
-                    shape = RoundedCornerShape(50.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE6EEE9)
-                    )
+                    shape =
+                        RoundedCornerShape(50.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color(0xFFE6EEE9)
+                        )
                 ) {
 
                     Text(
-                        text = initials,
-                        modifier = Modifier.padding(13.dp),
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryGreen
+                        text =
+                            if (initials.isNotEmpty())
+                                initials
+                            else
+                                "ST",
+
+                        modifier =
+                            Modifier.padding(13.dp),
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            PrimaryGreen
                     )
                 }
 
                 Spacer(
-                    modifier = Modifier.width(12.dp)
+                    modifier =
+                        Modifier.width(12.dp)
                 )
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text = name,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
+                        text =
+                            pengajuan.nama,
+
+                        fontSize =
+                            16.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
                     )
 
                     Spacer(
-                        modifier = Modifier.height(3.dp)
+                        modifier =
+                            Modifier.height(3.dp)
                     )
 
                     Text(
-                        text = department,
-                        fontSize = 12.sp,
-                        color = TextGray
+                        text =
+                            "Staff",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 }
 
                 Card(
-                    shape = RoundedCornerShape(50.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFFF4D6)
-                    )
+                    shape =
+                        RoundedCornerShape(50.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color(0xFFFFF4D6)
+                        )
                 ) {
 
                     Text(
-                        text = "Menunggu",
-                        modifier = Modifier.padding(
-                            horizontal = 10.dp,
-                            vertical = 6.dp
-                        ),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF9A6700)
+                        text =
+                            "Menunggu",
+
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 10.dp,
+                                vertical = 6.dp
+                            ),
+
+                        fontSize =
+                            11.sp,
+
+                        fontWeight =
+                            FontWeight.SemiBold,
+
+                        color =
+                            Color(0xFF9A6700)
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(16.dp)
+                modifier =
+                    Modifier.height(16.dp)
             )
 
+            // ==================================================
+            // JENIS PENGAJUAN
+            // ==================================================
+
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Icon(
-                    imageVector = when (type) {
-                        "Cuti Reguler" -> Icons.Default.Event
-                        "Izin Sakit" -> Icons.Default.CheckCircle
-                        else -> Icons.Default.Schedule
-                    },
-                    contentDescription = type,
-                    tint = PrimaryGreen,
-                    modifier = Modifier.size(20.dp)
+                    imageVector =
+                        getJenisIcon(
+                            pengajuan.jenis
+                        ),
+
+                    contentDescription =
+                        pengajuan.jenis,
+
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(22.dp)
                 )
 
                 Spacer(
-                    modifier = Modifier.width(8.dp)
+                    modifier =
+                        Modifier.width(8.dp)
                 )
 
                 Column {
 
                     Text(
-                        text = type,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextDark
+                        text =
+                            formatJenis(
+                                pengajuan.jenis
+                            ),
+
+                        fontSize =
+                            14.sp,
+
+                        fontWeight =
+                            FontWeight.SemiBold,
+
+                        color =
+                            TextDark
                     )
 
                     Text(
-                        text = date,
-                        fontSize = 12.sp,
-                        color = TextGray
+                        text =
+                            "Tanggal: ${pengajuan.tanggal}",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
+            // ==================================================
+            // DETAIL JAM
+            // ==================================================
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            if (
+                pengajuan.jamPulang.isNotBlank() ||
+                pengajuan.jamKeluar.isNotBlank() ||
+                pengajuan.jamKembali.isNotBlank()
             ) {
 
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
+
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color =
+                                    Color(0xFFF5F7F6),
+
+                                shape =
+                                    RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp)
+                ) {
+
+                    if (
+                        pengajuan.jamPulang.isNotBlank()
+                    ) {
+
+                        DetailText(
+                            label =
+                                "Jam Pulang",
+
+                            value =
+                                pengajuan.jamPulang
+                        )
+                    }
+
+                    if (
+                        pengajuan.jamKeluar.isNotBlank()
+                    ) {
+
+                        DetailText(
+                            label =
+                                "Jam Keluar",
+
+                            value =
+                                pengajuan.jamKeluar
+                        )
+                    }
+
+                    if (
+                        pengajuan.jamKembali.isNotBlank()
+                    ) {
+
+                        DetailText(
+                            label =
+                                "Jam Kembali",
+
+                            value =
+                                pengajuan.jamKembali
+                        )
+                    }
+                }
+            }
+
+            // ==================================================
+            // DETAIL TANGGAL
+            // ==================================================
+
+            if (
+                pengajuan.tanggalMulai.isNotBlank() ||
+                pengajuan.tanggalSelesai.isNotBlank()
+            ) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(10.dp)
+                )
+
+                Text(
+                    text =
+                        "Periode: ${pengajuan.tanggalMulai} - ${pengajuan.tanggalSelesai}",
+
+                    fontSize =
+                        12.sp,
+
+                    color =
+                        TextGray
+                )
+            }
+
+            // ==================================================
+            // ALASAN
+            // ==================================================
+
+            if (
+                pengajuan.alasan.isNotBlank()
+            ) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(10.dp)
+                )
+
+                Text(
+                    text =
+                        "Alasan:",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(3.dp)
+                )
+
+                Text(
+                    text =
+                        pengajuan.alasan,
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextGray
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(16.dp)
+            )
+
+            // ==================================================
+            // TOMBOL
+            // ==================================================
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(10.dp)
+            ) {
+
+                // ============================
+                // SETUJUI
+                // ============================
+
                 Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            // Setujui akan kita sambungkan nanti
-                        },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE9F5EC)
-                    )
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .clickable {
+                                onApprove()
+                            },
+
+                    shape =
+                        RoundedCornerShape(10.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color(0xFFE9F5EC)
+                        )
                 ) {
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+
+                        horizontalArrangement =
+                            Arrangement.Center,
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Setujui",
-                            tint = PrimaryGreen,
-                            modifier = Modifier.size(18.dp)
+                            imageVector =
+                                Icons.Default.CheckCircle,
+
+                            contentDescription =
+                                "Setujui",
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(18.dp)
                         )
 
                         Spacer(
-                            modifier = Modifier.width(6.dp)
+                            modifier =
+                                Modifier.width(6.dp)
                         )
 
                         Text(
-                            text = "Setujui",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen
+                            text =
+                                "Setujui",
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                PrimaryGreen
                         )
                     }
                 }
 
+                // ============================
+                // TOLAK
+                // ============================
+
                 Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            // Tolak akan kita sambungkan nanti
-                        },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFCEAEA)
-                    )
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .clickable {
+                                onReject()
+                            },
+
+                    shape =
+                        RoundedCornerShape(10.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color(0xFFFCEAEA)
+                        )
                 ) {
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+
+                        horizontalArrangement =
+                            Arrangement.Center,
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Tolak",
-                            tint = Color(0xFFB91C1C),
-                            modifier = Modifier.size(18.dp)
+                            imageVector =
+                                Icons.Default.Close,
+
+                            contentDescription =
+                                "Tolak",
+
+                            tint =
+                                Color(0xFFB91C1C),
+
+                            modifier =
+                                Modifier.size(18.dp)
                         )
 
                         Spacer(
-                            modifier = Modifier.width(6.dp)
+                            modifier =
+                                Modifier.width(6.dp)
                         )
 
                         Text(
-                            text = "Tolak",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFB91C1C)
+                            text =
+                                "Tolak",
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color(0xFFB91C1C)
                         )
                     }
                 }
             }
         }
+    }
+}
+
+
+// ==========================================================
+// DETAIL TEXT
+// ==========================================================
+
+@Composable
+private fun DetailText(
+    label: String,
+    value: String
+) {
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = 2.dp
+                )
+    ) {
+
+        Text(
+            text =
+                "$label:",
+
+            fontSize =
+                12.sp,
+
+            fontWeight =
+                FontWeight.SemiBold,
+
+            color =
+                TextDark,
+
+            modifier =
+                Modifier.width(100.dp)
+        )
+
+        Text(
+            text =
+                value,
+
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray
+        )
+    }
+}
+
+
+// ==========================================================
+// ICON JENIS PENGAJUAN
+// ==========================================================
+
+private fun getJenisIcon(
+    jenis: String
+): ImageVector {
+
+    return when {
+
+        jenis.contains(
+            "Sakit",
+            ignoreCase = true
+        ) ->
+            Icons.Default.HealthAndSafety
+
+        jenis.contains(
+            "Cuti",
+            ignoreCase = true
+        ) ->
+            Icons.Default.Event
+
+        jenis.contains(
+            "Keluar",
+            ignoreCase = true
+        ) ->
+            Icons.Default.AccessTime
+
+        jenis.contains(
+            "Terlambat",
+            ignoreCase = true
+        ) ->
+            Icons.Default.Schedule
+
+        jenis.contains(
+            "Pulang",
+            ignoreCase = true
+        ) ->
+            Icons.Default.Schedule
+
+        else ->
+            Icons.Default.Event
+    }
+}
+
+
+// ==========================================================
+// FORMAT JENIS
+// ==========================================================
+
+private fun formatJenis(
+    jenis: String
+): String {
+
+    return when (jenis) {
+
+        "PulangCepat" ->
+            "Pulang Cepat"
+
+        "IzinKeluar" ->
+            "Izin Keluar"
+
+        "IzinTerlambat" ->
+            "Izin Terlambat"
+
+        "IzinSakit" ->
+            "Izin Sakit"
+
+        "CutiReguler" ->
+            "Cuti Reguler"
+
+        else ->
+            jenis
     }
 }

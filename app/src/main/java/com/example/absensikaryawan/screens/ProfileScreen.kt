@@ -1,28 +1,27 @@
 package com.example.absensikaryawan.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -35,14 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.absensikaryawan.data.UserProfile
 import com.example.absensikaryawan.data.UserRepository
-import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun ProfileScreen(
@@ -53,9 +51,12 @@ fun ProfileScreen(
         UserRepository()
     }
 
-    var profile by remember {
-        mutableStateOf<UserProfile?>(null)
-    }
+    var nama by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var divisi by remember { mutableStateOf("") }
+    var jabatan by remember { mutableStateOf("") }
+    var usernameTele by remember { mutableStateOf("") }
+    var isAdmin by remember { mutableStateOf(false) }
 
     var isLoading by remember {
         mutableStateOf(true)
@@ -65,64 +66,82 @@ fun ProfileScreen(
         mutableStateOf("")
     }
 
-    // ==========================================
-    // AMBIL PROFILE USER DARI FIREBASE
-    // ==========================================
+    // ======================================================
+    // AMBIL PROFILE BERDASARKAN EMAIL USER LOGIN
+    // ======================================================
 
     LaunchedEffect(Unit) {
 
         try {
 
             val currentUser =
-                FirebaseAuth
-                    .getInstance()
-                    .currentUser
+                userRepository.getCurrentUser()
 
-            if (currentUser == null) {
+            if (currentUser.isFailure) {
 
                 errorMessage =
-                    "User belum login."
+                    currentUser.exceptionOrNull()?.message
+                        ?: "User belum login"
 
                 isLoading = false
 
                 return@LaunchedEffect
             }
 
-            val email =
-                currentUser.email
+            val firebaseUser =
+                currentUser.getOrNull()
 
-            if (email.isNullOrEmpty()) {
+            val userEmail =
+                firebaseUser?.email
+
+            if (userEmail.isNullOrBlank()) {
 
                 errorMessage =
-                    "Email user tidak ditemukan."
+                    "Email user tidak ditemukan"
 
                 isLoading = false
 
                 return@LaunchedEffect
             }
 
-            // ==========================================
-            // CARI DATA USER BERDASARKAN EMAIL
-            // ==========================================
+            val profile =
+                userRepository.getUserByEmail(
+                    email = userEmail
+                )
 
-            val result =
-                userRepository.getUserByEmail(email)
+            if (profile != null) {
 
-            if (result == null) {
+                nama =
+                    profile.nama
 
-                errorMessage =
-                    "Data profile tidak ditemukan."
+                email =
+                    profile.email
+
+                divisi =
+                    profile.divisi
+
+                jabatan =
+                    profile.jabatan
+
+                usernameTele =
+                    profile.usernameTele
+
+                isAdmin =
+                    profile.isAdmin
+
+                errorMessage = ""
 
             } else {
 
-                profile = result
+                errorMessage =
+                    "Data profile tidak ditemukan di Firestore"
             }
 
         } catch (e: Exception) {
 
             errorMessage =
                 e.message
-                    ?: "Gagal mengambil profile."
+                    ?: "Gagal mengambil profile"
 
         } finally {
 
@@ -130,9 +149,31 @@ fun ProfileScreen(
         }
     }
 
-    // ==========================================
+    // ======================================================
+    // INITIAL
+    // ======================================================
+
+    val initial =
+        remember(nama) {
+
+            nama
+                .trim()
+                .split(" ")
+                .filter {
+                    it.isNotEmpty()
+                }
+                .take(2)
+                .joinToString("") {
+                    it.first().uppercase()
+                }
+                .ifEmpty {
+                    "PF"
+                }
+        }
+
+    // ======================================================
     // ROOT
-    // ==========================================
+    // ======================================================
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -140,28 +181,28 @@ fun ProfileScreen(
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(20.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
 
-            // ==========================================
-            // HEADER PROFILE
-            // ==========================================
+            // ==================================================
+            // HEADER
+            // ==================================================
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 12.dp,
+                        end = 20.dp,
+                        top = 18.dp,
+                        bottom = 12.dp
+                    ),
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
                 IconButton(
-                    onClick = {
-                        onBack()
-                    }
+                    onClick = onBack
                 ) {
 
                     Icon(
@@ -176,15 +217,13 @@ fun ProfileScreen(
                     )
                 }
 
-                Spacer(
-                    modifier =
-                        Modifier.width(4.dp)
-                )
-
                 Text(
                     text = "Profile",
 
-                    fontSize = 26.sp,
+                    modifier =
+                        Modifier.weight(1f),
+
+                    fontSize = 24.sp,
 
                     fontWeight =
                         FontWeight.Bold,
@@ -194,44 +233,318 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(
-                modifier =
-                    Modifier.height(24.dp)
-            )
+            // ==================================================
+            // CONTENT
+            // ==================================================
 
-            // ==========================================
-            // LOADING
-            // ==========================================
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = 20.dp
+                    ),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
 
-            if (isLoading) {
-
-                Column(
+                Spacer(
                     modifier =
-                        Modifier.fillMaxWidth(),
+                        Modifier.size(20.dp)
+                )
 
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                // ==================================================
+                // AVATAR
+                // ==================================================
+
+                Card(
+                    modifier =
+                        Modifier.size(96.dp),
+
+                    shape =
+                        CircleShape,
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                DarkGreen
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = 4.dp
+                        )
                 ) {
 
-                    Text(
-                        text =
-                            "Memuat profile...",
+                    Box(
+                        modifier =
+                            Modifier.fillMaxSize(),
 
-                        color =
-                            TextGray,
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
 
-                        fontSize =
-                            14.sp
+                        if (isLoading) {
+
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(30.dp),
+
+                                color =
+                                    Color.White,
+
+                                strokeWidth =
+                                    3.dp
+                            )
+
+                        } else {
+
+                            Text(
+                                text = initial,
+
+                                fontSize = 26.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color.White
+                            )
+                        }
+                    }
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.size(16.dp)
+                )
+
+                // ==================================================
+                // NAMA
+                // ==================================================
+
+                Text(
+                    text =
+                        if (isLoading)
+                            "Memuat profile..."
+                        else if (nama.isNotBlank())
+                            nama
+                        else
+                            "Nama belum tersedia",
+
+                    fontSize = 21.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.size(5.dp)
+                )
+
+                // ==================================================
+                // JABATAN
+                // ==================================================
+
+                Text(
+                    text =
+                        if (jabatan.isNotBlank())
+                            jabatan
+                        else
+                            "-",
+
+                    fontSize = 13.sp,
+
+                    color =
+                        PrimaryGreen,
+
+                    fontWeight =
+                        FontWeight.SemiBold
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.size(24.dp)
+                )
+
+                // ==================================================
+                // ERROR
+                // ==================================================
+
+                if (errorMessage.isNotEmpty()) {
+
+                    Card(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        shape =
+                            RoundedCornerShape(16.dp),
+
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Color(0xFFFFEBEE)
+                            )
+                    ) {
+
+                        Text(
+                            text =
+                                errorMessage,
+
+                            modifier =
+                                Modifier.padding(16.dp),
+
+                            fontSize =
+                                13.sp,
+
+                            color =
+                                Color(0xFFC62828)
+                        )
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.size(16.dp)
                     )
                 }
 
-            }
+                // ==================================================
+                // INFORMASI PROFILE
+                // ==================================================
 
-            // ==========================================
-            // ERROR
-            // ==========================================
+                Card(
+                    modifier =
+                        Modifier.fillMaxWidth(),
 
-            else if (errorMessage.isNotEmpty()) {
+                    shape =
+                        RoundedCornerShape(20.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color.White
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = 2.dp
+                        )
+                ) {
+
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp)
+                    ) {
+
+                        Text(
+                            text =
+                                "Informasi Profile",
+
+                            fontSize =
+                                17.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                TextDark
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.size(14.dp)
+                        )
+
+                        ProfileInfoRow(
+                            icon =
+                                Icons.Default.Person,
+
+                            title =
+                                "Nama Lengkap",
+
+                            value =
+                                nama.ifBlank { "-" }
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.size(14.dp)
+                        )
+
+                        ProfileInfoRow(
+                            icon =
+                                Icons.Default.Business,
+
+                            title =
+                                "Divisi",
+
+                            value =
+                                divisi.ifBlank { "-" }
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.size(14.dp)
+                        )
+
+                        ProfileInfoRow(
+                            icon =
+                                Icons.Default.Badge,
+
+                            title =
+                                "Jabatan",
+
+                            value =
+                                jabatan.ifBlank { "-" }
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.size(14.dp)
+                        )
+
+                        ProfileInfoRow(
+                            icon =
+                                Icons.Default.Phone,
+
+                            title =
+                                "Username",
+
+                            value =
+                                usernameTele.ifBlank { "-" }
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.size(14.dp)
+                        )
+
+                        ProfileInfoRow(
+                            icon =
+                                Icons.Default.Person,
+
+                            title =
+                                "Email",
+
+                            value =
+                                email.ifBlank { "-" }
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.size(16.dp)
+                )
+
+                // ==================================================
+                // STATUS AKUN
+                // ==================================================
 
                 Card(
                     modifier =
@@ -243,405 +556,166 @@ fun ProfileScreen(
                     colors =
                         CardDefaults.cardColors(
                             containerColor =
-                                Color.White
+                                SoftGreen
                         )
                 ) {
 
-                    Text(
-                        text =
-                            errorMessage,
-
+                    Row(
                         modifier =
-                            Modifier.padding(20.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
 
-                        color =
-                            Color.Red
-                    )
-                }
-
-            }
-
-            // ==========================================
-            // PROFILE BERHASIL
-            // ==========================================
-
-            else {
-
-                val user = profile
-
-                if (user != null) {
-
-                    // ==========================================
-                    // AVATAR
-                    // ==========================================
-
-                    Column(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
-                        Card(
+                        Box(
                             modifier =
-                                Modifier.size(90.dp),
+                                Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        PrimaryGreen
+                                    )
+                        )
 
-                            shape =
-                                CircleShape,
+                        Spacer(
+                            modifier =
+                                Modifier.width(10.dp)
+                        )
 
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        DarkGreen
-                                )
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
                         ) {
 
-                            Column(
-                                modifier =
-                                    Modifier.fillMaxSize(),
+                            Text(
+                                text =
+                                    "Status Akun",
 
-                                horizontalAlignment =
-                                    Alignment.CenterHorizontally,
+                                fontSize =
+                                    11.sp,
 
-                                verticalArrangement =
-                                    Arrangement.Center
-                            ) {
+                                color =
+                                    TextGray
+                            )
 
-                                Text(
-                                    text =
-                                        getInitials(
-                                            user.nama
-                                        ),
+                            Text(
+                                text =
+                                    if (isAdmin)
+                                        "Administrator"
+                                    else
+                                        "Staff",
 
-                                    fontSize =
-                                        26.sp,
+                                fontSize =
+                                    14.sp,
 
-                                    fontWeight =
-                                        FontWeight.Bold,
+                                fontWeight =
+                                    FontWeight.Bold,
 
-                                    color =
-                                        Color.White
-                                )
-                            }
+                                color =
+                                    TextDark
+                            )
                         }
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        // ==========================================
-                        // NAMA FIREBASE
-                        // ==========================================
-
-                        Text(
-                            text =
-                                user.nama.ifEmpty {
-                                    "Nama belum diisi"
-                                },
-
-                            fontSize =
-                                22.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(5.dp)
-                        )
-
-                        // ==========================================
-                        // JABATAN FIREBASE
-                        // ==========================================
-
-                        Text(
-                            text =
-                                user.jabatan.ifEmpty {
-                                    "Jabatan belum diisi"
-                                },
-
-                            fontSize =
-                                14.sp,
-
-                            color =
-                                PrimaryGreen
-                        )
                     }
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(25.dp)
-                    )
-
-                    // ==========================================
-                    // NAMA
-                    // ==========================================
-
-                    ProfileInfoCard(
-                        icon =
-                            Icons.Default.Person,
-
-                        title =
-                            "Nama",
-
-                        value =
-                            user.nama.ifEmpty {
-                                "-"
-                            }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-
-                    // ==========================================
-                    // DIVISI
-                    // ==========================================
-
-                    ProfileInfoCard(
-                        icon =
-                            Icons.Default.Business,
-
-                        title =
-                            "Divisi",
-
-                        value =
-                            user.divisi.ifEmpty {
-                                "-"
-                            }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-
-                    // ==========================================
-                    // JABATAN
-                    // ==========================================
-
-                    ProfileInfoCard(
-                        icon =
-                            Icons.Default.Work,
-
-                        title =
-                            "Jabatan",
-
-                        value =
-                            user.jabatan.ifEmpty {
-                                "-"
-                            }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-
-                    // ==========================================
-                    // USERNAME TELEGRAM
-                    // ==========================================
-
-                    ProfileInfoCard(
-                        icon =
-                            Icons.Default.Send,
-
-                        title =
-                            "Username Telegram",
-
-                        value =
-                            user.usernameTele.ifEmpty {
-                                "-"
-                            }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-
-                    // ==========================================
-                    // STATUS ADMIN / STAFF
-                    // ==========================================
-
-                    ProfileInfoCard(
-                        icon =
-                            Icons.Default.Badge,
-
-                        title =
-                            "Status",
-
-                        value =
-                            if (user.isAdmin) {
-                                "Administrator"
-                            } else {
-                                "Staff"
-                            }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(20.dp)
-                    )
                 }
+
+                Spacer(
+                    modifier =
+                        Modifier.size(20.dp)
+                )
             }
         }
     }
 }
 
-
-// ======================================================
-// INISIAL NAMA
-// ======================================================
-
-private fun getInitials(
-    nama: String
-): String {
-
-    val words =
-        nama
-            .trim()
-            .split(" ")
-            .filter {
-                it.isNotBlank()
-            }
-
-    return when {
-
-        words.size >= 2 -> {
-
-            "${words[0].first()}${words[1].first()}"
-                .uppercase()
-        }
-
-        words.size == 1 -> {
-
-            words[0]
-                .take(2)
-                .uppercase()
-        }
-
-        else -> {
-
-            "PF"
-        }
-    }
-}
-
-
-// ======================================================
-// PROFILE INFO CARD
-// ======================================================
+// ==========================================================
+// PROFILE INFO ROW
+// ==========================================================
 
 @Composable
-private fun ProfileInfoCard(
+private fun ProfileInfoRow(
     icon: ImageVector,
     title: String,
     value: String
 ) {
 
-    Card(
+    Row(
         modifier =
             Modifier.fillMaxWidth(),
 
-        shape =
-            RoundedCornerShape(16.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
-            )
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+        Card(
+            shape =
+                RoundedCornerShape(11.dp),
 
-            verticalAlignment =
-                Alignment.CenterVertically
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        SoftGreen
+                )
         ) {
 
-            Card(
-                shape =
-                    RoundedCornerShape(12.dp),
+            Icon(
+                imageVector =
+                    icon,
 
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            SoftGreen
-                    )
-            ) {
+                contentDescription =
+                    title,
 
-                Icon(
-                    imageVector =
-                        icon,
+                tint =
+                    PrimaryGreen,
 
-                    contentDescription =
-                        title,
+                modifier =
+                    Modifier
+                        .padding(10.dp)
+                        .size(20.dp)
+            )
+        }
 
-                    tint =
-                        PrimaryGreen,
+        Spacer(
+            modifier =
+                Modifier.width(12.dp)
+        )
 
-                    modifier =
-                        Modifier
-                            .padding(10.dp)
-                            .size(22.dp)
-                )
-            }
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
+
+            Text(
+                text =
+                    title,
+
+                fontSize =
+                    11.sp,
+
+                color =
+                    TextGray
+            )
 
             Spacer(
                 modifier =
-                    Modifier.width(14.dp)
+                    Modifier.size(2.dp)
             )
 
-            Column {
+            Text(
+                text =
+                    value,
 
-                Text(
-                    text =
-                        title,
+                fontSize =
+                    14.sp,
 
-                    fontSize =
-                        12.sp,
+                fontWeight =
+                    FontWeight.SemiBold,
 
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-                Text(
-                    text =
-                        value,
-
-                    fontSize =
-                        15.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
-                )
-            }
+                color =
+                    TextDark
+            )
         }
     }
 }

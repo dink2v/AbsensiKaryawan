@@ -1,116 +1,210 @@
-@file:OptIn(
-    androidx.camera.core.ExperimentalGetImage::class
-)
-
 package com.example.absensikaryawan.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.QrCodeScanner
+
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+
+import androidx.compose.ui.platform.LocalContext
+
 import androidx.core.content.ContextCompat
+
 import androidx.lifecycle.compose.LocalLifecycleOwner
+
 import com.example.absensikaryawan.data.AbsensiDataStore
+import com.example.absensikaryawan.data.AbsensiHistoryDataStore
+
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-// ======================================================
-// SCAN ABSEN SCREEN
-// ======================================================
-
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun ScanAbsenScreen(
     onBack: () -> Unit,
-    onQrScanned: (String) -> Unit
+    onQrScanned: (String, String) -> Unit
 ) {
 
-    val context = LocalContext.current
+    // ==========================================================
+    // CONTEXT
+    // ==========================================================
 
-    // ==================================================
+    val context =
+        LocalContext.current
+
+    val lifecycleOwner =
+        LocalLifecycleOwner.current
+
+    // ==========================================================
+    // FIREBASE
+    // ==========================================================
+
+    val auth =
+        remember {
+            FirebaseAuth.getInstance()
+        }
+
+    val db =
+        remember {
+            FirebaseFirestore.getInstance()
+        }
+
+    // ==========================================================
     // DATASTORE
-    // ==================================================
+    // ==========================================================
 
-    val absensiDataStore = remember {
-        AbsensiDataStore(context)
+    val absensiDataStore =
+        remember {
+            AbsensiDataStore(context)
+        }
+
+    val historyDataStore =
+        remember {
+            AbsensiHistoryDataStore(context)
+        }
+
+    // ==========================================================
+    // COROUTINE
+    // ==========================================================
+
+    val scope =
+        rememberCoroutineScope()
+
+    // ==========================================================
+    // STATE
+    // ==========================================================
+
+    var qrData by remember {
+        mutableStateOf("")
     }
 
-    val scope = rememberCoroutineScope()
-
-    // ==================================================
-    // CEK STATUS ABSEN
-    // ==================================================
-
-    val sudahAbsen by absensiDataStore
-        .sudahAbsen
-        .collectAsState(initial = false)
-
-    // ==================================================
-    // IZIN CAMERA
-    // ==================================================
-
-    var hasCameraPermission by remember {
-
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
+    var catatan by remember {
+        mutableStateOf("")
     }
+
+    var sudahScan by remember {
+        mutableStateOf(false)
+    }
+
+    var sedangKirim by remember {
+        mutableStateOf(false)
+    }
+
+    var kameraDiizinkan by remember {
+        mutableStateOf(false)
+    }
+
+    // ==========================================================
+    // ANTI DOUBLE SCAN
+    // ==========================================================
+
+    /*
+     * Lock ini berbeda dengan state Compose.
+     *
+     * AtomicBoolean digunakan karena callback ML Kit
+     * dapat berjalan sangat cepat dan beberapa frame QR
+     * bisa terdeteksi hampir bersamaan.
+     *
+     * false = scanner masih boleh menerima QR
+     * true  = scanner sudah mengunci QR
+     */
+
+    val scanLock =
+        remember {
+            AtomicBoolean(false)
+        }
+
+    // ==========================================================
+    // CAMERA PERMISSION
+    // ==========================================================
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
 
-            hasCameraPermission = granted
-        }
+            kameraDiizinkan =
+                granted
 
-    // ==================================================
-    // REQUEST CAMERA
-    // ==================================================
+            Log.d(
+                "SCAN_DEBUG",
+                "IZIN KAMERA = $granted"
+            )
+        }
 
     LaunchedEffect(Unit) {
 
-        if (!hasCameraPermission) {
+        kameraDiizinkan =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (!kameraDiizinkan) {
 
             permissionLauncher.launch(
                 Manifest.permission.CAMERA
@@ -118,481 +212,797 @@ fun ScanAbsenScreen(
         }
     }
 
-    // ==================================================
-    // CAMERA BELUM DIIZINKAN
-    // ==================================================
+    // ==========================================================
+    // UI
+    // ==========================================================
 
-    if (!hasCameraPermission) {
+    Surface(
+        modifier =
+            Modifier.fillMaxSize(),
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
+        color =
+            Background
+    ) {
 
-            contentAlignment = Alignment.Center
+        Column(
+            modifier =
+                Modifier.fillMaxSize()
         ) {
 
-            Column(
-                horizontalAlignment =
-                    Alignment.CenterHorizontally,
+            // ==================================================
+            // HEADER
+            // ==================================================
 
-                verticalArrangement =
-                    Arrangement.Center
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 12.dp,
+                            vertical = 8.dp
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
-                Text(
-                    text = "Izin kamera diperlukan",
-                    color = Color.White
-                )
-
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
-
-                Button(
-                    onClick = {
-
-                        permissionLauncher.launch(
-                            Manifest.permission.CAMERA
-                        )
-                    }
-                ) {
-
-                    Text("Izinkan Kamera")
-                }
-
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-
-                Button(
+                IconButton(
                     onClick = onBack
                 ) {
 
-                    Text("Kembali")
+                    Icon(
+                        imageVector =
+                            Icons.Default.ArrowBack,
+
+                        contentDescription =
+                            "Kembali",
+
+                        tint =
+                            PrimaryGreen
+                    )
                 }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(4.dp)
+                )
+
+                Text(
+                    text =
+                        "Scan QR Absen",
+
+                    fontSize =
+                        21.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
             }
-        }
-
-        return
-    }
-
-    // ==================================================
-    // QR SCANNER
-    // ==================================================
-
-    QRScannerCamera(
-
-        onBack = onBack,
-
-        modePulang = sudahAbsen,
-
-        onQrScanned = { qrData ->
 
             // ==================================================
-            // WAKTU SEKARANG
+            // CAMERA
             // ==================================================
 
-            val sekarang = Date()
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(360.dp)
+                        .padding(16.dp),
 
-            val jamSekarang =
-                SimpleDateFormat(
-                    "HH:mm:ss",
-                    Locale.getDefault()
-                ).format(sekarang)
+                contentAlignment =
+                    Alignment.Center
+            ) {
 
-            val tanggalSekarang =
-                SimpleDateFormat(
-                    "yyyy-MM-dd",
-                    Locale.getDefault()
-                ).format(sekarang)
+                if (
+                    kameraDiizinkan &&
+                    !sudahScan
+                ) {
 
-            // ==================================================
-            // SIMPAN ABSEN
-            // ==================================================
+                    AndroidView(
 
-            scope.launch {
+                        modifier =
+                            Modifier.fillMaxSize(),
 
-                if (!sudahAbsen) {
+                        factory = { ctx ->
 
-                    // ==========================================
-                    // ABSEN MASUK
-                    // ==========================================
+                            val previewView =
+                                PreviewView(ctx)
 
-                    absensiDataStore.simpanAbsen(
-                        jam = jamSekarang,
-                        tanggal = tanggalSekarang,
-                        qrData = qrData,
-                        catatan = ""
+                            val cameraProviderFuture =
+                                ProcessCameraProvider
+                                    .getInstance(ctx)
+
+                            cameraProviderFuture.addListener(
+
+                                {
+
+                                    try {
+
+                                        val cameraProvider =
+                                            cameraProviderFuture
+                                                .get()
+
+                                        // ==================================
+                                        // PREVIEW
+                                        // ==================================
+
+                                        val preview =
+                                            Preview.Builder()
+                                                .build()
+
+                                        preview.setSurfaceProvider(
+                                            previewView.surfaceProvider
+                                        )
+
+                                        // ==================================
+                                        // QR SCANNER
+                                        // ==================================
+
+                                        val scanner =
+                                            BarcodeScanning
+                                                .getClient()
+
+                                        // ==================================
+                                        // IMAGE ANALYSIS
+                                        // ==================================
+
+                                        val imageAnalysis =
+                                            ImageAnalysis.Builder()
+                                                .setBackpressureStrategy(
+                                                    ImageAnalysis
+                                                        .STRATEGY_KEEP_ONLY_LATEST
+                                                )
+                                                .build()
+
+                                        imageAnalysis.setAnalyzer(
+
+                                            ContextCompat
+                                                .getMainExecutor(ctx)
+
+                                        ) { imageProxy ->
+
+                                            val mediaImage =
+                                                imageProxy.image
+
+                                            if (
+                                                mediaImage == null
+                                            ) {
+
+                                                imageProxy.close()
+
+                                                return@setAnalyzer
+                                            }
+
+                                            val image =
+                                                InputImage.fromMediaImage(
+                                                    mediaImage,
+                                                    imageProxy
+                                                        .imageInfo
+                                                        .rotationDegrees
+                                                )
+
+                                            scanner
+                                                .process(image)
+                                                .addOnSuccessListener {
+
+                                                        barcodes ->
+
+                                                    // ==================================
+                                                    // CEK STATE UI
+                                                    // ==================================
+
+                                                    if (sudahScan) {
+
+                                                        return@addOnSuccessListener
+                                                    }
+
+                                                    // ==================================
+                                                    // CEK LOCK
+                                                    // ==================================
+
+                                                    if (
+                                                        scanLock.get()
+                                                    ) {
+
+                                                        Log.d(
+                                                            "SCAN_DEBUG",
+                                                            "SCAN DIABAIKAN - LOCK AKTIF"
+                                                        )
+
+                                                        return@addOnSuccessListener
+                                                    }
+
+                                                    // ==================================
+                                                    // CARI QR
+                                                    // ==================================
+
+                                                    for (
+                                                    barcode
+                                                    in barcodes
+                                                    ) {
+
+                                                        val value =
+                                                            barcode.rawValue
+
+                                                        if (
+                                                            !value
+                                                                .isNullOrBlank()
+                                                        ) {
+
+                                                            // ==================================
+                                                            // LOCK SECEPAT MUNGKIN
+                                                            // ==================================
+
+                                                            val berhasilLock =
+                                                                scanLock.compareAndSet(
+                                                                    false,
+                                                                    true
+                                                                )
+
+                                                            if (
+                                                                !berhasilLock
+                                                            ) {
+
+                                                                Log.d(
+                                                                    "SCAN_DEBUG",
+                                                                    "QR DIABAIKAN - SUDAH ADA SCAN"
+                                                                )
+
+                                                                break
+                                                            }
+
+                                                            // ==================================
+                                                            // QR BERHASIL TERKUNCI
+                                                            // ==================================
+
+                                                            Log.d(
+                                                                "SCAN_DEBUG",
+                                                                "================================"
+                                                            )
+
+                                                            Log.d(
+                                                                "SCAN_DEBUG",
+                                                                "QR TERBACA"
+                                                            )
+
+                                                            Log.d(
+                                                                "SCAN_DEBUG",
+                                                                "QR DATA = $value"
+                                                            )
+
+                                                            Log.d(
+                                                                "SCAN_DEBUG",
+                                                                "ANTI DOUBLE SCAN = LOCK"
+                                                            )
+
+                                                            Log.d(
+                                                                "SCAN_DEBUG",
+                                                                "================================"
+                                                            )
+
+                                                            qrData =
+                                                                value
+
+                                                            sudahScan =
+                                                                true
+
+                                                            break
+                                                        }
+                                                    }
+                                                }
+
+                                                .addOnFailureListener {
+
+                                                        error ->
+
+                                                    Log.e(
+                                                        "SCAN_DEBUG",
+                                                        "GAGAL SCAN QR",
+                                                        error
+                                                    )
+                                                }
+
+                                                .addOnCompleteListener {
+
+                                                    imageProxy.close()
+                                                }
+                                        }
+
+                                        // ==================================
+                                        // CAMERA
+                                        // ==================================
+
+                                        cameraProvider.unbindAll()
+
+                                        cameraProvider.bindToLifecycle(
+
+                                            lifecycleOwner,
+
+                                            CameraSelector
+                                                .DEFAULT_BACK_CAMERA,
+
+                                            preview,
+
+                                            imageAnalysis
+                                        )
+
+                                        Log.d(
+                                            "SCAN_DEBUG",
+                                            "CAMERA BERHASIL DIBUKA"
+                                        )
+
+                                    } catch (
+                                        e: Exception
+                                    ) {
+
+                                        Log.e(
+                                            "SCAN_DEBUG",
+                                            "GAGAL MEMBUKA CAMERA",
+                                            e
+                                        )
+                                    }
+
+                                },
+
+                                ContextCompat
+                                    .getMainExecutor(ctx)
+                            )
+
+                            previewView
+                        }
                     )
 
                 } else {
 
-                    // ==========================================
-                    // ABSEN PULANG
-                    // ==========================================
+                    // ==================================================
+                    // HASIL SCAN
+                    // ==================================================
 
-                    absensiDataStore.simpanPulang(
-                        jam = jamSekarang
-                    )
-                }
+                    Card(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
 
-                // ==================================================
-                // KIRIM HASIL QR
-                // ==================================================
+                        shape =
+                            RoundedCornerShape(18.dp),
 
-                onQrScanned(qrData)
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Color.White
+                            )
+                    ) {
 
-                // ==================================================
-                // KEMBALI
-                // ==================================================
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
 
-                onBack()
-            }
-        }
-    )
-}
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally
+                        ) {
 
+                            Icon(
 
-// ======================================================
-// QR SCANNER CAMERA
-// ======================================================
+                                imageVector =
+                                    if (sudahScan) {
 
-@Composable
-private fun QRScannerCamera(
-    onBack: () -> Unit,
-    modePulang: Boolean,
-    onQrScanned: (String) -> Unit
-) {
+                                        Icons.Default.CheckCircle
 
-    val lifecycleOwner =
-        LocalLifecycleOwner.current
+                                    } else {
 
-    // ==================================================
-    // CAMERA EXECUTOR
-    // ==================================================
+                                        Icons.Default.QrCodeScanner
+                                    },
 
-    val cameraExecutor = remember {
+                                contentDescription =
+                                    null,
 
-        Executors.newSingleThreadExecutor()
-    }
+                                tint =
+                                    PrimaryGreen,
 
-    // ==================================================
-    // BARCODE SCANNER
-    // ==================================================
+                                modifier =
+                                    Modifier.size(55.dp)
+                            )
 
-    val barcodeScanner = remember {
+                            Spacer(
+                                modifier =
+                                    Modifier.height(12.dp)
+                            )
 
-        BarcodeScanning.getClient()
-    }
+                            Text(
 
-    // ==================================================
-    // CEGAH SCAN BERULANG
-    // ==================================================
+                                text =
+                                    if (sudahScan) {
 
-    val qrSudahTerbaca =
-        remember {
+                                        "QR Berhasil Dibaca"
 
-            AtomicBoolean(false)
-        }
+                                    } else {
 
-    // ==================================================
-    // CLEANUP
-    // ==================================================
+                                        "Kamera Membutuhkan Izin"
+                                    },
 
-    DisposableEffect(Unit) {
+                                fontSize =
+                                    17.sp,
 
-        onDispose {
+                                fontWeight =
+                                    FontWeight.Bold,
 
-            barcodeScanner.close()
+                                color =
+                                    TextDark
+                            )
 
-            cameraExecutor.shutdown()
-        }
-    }
+                            if (sudahScan) {
 
-    // ==================================================
-    // CAMERA CONTAINER
-    // ==================================================
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-
-        // ==================================================
-        // CAMERA PREVIEW
-        // ==================================================
-
-        AndroidView(
-
-            modifier = Modifier.fillMaxSize(),
-
-            factory = { ctx ->
-
-                val previewView =
-                    PreviewView(ctx)
-
-                // ==================================================
-                // CAMERA PROVIDER
-                // ==================================================
-
-                val cameraProviderFuture =
-                    ProcessCameraProvider
-                        .getInstance(ctx)
-
-                cameraProviderFuture.addListener({
-
-                    try {
-
-                        val cameraProvider =
-                            cameraProviderFuture.get()
-
-                        // ==================================================
-                        // PREVIEW
-                        // ==================================================
-
-                        val preview =
-                            Preview.Builder()
-                                .build()
-                                .also {
-
-                                    it.surfaceProvider =
-                                        previewView
-                                            .surfaceProvider
-                                }
-
-                        // ==================================================
-                        // IMAGE ANALYSIS
-                        // ==================================================
-
-                        val imageAnalyzer =
-                            ImageAnalysis.Builder()
-                                .setBackpressureStrategy(
-                                    ImageAnalysis
-                                        .STRATEGY_KEEP_ONLY_LATEST
-                                )
-                                .build()
-
-                        // ==================================================
-                        // ANALYZER
-                        // ==================================================
-
-                        imageAnalyzer.setAnalyzer(
-
-                            cameraExecutor
-
-                        ) { imageProxy ->
-
-                            // ==================================================
-                            // QR SUDAH DITEMUKAN
-                            // ==================================================
-
-                            if (
-                                qrSudahTerbaca.get()
-                            ) {
-
-                                imageProxy.close()
-
-                                return@setAnalyzer
-                            }
-
-                            // ==================================================
-                            // MEDIA IMAGE
-                            // ==================================================
-
-                            val mediaImage =
-                                imageProxy.image
-
-                            if (mediaImage == null) {
-
-                                imageProxy.close()
-
-                                return@setAnalyzer
-                            }
-
-                            // ==================================================
-                            // INPUT IMAGE
-                            // ==================================================
-
-                            val image =
-                                InputImage.fromMediaImage(
-
-                                    mediaImage,
-
-                                    imageProxy
-                                        .imageInfo
-                                        .rotationDegrees
+                                Spacer(
+                                    modifier =
+                                        Modifier.height(8.dp)
                                 )
 
-                            // ==================================================
-                            // SCAN QR
-                            // ==================================================
+                                Text(
 
-                            barcodeScanner
-                                .process(image)
+                                    text =
+                                        qrData,
 
-                                .addOnSuccessListener {
+                                    fontSize =
+                                        13.sp,
 
-                                        barcodes ->
-
-                                    // ==================================================
-                                    // CEK SUDAH SCAN
-                                    // ==================================================
-
-                                    if (
-                                        qrSudahTerbaca.get()
-                                    ) {
-
-                                        return@addOnSuccessListener
-                                    }
-
-                                    // ==================================================
-                                    // CARI QR
-                                    // ==================================================
-
-                                    for (
-                                    barcode in barcodes
-                                    ) {
-
-                                        val rawValue =
-                                            barcode.rawValue
-
-                                        if (
-                                            !rawValue
-                                                .isNullOrEmpty()
-                                        ) {
-
-                                            // ==============================
-                                            // KUNCI SCAN
-                                            // ==============================
-
-                                            if (
-                                                qrSudahTerbaca
-                                                    .compareAndSet(
-                                                        false,
-                                                        true
-                                                    )
-                                            ) {
-
-                                                // ==============================
-                                                // QR DITEMUKAN
-                                                // ==============================
-
-                                                onQrScanned(
-                                                    rawValue
-                                                )
-                                            }
-
-                                            break
-                                        }
-                                    }
-                                }
-
-                                .addOnFailureListener {
-
-                                    // ==================================================
-                                    // FRAME GAGAL DIBACA
-                                    // ==================================================
-
-                                    // Tidak melakukan apa-apa.
-                                    // Scanner akan lanjut membaca frame berikutnya.
-                                }
-
-                                .addOnCompleteListener {
-
-                                    // ==================================================
-                                    // WAJIB CLOSE
-                                    // ==================================================
-
-                                    imageProxy.close()
-                                }
+                                    color =
+                                        TextGray
+                                )
+                            }
                         }
-
-                        // ==================================================
-                        // CAMERA SELECTOR
-                        // ==================================================
-
-                        val cameraSelector =
-                            CameraSelector
-                                .DEFAULT_BACK_CAMERA
-
-                        // ==================================================
-                        // LEPAS CAMERA SEBELUMNYA
-                        // ==================================================
-
-                        cameraProvider.unbindAll()
-
-                        // ==================================================
-                        // HUBUNGKAN CAMERA
-                        // ==================================================
-
-                        cameraProvider.bindToLifecycle(
-
-                            lifecycleOwner,
-
-                            cameraSelector,
-
-                            preview,
-
-                            imageAnalyzer
-                        )
-
-                    } catch (e: Exception) {
-
-                        e.printStackTrace()
                     }
-
-                }, ContextCompat.getMainExecutor(ctx))
-
-                previewView
+                }
             }
-        )
-
-        // ==================================================
-        // HEADER
-        // ==================================================
-
-        Column(
-
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
 
             // ==================================================
-            // BUTTON KEMBALI
+            // CATATAN
             // ==================================================
 
-            Button(
-                onClick = onBack
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp
+                        )
             ) {
 
-                Text("Kembali")
+                Text(
+
+                    text =
+                        "Catatan (opsional)",
+
+                    fontSize =
+                        13.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        TextDark
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(6.dp)
+                )
+
+                OutlinedTextField(
+
+                    value =
+                        catatan,
+
+                    onValueChange = {
+                        catatan = it
+                    },
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    placeholder = {
+
+                        Text(
+                            text =
+                                "Tambahkan catatan..."
+                        )
+                    },
+
+                    maxLines =
+                        3,
+
+                    shape =
+                        RoundedCornerShape(12.dp)
+                )
             }
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier =
+                    Modifier.height(12.dp)
             )
 
             // ==================================================
-            // JUDUL
+            // BUTTON SIMPAN
             // ==================================================
 
-            Text(
+            Button(
 
-                text =
-                    if (modePulang) {
+                onClick = {
 
-                        "SCAN QR UNTUK ABSEN PULANG"
+                    if (
+                        sudahScan &&
+                        qrData.isNotBlank() &&
+                        !sedangKirim
+                    ) {
 
-                    } else {
+                        sedangKirim =
+                            true
 
-                        "SCAN QR UNTUK ABSEN MASUK"
-                    },
+                        val tanggal =
+                            SimpleDateFormat(
+                                "yyyy-MM-dd",
+                                Locale.getDefault()
+                            ).format(Date())
 
-                color = Color.White
+                        val jam =
+                            SimpleDateFormat(
+                                "HH:mm:ss",
+                                Locale.getDefault()
+                            ).format(Date())
+
+                        scope.launch {
+
+                            try {
+
+                                // ==================================
+                                // CEK USER LOGIN
+                                // ==================================
+
+                                val currentUser =
+                                    auth.currentUser
+
+                                if (
+                                    currentUser == null
+                                ) {
+
+                                    Log.e(
+                                        "SCAN_DEBUG",
+                                        "USER BELUM LOGIN"
+                                    )
+
+                                    sedangKirim =
+                                        false
+
+                                    // BUKA LOCK KEMBALI
+                                    scanLock.set(false)
+
+                                    return@launch
+                                }
+
+                                val uid =
+                                    currentUser.uid
+
+                                // ==================================
+                                // SIMPAN ABSENSI UTAMA
+                                // ==================================
+
+                                absensiDataStore.simpanAbsen(
+
+                                    jam =
+                                        jam,
+
+                                    tanggal =
+                                        tanggal,
+
+                                    qrData =
+                                        qrData,
+
+                                    catatan =
+                                        catatan
+                                )
+
+                                // ==================================
+                                // SIMPAN HISTORY LOCAL
+                                // ==================================
+
+                                historyDataStore
+                                    .simpanAbsenMasuk(
+
+                                        tanggal =
+                                            tanggal,
+
+                                        jamMasuk =
+                                            jam,
+
+                                        qrData =
+                                            qrData,
+
+                                        catatan =
+                                            catatan
+                                    )
+
+                                // ==================================
+                                // DATA FIRESTORE
+                                // ==================================
+
+                                val data =
+                                    hashMapOf(
+
+                                        "uid" to uid,
+
+                                        "tanggal" to tanggal,
+
+                                        "jamMasuk" to jam,
+
+                                        "jamPulang" to "",
+
+                                        "qrData" to qrData,
+
+                                        "catatan" to catatan
+                                    )
+
+                                // ==================================
+                                // SIMPAN KE ATTENDANCE
+                                // ==================================
+
+                                db.collection("attendance")
+                                    .add(data)
+                                    .await()
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "================================"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "ABSEN BERHASIL DISIMPAN"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "FIRESTORE BERHASIL"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "ANTI DOUBLE SCAN = AKTIF"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "UID = $uid"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "TANGGAL = $tanggal"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "JAM MASUK = $jam"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "QR = $qrData"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "CATATAN = $catatan"
+                                )
+
+                                Log.d(
+                                    "SCAN_DEBUG",
+                                    "================================"
+                                )
+
+                                // ==================================
+                                // LANJUT KE HALAMAN BERHASIL
+                                // ==================================
+
+                                onQrScanned(
+                                    qrData,
+                                    catatan
+                                )
+
+                            } catch (
+                                e: Exception
+                            ) {
+
+                                Log.e(
+                                    "SCAN_DEBUG",
+                                    "================================"
+                                )
+
+                                Log.e(
+                                    "SCAN_DEBUG",
+                                    "GAGAL MENYIMPAN ABSEN",
+                                    e
+                                )
+
+                                Log.e(
+                                    "SCAN_DEBUG",
+                                    "================================"
+                                )
+
+                                // ==================================
+                                // BUKA LOCK JIKA GAGAL
+                                // ==================================
+
+                                scanLock.set(false)
+
+                                sedangKirim =
+                                    false
+                            }
+                        }
+                    }
+                },
+
+                enabled =
+                    sudahScan &&
+                            qrData.isNotBlank() &&
+                            !sedangKirim,
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp
+                        ),
+
+                shape =
+                    RoundedCornerShape(14.dp),
+
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            PrimaryGreen
+                    )
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        Icons.Default.CheckCircle,
+
+                    contentDescription =
+                        null
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(8.dp)
+                )
+
+                Text(
+
+                    text =
+                        if (sedangKirim) {
+
+                            "Menyimpan..."
+
+                        } else {
+
+                            "Simpan Absen"
+                        },
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(20.dp)
             )
         }
     }
