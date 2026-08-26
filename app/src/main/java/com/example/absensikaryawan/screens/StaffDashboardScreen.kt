@@ -1,5 +1,6 @@
 package com.example.absensikaryawan.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Description
@@ -19,18 +24,21 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
+
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,14 +46,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
+
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+
+// ==========================================================
+// STAFF DASHBOARD
+// ==========================================================
 
 @Composable
 fun StaffDashboardScreen(
@@ -72,13 +88,16 @@ fun StaffDashboardScreen(
     // FIREBASE
     // ==========================================================
 
-    val auth = remember {
-        FirebaseAuth.getInstance()
-    }
+    val auth =
+        remember {
+            FirebaseAuth.getInstance()
+        }
 
-    val db = remember {
-        FirebaseFirestore.getInstance()
-    }
+    val db =
+        remember {
+            FirebaseFirestore.getInstance()
+        }
+
 
     // ==========================================================
     // USER
@@ -87,6 +106,7 @@ fun StaffDashboardScreen(
     var namaUser by remember {
         mutableStateOf("Staff")
     }
+
 
     // ==========================================================
     // JAM REAL-TIME
@@ -100,11 +120,17 @@ fun StaffDashboardScreen(
         mutableStateOf("")
     }
 
+
+    // ==========================================================
+    // UPDATE JAM SETIAP DETIK
+    // ==========================================================
+
     LaunchedEffect(Unit) {
 
         while (true) {
 
-            val sekarang = Date()
+            val sekarang =
+                Date()
 
             jamSekarang =
                 SimpleDateFormat(
@@ -122,6 +148,7 @@ fun StaffDashboardScreen(
         }
     }
 
+
     // ==========================================================
     // STATUS ABSEN
     // ==========================================================
@@ -137,6 +164,7 @@ fun StaffDashboardScreen(
     var jamPulang by remember {
         mutableStateOf("-")
     }
+
 
     // ==========================================================
     // LOAD USER & ABSENSI
@@ -164,12 +192,14 @@ fun StaffDashboardScreen(
                     return@LaunchedEffect
                 }
 
+
                 // ==================================================
                 // UID
                 // ==================================================
 
                 val uid =
                     currentUser.uid
+
 
                 // ==================================================
                 // DATA USER
@@ -181,6 +211,7 @@ fun StaffDashboardScreen(
                         .get()
                         .await()
 
+
                 if (userDocument.exists()) {
 
                     namaUser =
@@ -188,6 +219,7 @@ fun StaffDashboardScreen(
                             "nama"
                         ) ?: "Staff"
                 }
+
 
                 // ==================================================
                 // TANGGAL HARI INI
@@ -199,6 +231,7 @@ fun StaffDashboardScreen(
                         Locale.getDefault()
                     ).format(Date())
 
+
                 // ==================================================
                 // RESET STATE
                 // ==================================================
@@ -206,6 +239,7 @@ fun StaffDashboardScreen(
                 sudahAbsen = false
                 jamMasuk = "-"
                 jamPulang = "-"
+
 
                 // ==================================================
                 // CARI ABSENSI
@@ -224,6 +258,7 @@ fun StaffDashboardScreen(
                         .limit(1)
                         .get()
                         .await()
+
 
                 // ==================================================
                 // ABSENSI DITEMUKAN
@@ -247,7 +282,14 @@ fun StaffDashboardScreen(
                         document.getString(
                             "jamPulang"
                         ) ?: "-"
+
+                    if (jamPulang.isBlank()) {
+
+                        jamPulang =
+                            "-"
+                    }
                 }
+
 
                 // ==================================================
                 // HITUNG PERGANTIAN HARI
@@ -287,11 +329,14 @@ fun StaffDashboardScreen(
                     0
                 )
 
+
                 val waktuBesok =
                     kalenderBesok.timeInMillis
 
+
                 val waktuMenujuBesok =
                     waktuBesok - sekarang
+
 
                 // ==================================================
                 // TUNGGU HARI BERGANTI
@@ -301,8 +346,9 @@ fun StaffDashboardScreen(
                     waktuMenujuBesok
                 )
 
+
                 // ==================================================
-                // RESET
+                // RESET ABSENSI
                 // ==================================================
 
                 sudahAbsen = false
@@ -320,51 +366,74 @@ fun StaffDashboardScreen(
         }
     }
 
+
+    // ==========================================================
+    // SCROLL BERANDA
+    // ==========================================================
+
+    val verticalScrollState =
+        rememberScrollState()
+
+
     // ==========================================================
     // UI
     // ==========================================================
 
     Surface(
+
         modifier =
             Modifier.fillMaxSize(),
 
         color =
             Background
+
     ) {
 
         Column(
+
             modifier =
                 Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
+                    .verticalScroll(
+                        verticalScrollState
+                    )
                     .padding(
                         horizontal = 20.dp,
                         vertical = 12.dp
                     )
+
         ) {
+
 
             // ==================================================
             // HEADER
             // ==================================================
 
             Row(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
                 verticalAlignment =
                     Alignment.CenterVertically
+
             ) {
+
 
                 // ==================================================
                 // JUDUL
                 // ==================================================
 
                 Column(
+
                     modifier =
                         Modifier.weight(1f)
+
                 ) {
 
                     Text(
+
                         text =
                             "ABSENSI KARYAWAN",
 
@@ -378,12 +447,15 @@ fun StaffDashboardScreen(
                             TextDark
                     )
 
+
                     Spacer(
                         modifier =
                             Modifier.height(3.dp)
                     )
 
+
                     Text(
+
                         text =
                             tanggalSekarang,
 
@@ -395,16 +467,20 @@ fun StaffDashboardScreen(
                     )
                 }
 
+
                 // ==================================================
                 // NOTIFIKASI
                 // ==================================================
 
                 IconButton(
+
                     onClick =
                         onNotification
+
                 ) {
 
                     Icon(
+
                         imageVector =
                             Icons.Default.NotificationsNone,
 
@@ -419,16 +495,20 @@ fun StaffDashboardScreen(
                     )
                 }
 
+
                 // ==================================================
                 // PROFILE
                 // ==================================================
 
                 IconButton(
+
                     onClick =
                         onProfile
+
                 ) {
 
                     Icon(
+
                         imageVector =
                             Icons.Default.Person,
 
@@ -444,16 +524,19 @@ fun StaffDashboardScreen(
                 }
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(16.dp)
             )
+
 
             // ==================================================
             // JAM REAL-TIME
             // ==================================================
 
             Card(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -465,9 +548,11 @@ fun StaffDashboardScreen(
                         containerColor =
                             PrimaryGreen
                     )
+
             ) {
 
                 Column(
+
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -478,9 +563,11 @@ fun StaffDashboardScreen(
 
                     horizontalAlignment =
                         Alignment.CenterHorizontally
+
                 ) {
 
                     Icon(
+
                         imageVector =
                             Icons.Default.AccessTime,
 
@@ -494,12 +581,15 @@ fun StaffDashboardScreen(
                             Modifier.size(32.dp)
                     )
 
+
                     Spacer(
                         modifier =
                             Modifier.height(6.dp)
                     )
 
+
                     Text(
+
                         text =
                             jamSekarang,
 
@@ -513,12 +603,15 @@ fun StaffDashboardScreen(
                             Color.White
                     )
 
+
                     Spacer(
                         modifier =
                             Modifier.height(3.dp)
                     )
 
+
                     Text(
+
                         text =
                             "Waktu Sekarang",
 
@@ -531,16 +624,19 @@ fun StaffDashboardScreen(
                 }
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(16.dp)
             )
 
+
             // ==================================================
-            // KEHADIRAN
+            // KEHADIRAN HARI INI
             // ==================================================
 
             Text(
+
                 text =
                     "Kehadiran Hari Ini",
 
@@ -554,12 +650,15 @@ fun StaffDashboardScreen(
                     TextDark
             )
 
+
             Spacer(
                 modifier =
                     Modifier.height(8.dp)
             )
 
+
             Card(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -577,18 +676,36 @@ fun StaffDashboardScreen(
                         defaultElevation =
                             2.dp
                     )
+
             ) {
 
                 Column(
+
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(18.dp)
+
                 ) {
 
+
                     // ==========================================
-                    // STATUS
-                    // ==========================================
+// STATUS
+// ==========================================
+
+                    val statusBackground =
+                        if (sudahAbsen) {
+                            Color(0xFFE8F5E9)
+                        } else {
+                            Color(0xFFFFF3E0)
+                        }
+
+                    val statusText =
+                        if (sudahAbsen) {
+                            PrimaryGreen
+                        } else {
+                            Color(0xFFE67E22)
+                        }
 
                     Row(
                         modifier =
@@ -604,19 +721,16 @@ fun StaffDashboardScreen(
                         ) {
 
                             Text(
-                                text =
-                                    "Status",
+                                text = "Status",
 
-                                fontSize =
-                                    12.sp,
+                                fontSize = 12.sp,
 
-                                color =
-                                    TextGray
+                                color = TextGray
                             )
 
                             Spacer(
                                 modifier =
-                                    Modifier.height(4.dp)
+                                    Modifier.height(6.dp)
                             )
 
                             Text(
@@ -626,41 +740,56 @@ fun StaffDashboardScreen(
                                     else
                                         "BELUM ABSEN",
 
-                                fontSize =
-                                    15.sp,
+                                fontSize = 13.sp,
 
                                 fontWeight =
                                     FontWeight.Bold,
 
                                 color =
-                                    if (sudahAbsen)
-                                        PrimaryGreen
-                                    else
-                                        Color.Red
+                                    statusText,
+
+                                modifier =
+                                    Modifier
+                                        .background(
+                                            color =
+                                                statusBackground,
+
+                                            shape =
+                                                RoundedCornerShape(50.dp)
+                                        )
+                                        .padding(
+                                            horizontal = 12.dp,
+                                            vertical = 7.dp
+                                        )
                             )
                         }
                     }
+
 
                     Spacer(
                         modifier =
                             Modifier.height(14.dp)
                     )
 
+
                     // ==========================================
                     // JAM MASUK & PULANG
                     // ==========================================
 
                     Row(
+
                         modifier =
                             Modifier.fillMaxWidth(),
 
                         horizontalArrangement =
                             Arrangement.SpaceBetween
+
                     ) {
 
                         Column {
 
                             Text(
+
                                 text =
                                     "Jam Masuk",
 
@@ -671,12 +800,15 @@ fun StaffDashboardScreen(
                                     TextGray
                             )
 
+
                             Spacer(
                                 modifier =
                                     Modifier.height(4.dp)
                             )
 
+
                             Text(
+
                                 text =
                                     jamMasuk,
 
@@ -691,12 +823,16 @@ fun StaffDashboardScreen(
                             )
                         }
 
+
                         Column(
+
                             horizontalAlignment =
                                 Alignment.End
+
                         ) {
 
                             Text(
+
                                 text =
                                     "Jam Pulang",
 
@@ -707,12 +843,15 @@ fun StaffDashboardScreen(
                                     TextGray
                             )
 
+
                             Spacer(
                                 modifier =
                                     Modifier.height(4.dp)
                             )
 
+
                             Text(
+
                                 text =
                                     jamPulang,
 
@@ -730,18 +869,21 @@ fun StaffDashboardScreen(
                 }
             }
 
+
             Spacer(
                 modifier =
-                    Modifier.height(16.dp)
+                    Modifier.height(20.dp)
             )
 
+
             // ==================================================
-            // MENU
+            // AKSI CEPAT
             // ==================================================
 
             Text(
+
                 text =
-                    "Menu",
+                    "Aksi Cepat",
 
                 fontSize =
                     18.sp,
@@ -753,26 +895,41 @@ fun StaffDashboardScreen(
                     TextDark
             )
 
+
             Spacer(
                 modifier =
                     Modifier.height(10.dp)
             )
 
+
             // ==================================================
-            // BARIS 1
+            // HORIZONTAL SCROLL
             // ==================================================
 
+            val horizontalScrollState =
+                rememberScrollState()
+
+
             Row(
+
                 modifier =
-                    Modifier.fillMaxWidth(),
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(
+                            horizontalScrollState
+                        ),
 
                 horizontalArrangement =
                     Arrangement.spacedBy(12.dp)
+
             ) {
 
-                DashboardMenuCard(
-                    modifier =
-                        Modifier.weight(1f),
+
+                // ==============================================
+                // SCAN QR
+                // ==============================================
+
+                QuickActionCard(
 
                     icon =
                         Icons.Default.QrCodeScanner,
@@ -787,9 +944,12 @@ fun StaffDashboardScreen(
                         onScan
                 )
 
-                DashboardMenuCard(
-                    modifier =
-                        Modifier.weight(1f),
+
+                // ==============================================
+                // RIWAYAT
+                // ==============================================
+
+                QuickActionCard(
 
                     icon =
                         Icons.Default.History,
@@ -803,28 +963,13 @@ fun StaffDashboardScreen(
                     onClick =
                         onHistory
                 )
-            }
 
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
-            )
 
-            // ==================================================
-            // BARIS 2
-            // ==================================================
+                // ==============================================
+                // PENGAJUAN
+                // ==============================================
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(12.dp)
-            ) {
-
-                DashboardMenuCard(
-                    modifier =
-                        Modifier.weight(1f),
+                QuickActionCard(
 
                     icon =
                         Icons.Default.Description,
@@ -839,9 +984,12 @@ fun StaffDashboardScreen(
                         onPengajuan
                 )
 
-                DashboardMenuCard(
-                    modifier =
-                        Modifier.weight(1f),
+
+                // ==============================================
+                // PROFIL
+                // ==============================================
+
+                QuickActionCard(
 
                     icon =
                         Icons.Default.Person,
@@ -857,9 +1005,305 @@ fun StaffDashboardScreen(
                 )
             }
 
+
             Spacer(
                 modifier =
-                    Modifier.height(8.dp)
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // AKTIVITAS HARI INI
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Aktivitas Hari Ini",
+
+                fontSize =
+                    18.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            Card(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                shape =
+                    RoundedCornerShape(18.dp),
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            Color.White
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation =
+                            2.dp
+                    )
+
+            ) {
+
+                Column(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp)
+
+                ) {
+
+
+                    // ==========================================
+                    // AKTIVITAS MASUK
+                    // ==========================================
+
+                    Row(
+
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+
+                    ) {
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Default.AccessTime,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(28.dp)
+                        )
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(12.dp)
+                        )
+
+
+                        Column(
+
+                            modifier =
+                                Modifier.weight(1f)
+
+                        ) {
+
+                            Text(
+
+                                text =
+                                    "Absen Masuk",
+
+                                fontSize =
+                                    14.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
+                            )
+
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(2.dp)
+                            )
+
+
+                            Text(
+
+                                text =
+                                    if (
+                                        sudahAbsen &&
+                                        jamMasuk != "-"
+                                    ) {
+                                        "Berhasil melakukan absensi masuk"
+                                    } else {
+                                        "Belum melakukan absensi masuk"
+                                    },
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    TextGray
+                            )
+                        }
+
+
+                        Text(
+
+                            text =
+                                jamMasuk,
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                if (
+                                    jamMasuk != "-"
+                                ) {
+                                    PrimaryGreen
+                                } else {
+                                    TextGray
+                                }
+                        )
+                    }
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(16.dp)
+                    )
+
+
+                    // ==========================================
+                    // AKTIVITAS PULANG
+                    // ==========================================
+
+                    Row(
+
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+
+                    ) {
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Default.AccessTime,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                if (
+                                    jamPulang != "-"
+                                ) {
+                                    PrimaryGreen
+                                } else {
+                                    TextGray
+                                },
+
+                            modifier =
+                                Modifier.size(28.dp)
+                        )
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(12.dp)
+                        )
+
+
+                        Column(
+
+                            modifier =
+                                Modifier.weight(1f)
+
+                        ) {
+
+                            Text(
+
+                                text =
+                                    "Absen Pulang",
+
+                                fontSize =
+                                    14.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
+                            )
+
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(2.dp)
+                            )
+
+
+                            Text(
+
+                                text =
+                                    if (
+                                        jamPulang != "-"
+                                    ) {
+                                        "Berhasil melakukan absensi pulang"
+                                    } else {
+                                        "Belum melakukan absensi pulang"
+                                    },
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    TextGray
+                            )
+                        }
+
+
+                        Text(
+
+                            text =
+                                jamPulang,
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                if (
+                                    jamPulang != "-"
+                                ) {
+                                    PrimaryGreen
+                                } else {
+                                    TextGray
+                                }
+                        )
+                    }
+                }
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(30.dp)
             )
         }
     }
@@ -867,13 +1311,11 @@ fun StaffDashboardScreen(
 
 
 // ==========================================================
-// DASHBOARD MENU CARD
+// QUICK ACTION CARD
 // ==========================================================
 
 @Composable
-private fun DashboardMenuCard(
-
-    modifier: Modifier,
+private fun QuickActionCard(
 
     icon: ImageVector,
 
@@ -886,8 +1328,14 @@ private fun DashboardMenuCard(
 ) {
 
     Card(
+
+        onClick =
+            onClick,
+
         modifier =
-            modifier,
+            Modifier
+                .width(125.dp)
+                .height(125.dp),
 
         shape =
             RoundedCornerShape(18.dp),
@@ -902,26 +1350,31 @@ private fun DashboardMenuCard(
             CardDefaults.cardElevation(
                 defaultElevation =
                     2.dp
-            ),
+            )
 
-        onClick =
-            onClick
     ) {
 
         Column(
+
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        vertical = 16.dp,
-                        horizontal = 10.dp
-                    ),
+                    .fillMaxSize()
+                    .padding(12.dp),
 
             horizontalAlignment =
-                Alignment.CenterHorizontally
+                Alignment.CenterHorizontally,
+
+            verticalArrangement =
+                Arrangement.Center
+
         ) {
 
+            // ==================================================
+            // ICON
+            // ==================================================
+
             Icon(
+
                 imageVector =
                     icon,
 
@@ -932,15 +1385,22 @@ private fun DashboardMenuCard(
                     PrimaryGreen,
 
                 modifier =
-                    Modifier.size(30.dp)
+                    Modifier.size(32.dp)
             )
+
 
             Spacer(
                 modifier =
                     Modifier.height(8.dp)
             )
 
+
+            // ==================================================
+            // TITLE
+            // ==================================================
+
             Text(
+
                 text =
                     title,
 
@@ -954,12 +1414,19 @@ private fun DashboardMenuCard(
                     TextDark
             )
 
+
             Spacer(
                 modifier =
-                    Modifier.height(2.dp)
+                    Modifier.height(3.dp)
             )
 
+
+            // ==================================================
+            // SUBTITLE
+            // ==================================================
+
             Text(
+
                 text =
                     subtitle,
 

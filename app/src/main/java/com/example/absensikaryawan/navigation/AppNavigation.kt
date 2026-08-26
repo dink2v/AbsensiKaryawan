@@ -23,10 +23,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Modifier
@@ -286,12 +286,16 @@ fun AppNavigation() {
 
                                     modifier =
                                         Modifier.size(
+
                                             if (
                                                 item.screen ==
                                                 AppScreen.Scan
                                             ) {
+
                                                 28.dp
+
                                             } else {
+
                                                 23.dp
                                             }
                                         )
@@ -351,7 +355,6 @@ fun AppNavigation() {
                     .padding(
                         paddingValues
                     )
-
         ) {
 
 
@@ -453,10 +456,6 @@ fun AppNavigation() {
                             currentScreen.value =
                                 AppScreen.Profile
                         },
-
-                        // ==========================================
-                        // NOTIFIKASI
-                        // ==========================================
 
                         onNotification = {
 
@@ -581,11 +580,13 @@ fun AppNavigation() {
                                         hasil.getOrNull()
                                             ?: ""
 
+
                                     if (
                                         nama.isEmpty()
                                     ) {
 
-                                        println(
+                                        Log.e(
+                                            "PENGAJUAN_DEBUG",
                                             "NAMA USER TIDAK DITEMUKAN"
                                         )
 
@@ -610,53 +611,70 @@ fun AppNavigation() {
                                     // SIMPAN PENGAJUAN
                                     // ==================================
 
-                                    firestoreRepository
-                                        .simpanPengajuan(
+                                    val hasilSimpan =
+                                        firestoreRepository
+                                            .simpanPengajuan(
 
-                                            nama =
-                                                nama,
+                                                nama =
+                                                    nama,
 
-                                            jenis =
-                                                jenis,
+                                                jenis =
+                                                    jenis,
 
-                                            tanggal =
-                                                tanggal,
+                                                tanggal =
+                                                    tanggal,
 
-                                            jamPulang =
-                                                jamPulang,
+                                                jamPulang =
+                                                    jamPulang,
 
-                                            jamKeluar =
-                                                jamKeluar,
+                                                jamKeluar =
+                                                    jamKeluar,
 
-                                            jamKembali =
-                                                jamKembali,
+                                                jamKembali =
+                                                    jamKembali,
 
-                                            tanggalMulai =
-                                                tanggalMulai,
+                                                tanggalMulai =
+                                                    tanggalMulai,
 
-                                            tanggalSelesai =
-                                                tanggalSelesai,
+                                                tanggalSelesai =
+                                                    tanggalSelesai,
 
-                                            alasan =
-                                                alasan
+                                                alasan =
+                                                    alasan
+                                            )
+
+
+                                    if (
+                                        hasilSimpan.isSuccess
+                                    ) {
+
+                                        Log.d(
+                                            "PENGAJUAN_DEBUG",
+                                            "PENGAJUAN BERHASIL DISIMPAN"
                                         )
 
-                                    println(
-                                        "PENGAJUAN BERHASIL DISIMPAN"
-                                    )
+                                        currentScreen.value =
+                                            AppScreen.Pengajuan
 
-                                    currentScreen.value =
-                                        AppScreen.Pengajuan
+                                    } else {
+
+                                        Log.e(
+                                            "PENGAJUAN_DEBUG",
+                                            "GAGAL SIMPAN PENGAJUAN",
+                                            hasilSimpan
+                                                .exceptionOrNull()
+                                        )
+                                    }
 
                                 } catch (
                                     e: Exception
                                 ) {
 
-                                    println(
-                                        "GAGAL SIMPAN PENGAJUAN: ${e.message}"
+                                    Log.e(
+                                        "PENGAJUAN_DEBUG",
+                                        "ERROR PENGAJUAN",
+                                        e
                                     )
-
-                                    e.printStackTrace()
                                 }
                             }
                         }
@@ -683,13 +701,19 @@ fun AppNavigation() {
                                 qrData,
                                 catatan ->
 
+
                             // ==================================
                             // LOG QR
                             // ==================================
 
                             Log.d(
                                 "ABSEN_DEBUG",
-                                "===== QR TERBACA ====="
+                                "================================"
+                            )
+
+                            Log.d(
+                                "ABSEN_DEBUG",
+                                "QR TERBACA"
                             )
 
                             Log.d(
@@ -702,6 +726,16 @@ fun AppNavigation() {
                                 "CATATAN = $catatan"
                             )
 
+                            Log.d(
+                                "ABSEN_DEBUG",
+                                "================================"
+                            )
+
+
+                            // ==================================
+                            // SEMUA PROSES FIRESTORE
+                            // WAJIB DI DALAM COROUTINE
+                            // ==================================
 
                             scope.launch {
 
@@ -715,9 +749,9 @@ fun AppNavigation() {
                                         qrData.isBlank()
                                     ) {
 
-                                        Log.d(
+                                        Log.e(
                                             "ABSEN_DEBUG",
-                                            "QR kosong"
+                                            "QR KOSONG"
                                         )
 
                                         return@launch
@@ -733,11 +767,13 @@ fun AppNavigation() {
                                             .getInstance()
                                             .currentUser
 
+
                                     if (
                                         currentUser == null
                                     ) {
 
-                                        println(
+                                        Log.e(
+                                            "ABSEN_DEBUG",
                                             "USER BELUM LOGIN"
                                         )
 
@@ -755,7 +791,7 @@ fun AppNavigation() {
 
                                     Log.d(
                                         "ABSEN_DEBUG",
-                                        "UID LOGIN = $uid"
+                                        "UID = $uid"
                                     )
 
 
@@ -763,26 +799,23 @@ fun AppNavigation() {
                                     // NAMA USER
                                     // ==================================
 
-                                    val hasil =
+                                    val hasilNama =
                                         userRepository
                                             .getCurrentUserName()
 
+
                                     val nama =
-                                        hasil.getOrNull()
+                                        hasilNama
+                                            .getOrNull()
                                             ?: ""
-
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "NAMA USER = $nama"
-                                    )
 
 
                                     if (
                                         nama.isEmpty()
                                     ) {
 
-                                        println(
+                                        Log.e(
+                                            "ABSEN_DEBUG",
                                             "NAMA USER TIDAK DITEMUKAN"
                                         )
 
@@ -790,8 +823,14 @@ fun AppNavigation() {
                                     }
 
 
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "NAMA = $nama"
+                                    )
+
+
                                     // ==================================
-                                    // TANGGAL
+                                    // TANGGAL HARI INI
                                     // ==================================
 
                                     val tanggal =
@@ -804,7 +843,7 @@ fun AppNavigation() {
 
 
                                     // ==================================
-                                    // JAM
+                                    // JAM SEKARANG
                                     // ==================================
 
                                     val jam =
@@ -828,7 +867,7 @@ fun AppNavigation() {
 
 
                                     // ==================================
-                                    // CARI ABSEN HARI INI
+                                    // CEK ABSEN HARI INI
                                     // ==================================
 
                                     val absenHariIni =
@@ -843,13 +882,36 @@ fun AppNavigation() {
                                             )
 
 
-                                    // ==================================
-                                    // ABSEN MASUK
-                                    // ==================================
+                                    // ==================================================
+                                    // KONDISI 1
+                                    // BELUM ADA ABSEN HARI INI
+                                    //
+                                    // => SCAN PERTAMA = ABSEN MASUK
+                                    // ==================================================
 
                                     if (
                                         absenHariIni == null
                                     ) {
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "BELUM ADA ABSEN HARI INI"
+                                        )
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "SCAN PERTAMA"
+                                        )
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "PROSES = ABSEN MASUK"
+                                        )
+
+
+                                        // ==================================
+                                        // SIMPAN ABSEN MASUK FIRESTORE
+                                        // ==================================
 
                                         val hasilSimpan =
                                             firestoreRepository
@@ -875,23 +937,13 @@ fun AppNavigation() {
                                                 )
 
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "HASIL SIMPAN = ${hasilSimpan.isSuccess}"
-                                        )
-
-
                                         if (
                                             hasilSimpan.isFailure
                                         ) {
 
                                             Log.e(
                                                 "ABSEN_DEBUG",
-                                                "ERROR FIRESTORE = ${
-                                                    hasilSimpan
-                                                        .exceptionOrNull()
-                                                        ?.message
-                                                }",
+                                                "GAGAL SIMPAN ABSEN MASUK",
                                                 hasilSimpan
                                                     .exceptionOrNull()
                                             )
@@ -901,7 +953,7 @@ fun AppNavigation() {
 
 
                                         // ==================================
-                                        // DATASTORE
+                                        // SIMPAN DATASTORE
                                         // ==================================
 
                                         absensiDataStore
@@ -921,126 +973,205 @@ fun AppNavigation() {
                                             )
 
 
-                                        println(
-                                            "================================"
-                                        )
-
-                                        println(
+                                        Log.d(
+                                            "ABSEN_DEBUG",
                                             "ABSEN MASUK BERHASIL"
                                         )
 
-                                        println(
-                                            "UID : $uid"
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "JAM MASUK = $jam"
                                         )
 
-                                        println(
-                                            "NAMA : $nama"
-                                        )
-
-                                        println(
-                                            "TANGGAL : $tanggal"
-                                        )
-
-                                        println(
-                                            "JAM MASUK : $jam"
-                                        )
-
-                                        println(
-                                            "================================"
-                                        )
-
-                                    } else {
 
                                         // ==================================
-                                        // ABSEN PULANG
+                                        // REFRESH DASHBOARD
                                         // ==================================
 
-                                        val documentId =
-                                            absenHariIni.first
-
-                                        val jamPulangLama =
-                                            absenHariIni.second
+                                        refreshKey++
 
 
-                                        if (
-                                            jamPulangLama.isEmpty()
-                                        ) {
+                                        // ==================================
+                                        // KEMBALI BERANDA
+                                        // ==================================
 
-                                            val hasilPulang =
-                                                firestoreRepository
-                                                    .simpanAbsenPulang(
-
-                                                        documentId =
-                                                            documentId,
-
-                                                        jamPulang =
-                                                            jam
-                                                    )
+                                        currentScreen.value =
+                                            AppScreen.Staff
 
 
-                                            if (
-                                                hasilPulang.isSuccess
-                                            ) {
-
-                                                absensiDataStore
-                                                    .simpanPulang(
-                                                        jam
-                                                    )
-
-                                                println(
-                                                    "================================"
-                                                )
-
-                                                println(
-                                                    "ABSEN PULANG BERHASIL"
-                                                )
-
-                                                println(
-                                                    "UID : $uid"
-                                                )
-
-                                                println(
-                                                    "NAMA : $nama"
-                                                )
-
-                                                println(
-                                                    "JAM PULANG : $jam"
-                                                )
-
-                                                println(
-                                                    "================================"
-                                                )
-
-                                            } else {
-
-                                                println(
-                                                    "GAGAL SIMPAN ABSEN PULANG: " +
-                                                            hasilPulang
-                                                                .exceptionOrNull()
-                                                                ?.message
-                                                )
-
-                                                return@launch
-                                            }
-
-                                        } else {
-
-                                            println(
-                                                "ABSEN SUDAH LENGKAP"
-                                            )
-                                        }
+                                        return@launch
                                     }
 
 
+                                    // ==================================================
+                                    // KONDISI 2
+                                    // SUDAH ADA ABSEN MASUK
+                                    // ==================================================
+
+                                    val (
+                                        documentId,
+                                        jamPulangLama
+                                    ) =
+                                        absenHariIni
+
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "ABSEN HARI INI DITEMUKAN"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "DOCUMENT ID = $documentId"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM PULANG LAMA = $jamPulangLama"
+                                    )
+
+
+                                    // ==================================================
+                                    // CEK ABSEN PULANG
+                                    // ==================================================
+
+                                    if (
+                                        jamPulangLama.isBlank()
+                                    ) {
+
+                                        // ==================================
+                                        // SCAN KEDUA
+                                        // ==================================
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "SCAN KEDUA"
+                                        )
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "PROSES = ABSEN PULANG"
+                                        )
+
+
+                                        // ==================================
+                                        // SIMPAN JAM PULANG
+                                        // ==================================
+
+                                        val hasilPulang =
+                                            firestoreRepository
+                                                .simpanAbsenPulang(
+
+                                                    documentId =
+                                                        documentId,
+
+                                                    jamPulang =
+                                                        jam
+                                                )
+
+
+                                        if (
+                                            hasilPulang.isFailure
+                                        ) {
+
+                                            Log.e(
+                                                "ABSEN_DEBUG",
+                                                "GAGAL SIMPAN ABSEN PULANG",
+                                                hasilPulang
+                                                    .exceptionOrNull()
+                                            )
+
+                                            return@launch
+                                        }
+
+
+                                        // ==================================
+                                        // DATASTORE
+                                        // ==================================
+
+                                        absensiDataStore
+                                            .simpanPulang(
+                                                jam
+                                            )
+
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "ABSEN PULANG BERHASIL"
+                                        )
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "JAM PULANG = $jam"
+                                        )
+
+
+                                        // ==================================
+                                        // REFRESH DASHBOARD
+                                        // ==================================
+
+                                        refreshKey++
+
+
+                                        // ==================================
+                                        // KEMBALI BERANDA
+                                        // ==================================
+
+                                        currentScreen.value =
+                                            AppScreen.Staff
+
+
+                                        return@launch
+                                    }
+
+
+                                    // ==================================================
+                                    // KONDISI 3
+                                    // ABSEN SUDAH LENGKAP
+                                    //
+                                    // => SCAN KETIGA TIDAK BOLEH MENAMBAH DATA
+                                    // ==================================================
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "================================"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "ABSEN SUDAH LENGKAP"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM MASUK SUDAH ADA"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM PULANG SUDAH ADA"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "SCAN KETIGA DIABAIKAN"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "================================"
+                                    )
+
+
                                     // ==================================
-                                    // REFRESH BERANDA
+                                    // TETAP REFRESH
                                     // ==================================
 
                                     refreshKey++
 
 
                                     // ==================================
-                                    // KEMBALI KE BERANDA
+                                    // KEMBALI BERANDA
                                     // ==================================
 
                                     currentScreen.value =
@@ -1050,23 +1181,26 @@ fun AppNavigation() {
                                     e: Exception
                                 ) {
 
-                                    println(
+                                    Log.e(
+                                        "ABSEN_DEBUG",
                                         "================================"
                                     )
 
-                                    println(
-                                        "GAGAL PROSES ABSEN"
+                                    Log.e(
+                                        "ABSEN_DEBUG",
+                                        "GAGAL PROSES ABSEN",
+                                        e
                                     )
 
-                                    println(
-                                        "ERROR : ${e.message}"
+                                    Log.e(
+                                        "ABSEN_DEBUG",
+                                        "ERROR = ${e.message}"
                                     )
 
-                                    println(
+                                    Log.e(
+                                        "ABSEN_DEBUG",
                                         "================================"
                                     )
-
-                                    e.printStackTrace()
                                 }
                             }
                         }
