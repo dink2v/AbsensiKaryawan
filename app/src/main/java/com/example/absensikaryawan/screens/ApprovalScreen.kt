@@ -1,7 +1,6 @@
 package com.example.absensikaryawan.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,15 +16,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.HealthAndSafety
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -44,85 +45,93 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.absensikaryawan.data.FirestoreRepository
-import com.example.absensikaryawan.data.PengajuanData
+import com.example.absensikaryawan.data.PengajuanRepository
 import kotlinx.coroutines.launch
 
-// ==========================================================
-// DATA MODEL PENGAJUAN
-// ==========================================================
-
-data class PengajuanData(
-    val id: String,
-    val nama: String,
-    val jenis: String,
-    val tanggal: String,
-    val jamPulang: String,
-    val jamKeluar: String,
-    val jamKembali: String,
-    val tanggalMulai: String,
-    val tanggalSelesai: String,
-    val alasan: String,
-    val status: String
-)
-
-
-// ==========================================================
-// APPROVAL SCREEN
-// ==========================================================
 
 @Composable
 fun ApprovalScreen(
     onBack: () -> Unit
 ) {
 
+    // ==========================================================
+    // REPOSITORY
+    // ==========================================================
+
     val repository = remember {
-        FirestoreRepository()
+        PengajuanRepository()
     }
 
-    // SCOPE HARUS DI DALAM @Composable
     val scope = rememberCoroutineScope()
 
+
+    // ==========================================================
+    // STATE
+    // ==========================================================
+
     var daftarPengajuan by remember {
-        mutableStateOf<List<PengajuanData>>(emptyList())
+        mutableStateOf(
+            emptyList<Map<String, Any>>()
+        )
     }
 
     var sedangMemuat by remember {
-        mutableStateOf(true)
+        mutableStateOf(false)
     }
 
-    // ======================================================
-    // LOAD DATA FIRESTORE
-    // ======================================================
+    var sedangDiproses by remember {
+        mutableStateOf("")
+    }
 
-    fun loadPengajuan() {
+    var pesanError by remember {
+        mutableStateOf("")
+    }
+
+
+    // ==========================================================
+    // LOAD DATA
+    // ==========================================================
+
+    fun muatData() {
 
         scope.launch {
 
             sedangMemuat = true
+            pesanError = ""
 
-            val hasil =
-                repository.getPengajuanMenunggu()
+            val result =
+                repository.ambilSemuaPengajuan()
 
-            if (hasil.isSuccess) {
+            result.onSuccess { data ->
 
-                daftarPengajuan =
-                    hasil.getOrNull()
-                        ?: emptyList()
+                daftarPengajuan = data
+            }
+
+            result.onFailure { error ->
+
+                pesanError =
+                    error.message
+                        ?: "Gagal mengambil data pengajuan."
             }
 
             sedangMemuat = false
         }
     }
 
-    // Load pertama kali
+
+    // ==========================================================
+    // LOAD SAAT SCREEN DIBUKA
+    // ==========================================================
+
     LaunchedEffect(Unit) {
-        loadPengajuan()
+
+        muatData()
     }
 
-    // ======================================================
-    // UI
-    // ======================================================
+
+    // ==========================================================
+    // MAIN SCREEN
+    // ==========================================================
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -130,12 +139,7 @@ fun ApprovalScreen(
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(20.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
 
             // ==================================================
@@ -143,7 +147,12 @@ fun ApprovalScreen(
             // ==================================================
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 12.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
@@ -152,421 +161,483 @@ fun ApprovalScreen(
                 ) {
 
                     Icon(
-                        imageVector =
-                            Icons.Default.ArrowBack,
-
-                        contentDescription =
-                            "Kembali",
-
-                        tint =
-                            PrimaryGreen
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = TextDark
                     )
                 }
 
-                Spacer(
-                    modifier = Modifier.width(4.dp)
-                )
 
-                Column {
-
-                    Text(
-                        text = "Admin / HRD",
-                        fontSize = 13.sp,
-                        color = TextGray
-                    )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
 
                     Text(
                         text = "Approval Pengajuan",
-                        fontSize = 24.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextDark
                     )
-                }
-            }
 
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
-
-            // ==================================================
-            // RINGKASAN
-            // ==================================================
-
-            Text(
-                text = "Pengajuan Menunggu",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
-            ) {
-
-                ApprovalSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    number =
-                        daftarPengajuan.size.toString(),
-
-                    label =
-                        "Menunggu",
-
-                    icon =
-                        Icons.Default.Schedule
-                )
-
-                ApprovalSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    number =
-                        "-",
-
-                    label =
-                        "Disetujui",
-
-                    icon =
-                        Icons.Default.CheckCircle
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
-
-            // ==================================================
-            // JUDUL DAFTAR
-            // ==================================================
-
-            Text(
-                text = "Daftar Pengajuan",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            // ==================================================
-            // LOADING
-            // ==================================================
-
-            if (sedangMemuat) {
-
-                Text(
-                    text = "Memuat pengajuan...",
-                    fontSize = 14.sp,
-                    color = TextGray,
-                    modifier = Modifier.padding(
-                        vertical = 20.dp
+                    Text(
+                        text = "Tinjau pengajuan karyawan",
+                        fontSize = 12.sp,
+                        color = TextGray
                     )
-                )
-            }
-
-            // ==================================================
-            // TIDAK ADA DATA
-            // ==================================================
-
-            else if (daftarPengajuan.isEmpty()) {
-
-                Card(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(16.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color.White
-                        )
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.Group,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                TextGray,
-
-                            modifier =
-                                Modifier.size(42.dp)
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Belum ada pengajuan",
-
-                            fontSize =
-                                15.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(4.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Pengajuan dari staff akan muncul di sini.",
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray
-                        )
-                    }
                 }
-            }
 
-            // ==================================================
-            // DAFTAR DATA FIRESTORE
-            // ==================================================
 
-            else {
+                IconButton(
+                    onClick = {
 
-                daftarPengajuan.forEach { pengajuan ->
+                        if (
+                            !sedangMemuat &&
+                            sedangDiproses.isEmpty()
+                        ) {
 
-                    ApprovalRequestCard(
-
-                        pengajuan =
-                            pengajuan,
-
-                        onApprove = {
-
-                            scope.launch {
-
-                                val hasil =
-                                    repository.updateStatusPengajuan(
-                                        documentId =
-                                            pengajuan.id,
-
-                                        status =
-                                            "disetujui"
-                                    )
-
-                                if (hasil.isSuccess) {
-
-                                    loadPengajuan()
-                                }
-                            }
-                        },
-
-                        onReject = {
-
-                            scope.launch {
-
-                                val hasil =
-                                    repository.updateStatusPengajuan(
-                                        documentId =
-                                            pengajuan.id,
-
-                                        status =
-                                            "ditolak"
-                                    )
-
-                                if (hasil.isSuccess) {
-
-                                    loadPengajuan()
-                                }
-                            }
+                            muatData()
                         }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-                }
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(24.dp)
-            )
-
-            // ==================================================
-            // INFO
-            // ==================================================
-
-            Card(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(16.dp),
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            Color(0xFFE6EEE9)
-                    )
-            ) {
-
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    }
                 ) {
 
                     Icon(
-                        imageVector =
-                            Icons.Default.Group,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            PrimaryGreen
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(12.dp)
-                    )
-
-                    Text(
-                        text =
-                            "Pengajuan yang masuk dapat disetujui atau ditolak oleh Admin / HRD.",
-
-                        fontSize =
-                            13.sp,
-
-                        color =
-                            TextDark
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = PrimaryGreen,
+                        modifier = Modifier.size(25.dp)
                     )
                 }
             }
 
-            Spacer(
-                modifier =
-                    Modifier.height(20.dp)
-            )
-        }
-    }
-}
+
+            // ==================================================
+            // CONTENT
+            // ==================================================
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(
+                        horizontal = 20.dp
+                    )
+            ) {
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
 
 
-// ==========================================================
-// SUMMARY CARD
-// ==========================================================
+                // ==================================================
+                // INFO CARD
+                // ==================================================
 
-@Composable
-private fun ApprovalSummaryCard(
-    modifier: Modifier,
-    number: String,
-    label: String,
-    icon: ImageVector
-) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SoftGreen
+                    )
+                ) {
 
-    Card(
-        modifier = modifier,
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
 
-        shape =
-            RoundedCornerShape(16.dp),
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = PrimaryGreen,
+                            modifier = Modifier.size(30.dp)
+                        )
 
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
 
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 2.dp
-            )
-    ) {
+                        Spacer(
+                            modifier = Modifier.width(12.dp)
+                        )
 
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-        ) {
 
-            Icon(
-                imageVector =
-                    icon,
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
 
-                contentDescription =
-                    label,
+                            Text(
+                                text = "Pengajuan Menunggu",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
 
-                tint =
-                    PrimaryGreen,
 
-                modifier =
-                    Modifier.size(22.dp)
-            )
+                            Spacer(
+                                modifier = Modifier.height(4.dp)
+                            )
 
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
 
-            Text(
-                text =
-                    number,
+                            Text(
+                                text = "Periksa dan tentukan persetujuan pengajuan karyawan.",
+                                fontSize = 12.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+                }
 
-                fontSize =
-                    25.sp,
 
-                fontWeight =
-                    FontWeight.Bold,
+                Spacer(
+                    modifier = Modifier.height(22.dp)
+                )
 
-                color =
-                    TextDark
-            )
 
-            Text(
-                text =
-                    label,
+                // ==================================================
+                // TITLE
+                // ==================================================
 
-                fontSize =
-                    13.sp,
+                Text(
+                    text = "Daftar Pengajuan",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
 
-                color =
-                    TextGray
-            )
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+
+                // ==================================================
+                // ERROR
+                // ==================================================
+
+                if (pesanError.isNotEmpty()) {
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFE7E7)
+                        )
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+
+                            Text(
+                                text = "Gagal memuat data",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFB91C1C)
+                            )
+
+
+                            Spacer(
+                                modifier = Modifier.height(5.dp)
+                            )
+
+
+                            Text(
+                                text = pesanError,
+                                fontSize = 12.sp,
+                                color = Color(0xFF7F1D1D)
+                            )
+
+
+                            Spacer(
+                                modifier = Modifier.height(10.dp)
+                            )
+
+
+                            Button(
+                                onClick = {
+                                    muatData()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryGreen
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(17.dp)
+                                )
+
+
+                                Spacer(
+                                    modifier = Modifier.width(6.dp)
+                                )
+
+
+                                Text(
+                                    text = "Coba Lagi"
+                                )
+                            }
+                        }
+                    }
+
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+                }
+
+
+                // ==================================================
+                // LOADING
+                // ==================================================
+
+                if (sedangMemuat) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = 30.dp
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        CircularProgressIndicator(
+                            color = PrimaryGreen
+                        )
+
+
+                        Spacer(
+                            modifier = Modifier.height(10.dp)
+                        )
+
+
+                        Text(
+                            text = "Memuat pengajuan...",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                    }
+                }
+
+
+                // ==================================================
+                // EMPTY
+                // ==================================================
+
+                if (
+                    !sedangMemuat &&
+                    pesanError.isEmpty() &&
+                    daftarPengajuan.isEmpty()
+                ) {
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
+                        )
+                    ) {
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = TextGray,
+                                modifier = Modifier.size(40.dp)
+                            )
+
+
+                            Spacer(
+                                modifier = Modifier.height(10.dp)
+                            )
+
+
+                            Text(
+                                text = "Belum ada pengajuan.",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
+                        }
+                    }
+                }
+
+
+                // ==================================================
+                // LIST PENGAJUAN
+                // ==================================================
+
+                if (
+                    !sedangMemuat &&
+                    daftarPengajuan.isNotEmpty()
+                ) {
+
+                    daftarPengajuan.forEach { pengajuan ->
+
+                        val documentId =
+                            pengajuan["documentId"]
+                                ?.toString()
+                                ?: ""
+
+                        val nama =
+                            pengajuan["nama"]
+                                ?.toString()
+                                ?: "Karyawan"
+
+                        val jenis =
+                            pengajuan["jenis"]
+                                ?.toString()
+                                ?: "Pengajuan"
+
+                        val tanggalMulai =
+                            pengajuan["tanggalMulai"]
+                                ?.toString()
+                                ?: ""
+
+                        val tanggalSelesai =
+                            pengajuan["tanggalSelesai"]
+                                ?.toString()
+                                ?: ""
+
+                        val jamPulang =
+                            pengajuan["jamPulang"]
+                                ?.toString()
+                                ?: ""
+
+                        val jamKeluar =
+                            pengajuan["jamKeluar"]
+                                ?.toString()
+                                ?: ""
+
+                        val jamKembali =
+                            pengajuan["jamKembali"]
+                                ?.toString()
+                                ?: ""
+
+                        val alasan =
+                            pengajuan["alasan"]
+                                ?.toString()
+                                ?: ""
+
+                        val status =
+                            pengajuan["status"]
+                                ?.toString()
+                                ?.lowercase()
+                                ?: "menunggu"
+
+
+                        ApprovalRequestCard(
+                            nama = nama,
+                            jenis = jenis,
+                            tanggalMulai = tanggalMulai,
+                            tanggalSelesai = tanggalSelesai,
+                            jamPulang = jamPulang,
+                            jamKeluar = jamKeluar,
+                            jamKembali = jamKembali,
+                            alasan = alasan,
+                            status = status,
+                            sedangDiproses =
+                                sedangDiproses == documentId,
+
+                            onSetujui = {
+
+                                if (
+                                    documentId.isNotEmpty() &&
+                                    sedangDiproses.isEmpty()
+                                ) {
+
+                                    sedangDiproses =
+                                        documentId
+
+                                    scope.launch {
+
+                                        val result =
+                                            repository.updateStatusPengajuan(
+                                                documentId = documentId,
+                                                status = "disetujui"
+                                            )
+
+                                        result.onSuccess {
+
+                                            sedangDiproses = ""
+
+                                            muatData()
+                                        }
+
+
+                                        result.onFailure { error ->
+
+                                            pesanError =
+                                                error.message
+                                                    ?: "Gagal menyetujui pengajuan."
+
+                                            sedangDiproses = ""
+                                        }
+                                    }
+                                }
+                            },
+
+                            onTolak = {
+
+                                if (
+                                    documentId.isNotEmpty() &&
+                                    sedangDiproses.isEmpty()
+                                ) {
+
+                                    sedangDiproses =
+                                        documentId
+
+                                    scope.launch {
+
+                                        val result =
+                                            repository.updateStatusPengajuan(
+                                                documentId = documentId,
+                                                status = "ditolak"
+                                            )
+
+                                        result.onSuccess {
+
+                                            sedangDiproses = ""
+
+                                            muatData()
+                                        }
+
+
+                                        result.onFailure { error ->
+
+                                            pesanError =
+                                                error.message
+                                                    ?: "Gagal menolak pengajuan."
+
+                                            sedangDiproses = ""
+                                        }
+                                    }
+                                }
+                            }
+                        )
+
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+                    }
+                }
+
+
+                Spacer(
+                    modifier = Modifier.height(30.dp)
+                )
+            }
         }
     }
 }
@@ -578,654 +649,402 @@ private fun ApprovalSummaryCard(
 
 @Composable
 private fun ApprovalRequestCard(
-    pengajuan: PengajuanData,
-    onApprove: () -> Unit,
-    onReject: () -> Unit
+    nama: String,
+    jenis: String,
+    tanggalMulai: String,
+    tanggalSelesai: String,
+    jamPulang: String,
+    jamKeluar: String,
+    jamKembali: String,
+    alasan: String,
+    status: String,
+    sedangDiproses: Boolean,
+    onSetujui: () -> Unit,
+    onTolak: () -> Unit
 ) {
 
-    val initials =
-        pengajuan.nama
-            .trim()
-            .split(" ")
-            .filter {
-                it.isNotEmpty()
-            }
-            .take(2)
-            .joinToString("") {
-                it.first().uppercase()
-            }
+    val statusText: String
+
+    val statusIcon: ImageVector
+
+    val statusColor: Color
+
+
+    if (status == "disetujui") {
+
+        statusText = "Disetujui"
+
+        statusIcon = Icons.Default.CheckCircle
+
+        statusColor = PrimaryGreen
+
+    } else if (status == "ditolak") {
+
+        statusText = "Ditolak"
+
+        statusIcon = Icons.Default.Cancel
+
+        statusColor = Color(0xFFB91C1C)
+
+    } else {
+
+        statusText = "Menunggu"
+
+        statusIcon = Icons.Default.Pending
+
+        statusColor = Color(0xFFD97706)
+    }
+
+
+    // ==========================================================
+    // INITIAL
+    // ==========================================================
+
+    val namaBersih =
+        nama.trim()
+
+    val daftarNama =
+        namaBersih.split(" ")
+
+    var initials =
+        ""
+
+    if (daftarNama.isNotEmpty()) {
+
+        initials =
+            daftarNama[0]
+                .take(1)
+                .uppercase()
+    }
+
+    if (daftarNama.size > 1) {
+
+        initials =
+            initials +
+                    daftarNama[1]
+                        .take(1)
+                        .uppercase()
+    }
+
+    if (initials.isEmpty()) {
+
+        initials = "K"
+    }
+
+
+    // ==========================================================
+    // CARD
+    // ==========================================================
 
     Card(
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(18.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 2.dp
-            )
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
     ) {
 
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
 
             // ==================================================
-            // NAMA STAFF
+            // USER
             // ==================================================
 
             Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Card(
-                    shape =
-                        RoundedCornerShape(50.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color(0xFFE6EEE9)
-                        )
+                Row(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = SoftGreen,
+                            shape = RoundedCornerShape(50.dp)
+                        ),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     Text(
-                        text =
-                            if (initials.isNotEmpty())
-                                initials
-                            else
-                                "ST",
-
-                        modifier =
-                            Modifier.padding(13.dp),
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            PrimaryGreen
+                        text = initials,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryGreen
                     )
                 }
 
+
                 Spacer(
-                    modifier =
-                        Modifier.width(12.dp)
+                    modifier = Modifier.width(12.dp)
                 )
 
+
                 Column(
-                    modifier =
-                        Modifier.weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text =
-                            pengajuan.nama,
-
-                        fontSize =
-                            16.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
+                        text = nama,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
                     )
+
 
                     Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
+                        modifier = Modifier.height(3.dp)
                     )
 
+
                     Text(
-                        text =
-                            "Staff",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
+                        text = jenis,
+                        fontSize = 13.sp,
+                        color = TextGray
                     )
                 }
 
-                Card(
-                    shape =
-                        RoundedCornerShape(50.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color(0xFFFFF4D6)
-                        )
-                ) {
-
-                    Text(
-                        text =
-                            "Menunggu",
-
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 10.dp,
-                                vertical = 6.dp
-                            ),
-
-                        fontSize =
-                            11.sp,
-
-                        fontWeight =
-                            FontWeight.SemiBold,
-
-                        color =
-                            Color(0xFF9A6700)
-                    )
-                }
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            // ==================================================
-            // JENIS PENGAJUAN
-            // ==================================================
-
-            Row(
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Icon(
-                    imageVector =
-                        getJenisIcon(
-                            pengajuan.jenis
-                        ),
-
-                    contentDescription =
-                        pengajuan.jenis,
-
-                    tint =
-                        PrimaryGreen,
-
-                    modifier =
-                        Modifier.size(22.dp)
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(8.dp)
-                )
-
-                Column {
-
-                    Text(
-                        text =
-                            formatJenis(
-                                pengajuan.jenis
-                            ),
-
-                        fontSize =
-                            14.sp,
-
-                        fontWeight =
-                            FontWeight.SemiBold,
-
-                        color =
-                            TextDark
-                    )
-
-                    Text(
-                        text =
-                            "Tanggal: ${pengajuan.tanggal}",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-            }
-
-            // ==================================================
-            // DETAIL JAM
-            // ==================================================
-
-            if (
-                pengajuan.jamPulang.isNotBlank() ||
-                pengajuan.jamKeluar.isNotBlank() ||
-                pengajuan.jamKembali.isNotBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
-                )
-
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color =
-                                    Color(0xFFF5F7F6),
-
-                                shape =
-                                    RoundedCornerShape(12.dp)
-                            )
-                            .padding(12.dp)
-                ) {
-
-                    if (
-                        pengajuan.jamPulang.isNotBlank()
-                    ) {
-
-                        DetailText(
-                            label =
-                                "Jam Pulang",
-
-                            value =
-                                pengajuan.jamPulang
-                        )
-                    }
-
-                    if (
-                        pengajuan.jamKeluar.isNotBlank()
-                    ) {
-
-                        DetailText(
-                            label =
-                                "Jam Keluar",
-
-                            value =
-                                pengajuan.jamKeluar
-                        )
-                    }
-
-                    if (
-                        pengajuan.jamKembali.isNotBlank()
-                    ) {
-
-                        DetailText(
-                            label =
-                                "Jam Kembali",
-
-                            value =
-                                pengajuan.jamKembali
-                        )
-                    }
-                }
-            }
-
-            // ==================================================
-            // DETAIL TANGGAL
-            // ==================================================
-
-            if (
-                pengajuan.tanggalMulai.isNotBlank() ||
-                pengajuan.tanggalSelesai.isNotBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
 
                 Text(
-                    text =
-                        "Periode: ${pengajuan.tanggalMulai} - ${pengajuan.tanggalSelesai}",
-
-                    fontSize =
-                        12.sp,
-
-                    color =
-                        TextGray
+                    text = statusText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = statusColor
                 )
             }
+
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
+
+
+            // ==================================================
+            // TANGGAL
+            // ==================================================
+
+            if (tanggalMulai.isNotEmpty()) {
+
+                Text(
+                    text = "Tanggal",
+                    fontSize = 11.sp,
+                    color = TextGray
+                )
+
+
+                Spacer(
+                    modifier = Modifier.height(3.dp)
+                )
+
+
+                if (
+                    tanggalSelesai.isNotEmpty() &&
+                    tanggalSelesai != tanggalMulai
+                ) {
+
+                    Text(
+                        text =
+                            "$tanggalMulai - $tanggalSelesai",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextDark
+                    )
+
+                } else {
+
+                    Text(
+                        text = tanggalMulai,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextDark
+                    )
+                }
+            }
+
+
+            // ==================================================
+            // JAM
+            // ==================================================
+
+            if (
+                jamPulang.isNotEmpty() ||
+                jamKeluar.isNotEmpty() ||
+                jamKembali.isNotEmpty()
+            ) {
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+
+                if (jamPulang.isNotEmpty()) {
+
+                    Text(
+                        text = "Jam Pulang: $jamPulang",
+                        fontSize = 12.sp,
+                        color = TextGray
+                    )
+                }
+
+
+                if (jamKeluar.isNotEmpty()) {
+
+                    Text(
+                        text = "Jam Keluar: $jamKeluar",
+                        fontSize = 12.sp,
+                        color = TextGray
+                    )
+                }
+
+
+                if (jamKembali.isNotEmpty()) {
+
+                    Text(
+                        text = "Jam Kembali: $jamKembali",
+                        fontSize = 12.sp,
+                        color = TextGray
+                    )
+                }
+            }
+
 
             // ==================================================
             // ALASAN
             // ==================================================
 
-            if (
-                pengajuan.alasan.isNotBlank()
-            ) {
+            if (alasan.isNotEmpty()) {
 
                 Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
+                    modifier = Modifier.height(12.dp)
                 )
+
 
                 Text(
-                    text =
-                        "Alasan:",
-
-                    fontSize =
-                        12.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
+                    text = "Alasan",
+                    fontSize = 11.sp,
+                    color = TextGray
                 )
+
 
                 Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
+                    modifier = Modifier.height(3.dp)
                 )
 
+
                 Text(
-                    text =
-                        pengajuan.alasan,
-
-                    fontSize =
-                        13.sp,
-
-                    color =
-                        TextGray
+                    text = alasan,
+                    fontSize = 13.sp,
+                    color = TextDark
                 )
             }
 
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
 
             // ==================================================
-            // TOMBOL
+            // BUTTON
             // ==================================================
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
+            if (status == "menunggu") {
 
-                horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
-            ) {
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
 
-                // ============================
-                // SETUJUI
-                // ============================
 
-                Card(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .clickable {
-                                onApprove()
-                            },
-
-                    shape =
-                        RoundedCornerShape(10.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color(0xFFE9F5EC)
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp)
                 ) {
 
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-
-                        horizontalArrangement =
-                            Arrangement.Center,
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                    Button(
+                        onClick = onSetujui,
+                        enabled = !sedangDiproses,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryGreen
+                        )
                     ) {
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.CheckCircle,
+                        if (sedangDiproses) {
 
-                            contentDescription =
-                                "Setujui",
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(18.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
 
-                            tint =
-                                PrimaryGreen,
+                        } else {
 
-                            modifier =
-                                Modifier.size(18.dp)
-                        )
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
 
-                        Spacer(
-                            modifier =
-                                Modifier.width(6.dp)
-                        )
 
-                        Text(
-                            text =
-                                "Setujui",
+                            Spacer(
+                                modifier = Modifier.width(6.dp)
+                            )
 
-                            fontSize =
-                                13.sp,
 
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                PrimaryGreen
-                        )
+                            Text(
+                                text = "Setujui",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                }
 
-                // ============================
-                // TOLAK
-                // ============================
 
-                Card(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .clickable {
-                                onReject()
-                            },
-
-                    shape =
-                        RoundedCornerShape(10.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color(0xFFFCEAEA)
+                    Button(
+                        onClick = onTolak,
+                        enabled = !sedangDiproses,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFB91C1C)
                         )
-                ) {
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-
-                        horizontalArrangement =
-                            Arrangement.Center,
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
                     ) {
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.Close,
+                        if (sedangDiproses) {
 
-                            contentDescription =
-                                "Tolak",
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(18.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
 
-                            tint =
-                                Color(0xFFB91C1C),
+                        } else {
 
-                            modifier =
-                                Modifier.size(18.dp)
-                        )
+                            Icon(
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
 
-                        Spacer(
-                            modifier =
-                                Modifier.width(6.dp)
-                        )
 
-                        Text(
-                            text =
-                                "Tolak",
+                            Spacer(
+                                modifier = Modifier.width(6.dp)
+                            )
 
-                            fontSize =
-                                13.sp,
 
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                Color(0xFFB91C1C)
-                        )
+                            Text(
+                                text = "Tolak",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-
-// ==========================================================
-// DETAIL TEXT
-// ==========================================================
-
-@Composable
-private fun DetailText(
-    label: String,
-    value: String
-) {
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = 2.dp
-                )
-    ) {
-
-        Text(
-            text =
-                "$label:",
-
-            fontSize =
-                12.sp,
-
-            fontWeight =
-                FontWeight.SemiBold,
-
-            color =
-                TextDark,
-
-            modifier =
-                Modifier.width(100.dp)
-        )
-
-        Text(
-            text =
-                value,
-
-            fontSize =
-                12.sp,
-
-            color =
-                TextGray
-        )
-    }
-}
-
-
-// ==========================================================
-// ICON JENIS PENGAJUAN
-// ==========================================================
-
-private fun getJenisIcon(
-    jenis: String
-): ImageVector {
-
-    return when {
-
-        jenis.contains(
-            "Sakit",
-            ignoreCase = true
-        ) ->
-            Icons.Default.HealthAndSafety
-
-        jenis.contains(
-            "Cuti",
-            ignoreCase = true
-        ) ->
-            Icons.Default.Event
-
-        jenis.contains(
-            "Keluar",
-            ignoreCase = true
-        ) ->
-            Icons.Default.AccessTime
-
-        jenis.contains(
-            "Terlambat",
-            ignoreCase = true
-        ) ->
-            Icons.Default.Schedule
-
-        jenis.contains(
-            "Pulang",
-            ignoreCase = true
-        ) ->
-            Icons.Default.Schedule
-
-        else ->
-            Icons.Default.Event
-    }
-}
-
-
-// ==========================================================
-// FORMAT JENIS
-// ==========================================================
-
-private fun formatJenis(
-    jenis: String
-): String {
-
-    return when (jenis) {
-
-        "PulangCepat" ->
-            "Pulang Cepat"
-
-        "IzinKeluar" ->
-            "Izin Keluar"
-
-        "IzinTerlambat" ->
-            "Izin Terlambat"
-
-        "IzinSakit" ->
-            "Izin Sakit"
-
-        "CutiReguler" ->
-            "Cuti Reguler"
-
-        else ->
-            jenis
     }
 }

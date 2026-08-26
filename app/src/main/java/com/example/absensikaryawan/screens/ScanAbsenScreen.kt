@@ -44,10 +44,10 @@ import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
@@ -64,29 +64,30 @@ import androidx.core.content.ContextCompat
 
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
-import com.example.absensikaryawan.data.AbsensiDataStore
-import com.example.absensikaryawan.data.AbsensiHistoryDataStore
-
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
+
+// ==========================================================
+// SCAN ABSEN SCREEN
+// ==========================================================
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun ScanAbsenScreen(
+
     onBack: () -> Unit,
-    onQrScanned: (String, String) -> Unit
+
+    onQrScanned: (
+        String,
+        String
+    ) -> Unit
+
 ) {
 
     // ==========================================================
@@ -99,33 +100,6 @@ fun ScanAbsenScreen(
     val lifecycleOwner =
         LocalLifecycleOwner.current
 
-    // ==========================================================
-    // FIREBASE
-    // ==========================================================
-
-    val auth =
-        remember {
-            FirebaseAuth.getInstance()
-        }
-
-    val db =
-        remember {
-            FirebaseFirestore.getInstance()
-        }
-
-    // ==========================================================
-    // DATASTORE
-    // ==========================================================
-
-    val absensiDataStore =
-        remember {
-            AbsensiDataStore(context)
-        }
-
-    val historyDataStore =
-        remember {
-            AbsensiHistoryDataStore(context)
-        }
 
     // ==========================================================
     // COROUTINE
@@ -134,49 +108,52 @@ fun ScanAbsenScreen(
     val scope =
         rememberCoroutineScope()
 
+
     // ==========================================================
     // STATE
     // ==========================================================
 
     var qrData by remember {
+
         mutableStateOf("")
     }
 
     var catatan by remember {
+
         mutableStateOf("")
     }
 
     var sudahScan by remember {
+
         mutableStateOf(false)
     }
 
     var sedangKirim by remember {
+
         mutableStateOf(false)
     }
 
     var kameraDiizinkan by remember {
+
         mutableStateOf(false)
     }
+
 
     // ==========================================================
     // ANTI DOUBLE SCAN
     // ==========================================================
 
     /*
-     * Lock ini berbeda dengan state Compose.
-     *
-     * AtomicBoolean digunakan karena callback ML Kit
-     * dapat berjalan sangat cepat dan beberapa frame QR
-     * bisa terdeteksi hampir bersamaan.
-     *
-     * false = scanner masih boleh menerima QR
-     * true  = scanner sudah mengunci QR
+     * Lock ini memastikan QR yang sama tidak terbaca
+     * berkali-kali dari frame kamera.
      */
 
     val scanLock =
         remember {
+
             AtomicBoolean(false)
         }
+
 
     // ==========================================================
     // CAMERA PERMISSION
@@ -184,7 +161,9 @@ fun ScanAbsenScreen(
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
+
             ActivityResultContracts.RequestPermission()
+
         ) { granted ->
 
             kameraDiizinkan =
@@ -196,13 +175,22 @@ fun ScanAbsenScreen(
             )
         }
 
+
+    // ==========================================================
+    // CEK PERMISSION
+    // ==========================================================
+
     LaunchedEffect(Unit) {
 
         kameraDiizinkan =
             ContextCompat.checkSelfPermission(
+
                 context,
+
                 Manifest.permission.CAMERA
+
             ) == PackageManager.PERMISSION_GRANTED
+
 
         if (!kameraDiizinkan) {
 
@@ -212,28 +200,35 @@ fun ScanAbsenScreen(
         }
     }
 
+
     // ==========================================================
     // UI
     // ==========================================================
 
     Surface(
+
         modifier =
             Modifier.fillMaxSize(),
 
         color =
             Background
+
     ) {
 
         Column(
+
             modifier =
                 Modifier.fillMaxSize()
+
         ) {
+
 
             // ==================================================
             // HEADER
             // ==================================================
 
             Row(
+
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -244,13 +239,18 @@ fun ScanAbsenScreen(
 
                 verticalAlignment =
                     Alignment.CenterVertically
+
             ) {
 
                 IconButton(
-                    onClick = onBack
+
+                    onClick =
+                        onBack
+
                 ) {
 
                     Icon(
+
                         imageVector =
                             Icons.Default.ArrowBack,
 
@@ -262,12 +262,15 @@ fun ScanAbsenScreen(
                     )
                 }
 
+
                 Spacer(
                     modifier =
                         Modifier.width(4.dp)
                 )
 
+
                 Text(
+
                     text =
                         "Scan QR Absen",
 
@@ -282,11 +285,13 @@ fun ScanAbsenScreen(
                 )
             }
 
+
             // ==================================================
             // CAMERA
             // ==================================================
 
             Box(
+
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -295,11 +300,14 @@ fun ScanAbsenScreen(
 
                 contentAlignment =
                     Alignment.Center
+
             ) {
 
                 if (
+
                     kameraDiizinkan &&
                     !sudahScan
+
                 ) {
 
                     AndroidView(
@@ -312,9 +320,15 @@ fun ScanAbsenScreen(
                             val previewView =
                                 PreviewView(ctx)
 
+
+                            // ==================================
+                            // CAMERA PROVIDER
+                            // ==================================
+
                             val cameraProviderFuture =
                                 ProcessCameraProvider
                                     .getInstance(ctx)
+
 
                             cameraProviderFuture.addListener(
 
@@ -326,6 +340,7 @@ fun ScanAbsenScreen(
                                             cameraProviderFuture
                                                 .get()
 
+
                                         // ==================================
                                         // PREVIEW
                                         // ==================================
@@ -334,9 +349,13 @@ fun ScanAbsenScreen(
                                             Preview.Builder()
                                                 .build()
 
+
                                         preview.setSurfaceProvider(
-                                            previewView.surfaceProvider
+
+                                            previewView
+                                                .surfaceProvider
                                         )
+
 
                                         // ==================================
                                         // QR SCANNER
@@ -346,17 +365,21 @@ fun ScanAbsenScreen(
                                             BarcodeScanning
                                                 .getClient()
 
+
                                         // ==================================
                                         // IMAGE ANALYSIS
                                         // ==================================
 
                                         val imageAnalysis =
-                                            ImageAnalysis.Builder()
+                                            ImageAnalysis
+                                                .Builder()
                                                 .setBackpressureStrategy(
+
                                                     ImageAnalysis
                                                         .STRATEGY_KEEP_ONLY_LATEST
                                                 )
                                                 .build()
+
 
                                         imageAnalysis.setAnalyzer(
 
@@ -365,8 +388,10 @@ fun ScanAbsenScreen(
 
                                         ) { imageProxy ->
 
+
                                             val mediaImage =
                                                 imageProxy.image
+
 
                                             if (
                                                 mediaImage == null
@@ -377,22 +402,37 @@ fun ScanAbsenScreen(
                                                 return@setAnalyzer
                                             }
 
+
+                                            // ==================================
+                                            // INPUT IMAGE
+                                            // ==================================
+
                                             val image =
-                                                InputImage.fromMediaImage(
-                                                    mediaImage,
-                                                    imageProxy
-                                                        .imageInfo
-                                                        .rotationDegrees
-                                                )
+                                                InputImage
+                                                    .fromMediaImage(
+
+                                                        mediaImage,
+
+                                                        imageProxy
+                                                            .imageInfo
+                                                            .rotationDegrees
+                                                    )
+
+
+                                            // ==================================
+                                            // PROSES QR
+                                            // ==================================
 
                                             scanner
                                                 .process(image)
+
                                                 .addOnSuccessListener {
 
                                                         barcodes ->
 
+
                                                     // ==================================
-                                                    // CEK STATE UI
+                                                    // SUDAH SCAN
                                                     // ==================================
 
                                                     if (sudahScan) {
@@ -400,21 +440,18 @@ fun ScanAbsenScreen(
                                                         return@addOnSuccessListener
                                                     }
 
+
                                                     // ==================================
-                                                    // CEK LOCK
+                                                    // LOCK
                                                     // ==================================
 
                                                     if (
                                                         scanLock.get()
                                                     ) {
 
-                                                        Log.d(
-                                                            "SCAN_DEBUG",
-                                                            "SCAN DIABAIKAN - LOCK AKTIF"
-                                                        )
-
                                                         return@addOnSuccessListener
                                                     }
+
 
                                                     // ==================================
                                                     // CARI QR
@@ -428,67 +465,87 @@ fun ScanAbsenScreen(
                                                         val value =
                                                             barcode.rawValue
 
+
                                                         if (
                                                             !value
                                                                 .isNullOrBlank()
                                                         ) {
 
+
                                                             // ==================================
-                                                            // LOCK SECEPAT MUNGKIN
+                                                            // KUNCI SCAN
                                                             // ==================================
 
                                                             val berhasilLock =
-                                                                scanLock.compareAndSet(
-                                                                    false,
-                                                                    true
-                                                                )
+
+                                                                scanLock
+                                                                    .compareAndSet(
+
+                                                                        false,
+
+                                                                        true
+                                                                    )
+
 
                                                             if (
                                                                 !berhasilLock
                                                             ) {
 
-                                                                Log.d(
-                                                                    "SCAN_DEBUG",
-                                                                    "QR DIABAIKAN - SUDAH ADA SCAN"
-                                                                )
-
                                                                 break
                                                             }
 
+
                                                             // ==================================
-                                                            // QR BERHASIL TERKUNCI
+                                                            // QR BERHASIL
                                                             // ==================================
 
                                                             Log.d(
+
                                                                 "SCAN_DEBUG",
+
                                                                 "================================"
                                                             )
 
                                                             Log.d(
+
                                                                 "SCAN_DEBUG",
+
                                                                 "QR TERBACA"
                                                             )
 
                                                             Log.d(
+
                                                                 "SCAN_DEBUG",
+
                                                                 "QR DATA = $value"
                                                             )
 
                                                             Log.d(
+
                                                                 "SCAN_DEBUG",
-                                                                "ANTI DOUBLE SCAN = LOCK"
+
+                                                                "LOCK = AKTIF"
                                                             )
 
                                                             Log.d(
+
                                                                 "SCAN_DEBUG",
+
                                                                 "================================"
                                                             )
+
+
+                                                            // ==================================
+                                                            // SIMPAN HASIL SCAN KE UI
+                                                            // ==================================
 
                                                             qrData =
                                                                 value
 
+
                                                             sudahScan =
                                                                 true
+
 
                                                             break
                                                         }
@@ -500,8 +557,11 @@ fun ScanAbsenScreen(
                                                         error ->
 
                                                     Log.e(
+
                                                         "SCAN_DEBUG",
+
                                                         "GAGAL SCAN QR",
+
                                                         error
                                                     )
                                                 }
@@ -512,11 +572,13 @@ fun ScanAbsenScreen(
                                                 }
                                         }
 
+
                                         // ==================================
                                         // CAMERA
                                         // ==================================
 
                                         cameraProvider.unbindAll()
+
 
                                         cameraProvider.bindToLifecycle(
 
@@ -530,8 +592,11 @@ fun ScanAbsenScreen(
                                             imageAnalysis
                                         )
 
+
                                         Log.d(
+
                                             "SCAN_DEBUG",
+
                                             "CAMERA BERHASIL DIBUKA"
                                         )
 
@@ -540,8 +605,11 @@ fun ScanAbsenScreen(
                                     ) {
 
                                         Log.e(
+
                                             "SCAN_DEBUG",
+
                                             "GAGAL MEMBUKA CAMERA",
+
                                             e
                                         )
                                     }
@@ -552,17 +620,20 @@ fun ScanAbsenScreen(
                                     .getMainExecutor(ctx)
                             )
 
+
                             previewView
                         }
                     )
 
                 } else {
 
+
                     // ==================================================
                     // HASIL SCAN
                     // ==================================================
 
                     Card(
+
                         modifier =
                             Modifier
                                 .fillMaxWidth()
@@ -573,12 +644,15 @@ fun ScanAbsenScreen(
 
                         colors =
                             CardDefaults.cardColors(
+
                                 containerColor =
                                     Color.White
                             )
+
                     ) {
 
                         Column(
+
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -586,11 +660,18 @@ fun ScanAbsenScreen(
 
                             horizontalAlignment =
                                 Alignment.CenterHorizontally
+
                         ) {
+
+
+                            // ==================================
+                            // ICON
+                            // ==================================
 
                             Icon(
 
                                 imageVector =
+
                                     if (sudahScan) {
 
                                         Icons.Default.CheckCircle
@@ -610,14 +691,22 @@ fun ScanAbsenScreen(
                                     Modifier.size(55.dp)
                             )
 
+
                             Spacer(
+
                                 modifier =
                                     Modifier.height(12.dp)
                             )
 
+
+                            // ==================================
+                            // TITLE
+                            // ==================================
+
                             Text(
 
                                 text =
+
                                     if (sudahScan) {
 
                                         "QR Berhasil Dibaca"
@@ -637,12 +726,19 @@ fun ScanAbsenScreen(
                                     TextDark
                             )
 
+
+                            // ==================================
+                            // QR DATA
+                            // ==================================
+
                             if (sudahScan) {
 
                                 Spacer(
+
                                     modifier =
                                         Modifier.height(8.dp)
                                 )
+
 
                                 Text(
 
@@ -661,17 +757,20 @@ fun ScanAbsenScreen(
                 }
             }
 
+
             // ==================================================
             // CATATAN
             // ==================================================
 
             Column(
+
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(
                             horizontal = 20.dp
                         )
+
             ) {
 
                 Text(
@@ -689,10 +788,13 @@ fun ScanAbsenScreen(
                         TextDark
                 )
 
+
                 Spacer(
+
                     modifier =
                         Modifier.height(6.dp)
                 )
+
 
                 OutlinedTextField(
 
@@ -700,7 +802,9 @@ fun ScanAbsenScreen(
                         catatan,
 
                     onValueChange = {
-                        catatan = it
+
+                        catatan =
+                            it
                     },
 
                     modifier =
@@ -722,13 +826,16 @@ fun ScanAbsenScreen(
                 )
             }
 
+
             Spacer(
+
                 modifier =
                     Modifier.height(12.dp)
             )
 
+
             // ==================================================
-            // BUTTON SIMPAN
+            // BUTTON
             // ==================================================
 
             Button(
@@ -736,181 +843,69 @@ fun ScanAbsenScreen(
                 onClick = {
 
                     if (
+
                         sudahScan &&
                         qrData.isNotBlank() &&
                         !sedangKirim
+
                     ) {
 
                         sedangKirim =
                             true
 
-                        val tanggal =
-                            SimpleDateFormat(
-                                "yyyy-MM-dd",
-                                Locale.getDefault()
-                            ).format(Date())
-
-                        val jam =
-                            SimpleDateFormat(
-                                "HH:mm:ss",
-                                Locale.getDefault()
-                            ).format(Date())
 
                         scope.launch {
 
                             try {
 
                                 // ==================================
-                                // CEK USER LOGIN
+                                // KIRIM QR KE APP NAVIGATION
                                 // ==================================
-
-                                val currentUser =
-                                    auth.currentUser
-
-                                if (
-                                    currentUser == null
-                                ) {
-
-                                    Log.e(
-                                        "SCAN_DEBUG",
-                                        "USER BELUM LOGIN"
-                                    )
-
-                                    sedangKirim =
-                                        false
-
-                                    // BUKA LOCK KEMBALI
-                                    scanLock.set(false)
-
-                                    return@launch
-                                }
-
-                                val uid =
-                                    currentUser.uid
-
-                                // ==================================
-                                // SIMPAN ABSENSI UTAMA
-                                // ==================================
-
-                                absensiDataStore.simpanAbsen(
-
-                                    jam =
-                                        jam,
-
-                                    tanggal =
-                                        tanggal,
-
-                                    qrData =
-                                        qrData,
-
-                                    catatan =
-                                        catatan
-                                )
-
-                                // ==================================
-                                // SIMPAN HISTORY LOCAL
-                                // ==================================
-
-                                historyDataStore
-                                    .simpanAbsenMasuk(
-
-                                        tanggal =
-                                            tanggal,
-
-                                        jamMasuk =
-                                            jam,
-
-                                        qrData =
-                                            qrData,
-
-                                        catatan =
-                                            catatan
-                                    )
-
-                                // ==================================
-                                // DATA FIRESTORE
-                                // ==================================
-
-                                val data =
-                                    hashMapOf(
-
-                                        "uid" to uid,
-
-                                        "tanggal" to tanggal,
-
-                                        "jamMasuk" to jam,
-
-                                        "jamPulang" to "",
-
-                                        "qrData" to qrData,
-
-                                        "catatan" to catatan
-                                    )
-
-                                // ==================================
-                                // SIMPAN KE ATTENDANCE
-                                // ==================================
-
-                                db.collection("attendance")
-                                    .add(data)
-                                    .await()
 
                                 Log.d(
+
                                     "SCAN_DEBUG",
-                                    "================================"
+
+                                    "KIRIM QR KE APP NAVIGATION"
                                 )
 
-                                Log.d(
-                                    "SCAN_DEBUG",
-                                    "ABSEN BERHASIL DISIMPAN"
-                                )
 
                                 Log.d(
-                                    "SCAN_DEBUG",
-                                    "FIRESTORE BERHASIL"
-                                )
 
-                                Log.d(
                                     "SCAN_DEBUG",
-                                    "ANTI DOUBLE SCAN = AKTIF"
-                                )
 
-                                Log.d(
-                                    "SCAN_DEBUG",
-                                    "UID = $uid"
-                                )
-
-                                Log.d(
-                                    "SCAN_DEBUG",
-                                    "TANGGAL = $tanggal"
-                                )
-
-                                Log.d(
-                                    "SCAN_DEBUG",
-                                    "JAM MASUK = $jam"
-                                )
-
-                                Log.d(
-                                    "SCAN_DEBUG",
                                     "QR = $qrData"
                                 )
 
+
                                 Log.d(
+
                                     "SCAN_DEBUG",
+
                                     "CATATAN = $catatan"
                                 )
 
-                                Log.d(
-                                    "SCAN_DEBUG",
-                                    "================================"
-                                )
 
-                                // ==================================
-                                // LANJUT KE HALAMAN BERHASIL
-                                // ==================================
+                                /*
+                                 * PENTING:
+                                 *
+                                 * ScanAbsenScreen TIDAK menyimpan
+                                 * Firestore.
+                                 *
+                                 * ScanAbsenScreen TIDAK menyimpan
+                                 * DataStore.
+                                 *
+                                 * Semua keputusan:
+                                 *
+                                 * MASUK / PULANG
+                                 *
+                                 * dilakukan oleh AppNavigation.
+                                 */
 
                                 onQrScanned(
+
                                     qrData,
+
                                     catatan
                                 )
 
@@ -919,26 +914,26 @@ fun ScanAbsenScreen(
                             ) {
 
                                 Log.e(
-                                    "SCAN_DEBUG",
-                                    "================================"
-                                )
 
-                                Log.e(
                                     "SCAN_DEBUG",
-                                    "GAGAL MENYIMPAN ABSEN",
+
+                                    "GAGAL MENGIRIM HASIL SCAN",
+
                                     e
                                 )
 
-                                Log.e(
-                                    "SCAN_DEBUG",
-                                    "================================"
-                                )
 
                                 // ==================================
                                 // BUKA LOCK JIKA GAGAL
                                 // ==================================
 
                                 scanLock.set(false)
+
+                                sudahScan =
+                                    false
+
+                                qrData =
+                                    ""
 
                                 sedangKirim =
                                     false
@@ -948,6 +943,7 @@ fun ScanAbsenScreen(
                 },
 
                 enabled =
+
                     sudahScan &&
                             qrData.isNotBlank() &&
                             !sedangKirim,
@@ -964,9 +960,11 @@ fun ScanAbsenScreen(
 
                 colors =
                     ButtonDefaults.buttonColors(
+
                         containerColor =
                             PrimaryGreen
                     )
+
             ) {
 
                 Icon(
@@ -978,21 +976,25 @@ fun ScanAbsenScreen(
                         null
                 )
 
+
                 Spacer(
+
                     modifier =
                         Modifier.width(8.dp)
                 )
 
+
                 Text(
 
                     text =
+
                         if (sedangKirim) {
 
-                            "Menyimpan..."
+                            "Memproses..."
 
                         } else {
 
-                            "Simpan Absen"
+                            "Konfirmasi Absen"
                         },
 
                     fontWeight =
@@ -1000,7 +1002,9 @@ fun ScanAbsenScreen(
                 )
             }
 
+
             Spacer(
+
                 modifier =
                     Modifier.height(20.dp)
             )
