@@ -23,11 +23,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,15 +44,18 @@ import com.example.absensikaryawan.screens.AbsenBerhasilScreen
 import com.example.absensikaryawan.screens.AbsenMasukScreen
 import com.example.absensikaryawan.screens.AdminDashboardScreen
 import com.example.absensikaryawan.screens.ApprovalScreen
+import com.example.absensikaryawan.screens.KaryawanScreen
 import com.example.absensikaryawan.screens.LoginScreen
 import com.example.absensikaryawan.screens.NotifikasiScreen
 import com.example.absensikaryawan.screens.PengajuanBaruScreen
 import com.example.absensikaryawan.screens.PengajuanScreen
 import com.example.absensikaryawan.screens.ProfileScreen
+import com.example.absensikaryawan.screens.RekapAdminScreen
 import com.example.absensikaryawan.screens.RiwayatScreen
 import com.example.absensikaryawan.screens.ScanAbsenScreen
 import com.example.absensikaryawan.screens.SettingsScreen
 import com.example.absensikaryawan.screens.StaffDashboardScreen
+import com.example.absensikaryawan.screens.AdminSettingsScreen
 
 import com.google.firebase.auth.FirebaseAuth
 
@@ -80,6 +83,12 @@ private enum class AppScreen {
     Login,
 
     Admin,
+
+    Karyawan,
+
+    AdminRekap,
+
+    AdminSettings,
 
     Approval,
 
@@ -255,6 +264,7 @@ fun AppNavigation() {
 
                     tonalElevation =
                         6.dp
+
                 ) {
 
                     bottomMenuItems.forEach { item ->
@@ -404,6 +414,24 @@ fun AppNavigation() {
                                 AppScreen.Approval
                         },
 
+                        onEmployees = {
+
+                            currentScreen.value =
+                                AppScreen.Karyawan
+                        },
+
+                        onRecap = {
+
+                            currentScreen.value =
+                                AppScreen.AdminRekap
+                        },
+
+                        onSettings = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        },
+
                         onLogout = {
 
                             FirebaseAuth
@@ -412,6 +440,65 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.Login
+                        }
+                    )
+                }
+
+                // ==================================================
+                // ADMIN SETTINGS
+                // ==================================================
+
+                AppScreen.AdminSettings -> {
+
+                    AdminSettingsScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Admin
+                        },
+
+                        onLogout = {
+
+                            FirebaseAuth
+                                .getInstance()
+                                .signOut()
+
+                            currentScreen.value =
+                                AppScreen.Login
+                        }
+                    )
+                }
+
+                // ==================================================
+                // KARYAWAN ADMIN
+                // ==================================================
+
+                AppScreen.Karyawan -> {
+
+                    KaryawanScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Admin
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // REKAP ADMIN
+                // ==================================================
+
+                AppScreen.AdminRekap -> {
+
+                    RekapAdminScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Admin
                         }
                     )
                 }
@@ -701,11 +788,6 @@ fun AppNavigation() {
                                 qrData,
                                 catatan ->
 
-
-                            // ==================================
-                            // LOG QR
-                            // ==================================
-
                             Log.d(
                                 "ABSEN_DEBUG",
                                 "================================"
@@ -731,11 +813,6 @@ fun AppNavigation() {
                                 "================================"
                             )
 
-
-                            // ==================================
-                            // SEMUA PROSES FIRESTORE
-                            // WAJIB DI DALAM COROUTINE
-                            // ==================================
 
                             scope.launch {
 
@@ -830,7 +907,7 @@ fun AppNavigation() {
 
 
                                     // ==================================
-                                    // TANGGAL HARI INI
+                                    // TANGGAL
                                     // ==================================
 
                                     val tanggal =
@@ -883,10 +960,7 @@ fun AppNavigation() {
 
 
                                     // ==================================================
-                                    // KONDISI 1
-                                    // BELUM ADA ABSEN HARI INI
-                                    //
-                                    // => SCAN PERTAMA = ABSEN MASUK
+                                    // ABSEN MASUK
                                     // ==================================================
 
                                     if (
@@ -900,18 +974,9 @@ fun AppNavigation() {
 
                                         Log.d(
                                             "ABSEN_DEBUG",
-                                            "SCAN PERTAMA"
+                                            "SCAN PERTAMA = ABSEN MASUK"
                                         )
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "PROSES = ABSEN MASUK"
-                                        )
-
-
-                                        // ==================================
-                                        // SIMPAN ABSEN MASUK FIRESTORE
-                                        // ==================================
 
                                         val hasilSimpan =
                                             firestoreRepository
@@ -952,10 +1017,6 @@ fun AppNavigation() {
                                         }
 
 
-                                        // ==================================
-                                        // SIMPAN DATASTORE
-                                        // ==================================
-
                                         absensiDataStore
                                             .simpanAbsen(
 
@@ -978,34 +1039,18 @@ fun AppNavigation() {
                                             "ABSEN MASUK BERHASIL"
                                         )
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "JAM MASUK = $jam"
-                                        )
-
-
-                                        // ==================================
-                                        // REFRESH DASHBOARD
-                                        // ==================================
 
                                         refreshKey++
 
-
-                                        // ==================================
-                                        // KEMBALI BERANDA
-                                        // ==================================
-
                                         currentScreen.value =
                                             AppScreen.Staff
-
 
                                         return@launch
                                     }
 
 
                                     // ==================================================
-                                    // KONDISI 2
-                                    // SUDAH ADA ABSEN MASUK
+                                    // DATA ABSEN SUDAH ADA
                                     // ==================================================
 
                                     val (
@@ -1014,11 +1059,6 @@ fun AppNavigation() {
                                     ) =
                                         absenHariIni
 
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "ABSEN HARI INI DITEMUKAN"
-                                    )
 
                                     Log.d(
                                         "ABSEN_DEBUG",
@@ -1032,31 +1072,18 @@ fun AppNavigation() {
 
 
                                     // ==================================================
-                                    // CEK ABSEN PULANG
+                                    // ABSEN PULANG
                                     // ==================================================
 
                                     if (
                                         jamPulangLama.isBlank()
                                     ) {
 
-                                        // ==================================
-                                        // SCAN KEDUA
-                                        // ==================================
-
                                         Log.d(
                                             "ABSEN_DEBUG",
-                                            "SCAN KEDUA"
+                                            "SCAN KEDUA = ABSEN PULANG"
                                         )
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "PROSES = ABSEN PULANG"
-                                        )
-
-
-                                        // ==================================
-                                        // SIMPAN JAM PULANG
-                                        // ==================================
 
                                         val hasilPulang =
                                             firestoreRepository
@@ -1085,10 +1112,6 @@ fun AppNavigation() {
                                         }
 
 
-                                        // ==================================
-                                        // DATASTORE
-                                        // ==================================
-
                                         absensiDataStore
                                             .simpanPulang(
                                                 jam
@@ -1100,42 +1123,19 @@ fun AppNavigation() {
                                             "ABSEN PULANG BERHASIL"
                                         )
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "JAM PULANG = $jam"
-                                        )
-
-
-                                        // ==================================
-                                        // REFRESH DASHBOARD
-                                        // ==================================
 
                                         refreshKey++
 
-
-                                        // ==================================
-                                        // KEMBALI BERANDA
-                                        // ==================================
-
                                         currentScreen.value =
                                             AppScreen.Staff
-
 
                                         return@launch
                                     }
 
 
                                     // ==================================================
-                                    // KONDISI 3
                                     // ABSEN SUDAH LENGKAP
-                                    //
-                                    // => SCAN KETIGA TIDAK BOLEH MENAMBAH DATA
                                     // ==================================================
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "================================"
-                                    )
 
                                     Log.d(
                                         "ABSEN_DEBUG",
@@ -1144,35 +1144,11 @@ fun AppNavigation() {
 
                                     Log.d(
                                         "ABSEN_DEBUG",
-                                        "JAM MASUK SUDAH ADA"
-                                    )
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "JAM PULANG SUDAH ADA"
-                                    )
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
                                         "SCAN KETIGA DIABAIKAN"
                                     )
 
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "================================"
-                                    )
-
-
-                                    // ==================================
-                                    // TETAP REFRESH
-                                    // ==================================
 
                                     refreshKey++
-
-
-                                    // ==================================
-                                    // KEMBALI BERANDA
-                                    // ==================================
 
                                     currentScreen.value =
                                         AppScreen.Staff
@@ -1183,23 +1159,8 @@ fun AppNavigation() {
 
                                     Log.e(
                                         "ABSEN_DEBUG",
-                                        "================================"
-                                    )
-
-                                    Log.e(
-                                        "ABSEN_DEBUG",
                                         "GAGAL PROSES ABSEN",
                                         e
-                                    )
-
-                                    Log.e(
-                                        "ABSEN_DEBUG",
-                                        "ERROR = ${e.message}"
-                                    )
-
-                                    Log.e(
-                                        "ABSEN_DEBUG",
-                                        "================================"
                                     )
                                 }
                             }

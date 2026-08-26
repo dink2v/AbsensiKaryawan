@@ -1,5 +1,6 @@
 package com.example.absensikaryawan.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,17 +14,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Schedule
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,6 +45,7 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -368,7 +373,7 @@ fun StaffDashboardScreen(
 
 
     // ==========================================================
-    // SCROLL BERANDA
+    // SCROLL
     // ==========================================================
 
     val verticalScrollState =
@@ -399,8 +404,8 @@ fun StaffDashboardScreen(
                         verticalScrollState
                     )
                     .padding(
-                        horizontal = 20.dp,
-                        vertical = 12.dp
+                        horizontal = 18.dp,
+                        vertical = 10.dp
                     )
 
         ) {
@@ -420,11 +425,6 @@ fun StaffDashboardScreen(
 
             ) {
 
-
-                // ==================================================
-                // JUDUL
-                // ==================================================
-
                 Column(
 
                     modifier =
@@ -435,10 +435,10 @@ fun StaffDashboardScreen(
                     Text(
 
                         text =
-                            "ABSENSI KARYAWAN",
+                            "Halo, ${namaUser.ifBlank { "Staff" }} 👋",
 
                         fontSize =
-                            23.sp,
+                            22.sp,
 
                         fontWeight =
                             FontWeight.Bold,
@@ -457,7 +457,7 @@ fun StaffDashboardScreen(
                     Text(
 
                         text =
-                            tanggalSekarang,
+                            "Selamat datang kembali",
 
                         fontSize =
                             12.sp,
@@ -491,49 +491,68 @@ fun StaffDashboardScreen(
                             TextDark,
 
                         modifier =
-                            Modifier.size(27.dp)
+                            Modifier.size(25.dp)
                     )
                 }
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(2.dp)
+                )
 
 
                 // ==================================================
                 // PROFILE
                 // ==================================================
 
-                IconButton(
+                Surface(
 
-                    onClick =
-                        onProfile
+                    modifier =
+                        Modifier
+                            .size(42.dp)
+                            .clip(CircleShape),
+
+                    color =
+                        PrimaryGreen
 
                 ) {
 
-                    Icon(
+                    IconButton(
 
-                        imageVector =
-                            Icons.Default.Person,
+                        onClick =
+                            onProfile
 
-                        contentDescription =
-                            "Profil",
+                    ) {
 
-                        tint =
-                            PrimaryGreen,
+                        Icon(
 
-                        modifier =
-                            Modifier.size(29.dp)
-                    )
+                            imageVector =
+                                Icons.Default.Person,
+
+                            contentDescription =
+                                "Profil",
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(23.dp)
+                        )
+                    }
                 }
             }
 
 
             Spacer(
                 modifier =
-                    Modifier.height(16.dp)
+                    Modifier.height(18.dp)
             )
 
 
             // ==================================================
             // JAM REAL-TIME
-            // ==================================================
+            // ==========================================================
 
             Card(
 
@@ -541,7 +560,7 @@ fun StaffDashboardScreen(
                     Modifier.fillMaxWidth(),
 
                 shape =
-                    RoundedCornerShape(22.dp),
+                    RoundedCornerShape(24.dp),
 
                 colors =
                     CardDefaults.cardColors(
@@ -557,69 +576,121 @@ fun StaffDashboardScreen(
                         Modifier
                             .fillMaxWidth()
                             .padding(
-                                horizontal = 20.dp,
-                                vertical = 20.dp
-                            ),
-
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                                horizontal = 22.dp,
+                                vertical = 22.dp
+                            )
 
                 ) {
 
-                    Icon(
-
-                        imageVector =
-                            Icons.Default.AccessTime,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            Color.White,
+                    Row(
 
                         modifier =
-                            Modifier.size(32.dp)
-                    )
+                            Modifier.fillMaxWidth(),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+
+                    ) {
+
+                        Surface(
+
+                            modifier =
+                                Modifier.size(48.dp),
+
+                            shape =
+                                CircleShape,
+
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.16f
+                                )
+
+                        ) {
+
+                            Icon(
+
+                                imageVector =
+                                    Icons.Default.AccessTime,
+
+                                contentDescription =
+                                    null,
+
+                                tint =
+                                    Color.White,
+
+                                modifier =
+                                    Modifier
+                                        .padding(12.dp)
+                                        .size(24.dp)
+                            )
+                        }
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(14.dp)
+                        )
+
+
+                        Column {
+
+                            Text(
+
+                                text =
+                                    "Waktu Sekarang",
+
+                                fontSize =
+                                    12.sp,
+
+                                color =
+                                    Color.White.copy(
+                                        alpha = 0.85f
+                                    )
+                            )
+
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(2.dp)
+                            )
+
+
+                            Text(
+
+                                text =
+                                    jamSekarang,
+
+                                fontSize =
+                                    30.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color.White
+                            )
+                        }
+                    }
 
 
                     Spacer(
                         modifier =
-                            Modifier.height(6.dp)
+                            Modifier.height(14.dp)
                     )
 
 
                     Text(
 
                         text =
-                            jamSekarang,
-
-                        fontSize =
-                            34.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            Color.White
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
-
-                    Text(
-
-                        text =
-                            "Waktu Sekarang",
+                            tanggalSekarang,
 
                         fontSize =
                             13.sp,
 
                         color =
-                            Color.White
+                            Color.White.copy(
+                                alpha = 0.9f
+                            )
                     )
                 }
             }
@@ -627,7 +698,7 @@ fun StaffDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(16.dp)
+                    Modifier.height(20.dp)
             )
 
 
@@ -635,25 +706,15 @@ fun StaffDashboardScreen(
             // KEHADIRAN HARI INI
             // ==================================================
 
-            Text(
-
-                text =
-                    "Kehadiran Hari Ini",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
+            SectionTitle(
+                title =
+                    "Kehadiran Hari Ini"
             )
 
 
             Spacer(
                 modifier =
-                    Modifier.height(8.dp)
+                    Modifier.height(10.dp)
             )
 
 
@@ -663,7 +724,7 @@ fun StaffDashboardScreen(
                     Modifier.fillMaxWidth(),
 
                 shape =
-                    RoundedCornerShape(18.dp),
+                    RoundedCornerShape(20.dp),
 
                 colors =
                     CardDefaults.cardColors(
@@ -674,7 +735,7 @@ fun StaffDashboardScreen(
                 elevation =
                     CardDefaults.cardElevation(
                         defaultElevation =
-                            2.dp
+                            1.dp
                     )
 
             ) {
@@ -690,77 +751,115 @@ fun StaffDashboardScreen(
 
 
                     // ==========================================
-// STATUS
-// ==========================================
-
-                    val statusBackground =
-                        if (sudahAbsen) {
-                            Color(0xFFE8F5E9)
-                        } else {
-                            Color(0xFFFFF3E0)
-                        }
-
-                    val statusText =
-                        if (sudahAbsen) {
-                            PrimaryGreen
-                        } else {
-                            Color(0xFFE67E22)
-                        }
+                    // STATUS
+                    // ==========================================
 
                     Row(
+
                         modifier =
                             Modifier.fillMaxWidth(),
 
                         verticalAlignment =
                             Alignment.CenterVertically
+
                     ) {
 
+                        Surface(
+
+                            modifier =
+                                Modifier.size(42.dp),
+
+                            shape =
+                                CircleShape,
+
+                            color =
+                                if (sudahAbsen) {
+                                    Color(0xFFE8F5E9)
+                                } else {
+                                    Color(0xFFFFF3E0)
+                                }
+
+                        ) {
+
+                            Icon(
+
+                                imageVector =
+                                    if (sudahAbsen) {
+                                        Icons.Default.CheckCircle
+                                    } else {
+                                        Icons.Default.Schedule
+                                    },
+
+                                contentDescription =
+                                    null,
+
+                                tint =
+                                    if (sudahAbsen) {
+                                        PrimaryGreen
+                                    } else {
+                                        Color(0xFFE67E22)
+                                    },
+
+                                modifier =
+                                    Modifier
+                                        .padding(9.dp)
+                                        .size(24.dp)
+                            )
+                        }
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(12.dp)
+                        )
+
+
                         Column(
+
                             modifier =
                                 Modifier.weight(1f)
+
                         ) {
 
                             Text(
-                                text = "Status",
 
-                                fontSize = 12.sp,
+                                text =
+                                    "Status Kehadiran",
 
-                                color = TextGray
+                                fontSize =
+                                    12.sp,
+
+                                color =
+                                    TextGray
                             )
+
 
                             Spacer(
                                 modifier =
-                                    Modifier.height(6.dp)
+                                    Modifier.height(3.dp)
                             )
 
+
                             Text(
+
                                 text =
                                     if (sudahAbsen)
                                         "SUDAH ABSEN"
                                     else
                                         "BELUM ABSEN",
 
-                                fontSize = 13.sp,
+                                fontSize =
+                                    14.sp,
 
                                 fontWeight =
                                     FontWeight.Bold,
 
                                 color =
-                                    statusText,
-
-                                modifier =
-                                    Modifier
-                                        .background(
-                                            color =
-                                                statusBackground,
-
-                                            shape =
-                                                RoundedCornerShape(50.dp)
-                                        )
-                                        .padding(
-                                            horizontal = 12.dp,
-                                            vertical = 7.dp
-                                        )
+                                    if (sudahAbsen) {
+                                        PrimaryGreen
+                                    } else {
+                                        Color(0xFFE67E22)
+                                    }
                             )
                         }
                     }
@@ -768,7 +867,7 @@ fun StaffDashboardScreen(
 
                     Spacer(
                         modifier =
-                            Modifier.height(14.dp)
+                            Modifier.height(18.dp)
                     )
 
 
@@ -782,89 +881,40 @@ fun StaffDashboardScreen(
                             Modifier.fillMaxWidth(),
 
                         horizontalArrangement =
-                            Arrangement.SpaceBetween
+                            Arrangement.spacedBy(10.dp)
 
                     ) {
 
-                        Column {
+                        AttendanceTimeCard(
 
-                            Text(
+                            modifier =
+                                Modifier.weight(1f),
 
-                                text =
-                                    "Jam Masuk",
+                            title =
+                                "Jam Masuk",
 
-                                fontSize =
-                                    12.sp,
+                            time =
+                                jamMasuk,
 
-                                color =
-                                    TextGray
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(4.dp)
-                            )
+                            icon =
+                                Icons.Default.AccessTime
+                        )
 
 
-                            Text(
+                        AttendanceTimeCard(
 
-                                text =
-                                    jamMasuk,
+                            modifier =
+                                Modifier.weight(1f),
 
-                                fontSize =
-                                    16.sp,
+                            title =
+                                "Jam Pulang",
 
-                                fontWeight =
-                                    FontWeight.Bold,
+                            time =
+                                jamPulang,
 
-                                color =
-                                    TextDark
-                            )
-                        }
-
-
-                        Column(
-
-                            horizontalAlignment =
-                                Alignment.End
-
-                        ) {
-
-                            Text(
-
-                                text =
-                                    "Jam Pulang",
-
-                                fontSize =
-                                    12.sp,
-
-                                color =
-                                    TextGray
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(4.dp)
-                            )
-
-
-                            Text(
-
-                                text =
-                                    jamPulang,
-
-                                fontSize =
-                                    16.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-                        }
+                            icon =
+                                Icons.Default.Schedule
+                        )
                     }
                 }
             }
@@ -872,27 +922,17 @@ fun StaffDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(20.dp)
+                    Modifier.height(22.dp)
             )
 
 
             // ==================================================
             // AKSI CEPAT
-            // ==================================================
+            // ==========================================================
 
-            Text(
-
-                text =
-                    "Aksi Cepat",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
+            SectionTitle(
+                title =
+                    "Aksi Cepat"
             )
 
 
@@ -903,8 +943,8 @@ fun StaffDashboardScreen(
 
 
             // ==================================================
-            // HORIZONTAL SCROLL
-            // ==================================================
+            // QUICK ACTION
+            // ==========================================================
 
             val horizontalScrollState =
                 rememberScrollState()
@@ -924,11 +964,6 @@ fun StaffDashboardScreen(
 
             ) {
 
-
-                // ==============================================
-                // SCAN QR
-                // ==============================================
-
                 QuickActionCard(
 
                     icon =
@@ -941,13 +976,12 @@ fun StaffDashboardScreen(
                         "Absensi",
 
                     onClick =
-                        onScan
+                        onScan,
+
+                    highlighted =
+                        true
                 )
 
-
-                // ==============================================
-                // RIWAYAT
-                // ==============================================
 
                 QuickActionCard(
 
@@ -965,10 +999,6 @@ fun StaffDashboardScreen(
                 )
 
 
-                // ==============================================
-                // PENGAJUAN
-                // ==============================================
-
                 QuickActionCard(
 
                     icon =
@@ -984,10 +1014,6 @@ fun StaffDashboardScreen(
                         onPengajuan
                 )
 
-
-                // ==============================================
-                // PROFIL
-                // ==============================================
 
                 QuickActionCard(
 
@@ -1008,27 +1034,17 @@ fun StaffDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(24.dp)
+                    Modifier.height(22.dp)
             )
 
 
             // ==================================================
             // AKTIVITAS HARI INI
-            // ==================================================
+            // ==========================================================
 
-            Text(
-
-                text =
-                    "Aktivitas Hari Ini",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
+            SectionTitle(
+                title =
+                    "Aktivitas Hari Ini"
             )
 
 
@@ -1044,7 +1060,7 @@ fun StaffDashboardScreen(
                     Modifier.fillMaxWidth(),
 
                 shape =
-                    RoundedCornerShape(18.dp),
+                    RoundedCornerShape(20.dp),
 
                 colors =
                     CardDefaults.cardColors(
@@ -1055,7 +1071,7 @@ fun StaffDashboardScreen(
                 elevation =
                     CardDefaults.cardElevation(
                         defaultElevation =
-                            2.dp
+                            1.dp
                     )
 
             ) {
@@ -1069,234 +1085,61 @@ fun StaffDashboardScreen(
 
                 ) {
 
+                    ActivityItem(
 
-                    // ==========================================
-                    // AKTIVITAS MASUK
-                    // ==========================================
+                        icon =
+                            Icons.Default.AccessTime,
 
-                    Row(
+                        title =
+                            "Absen Masuk",
 
-                        modifier =
-                            Modifier.fillMaxWidth(),
+                        description =
+                            if (
+                                sudahAbsen &&
+                                jamMasuk != "-"
+                            ) {
+                                "Berhasil melakukan absensi masuk"
+                            } else {
+                                "Belum melakukan absensi masuk"
+                            },
 
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                        time =
+                            jamMasuk,
 
-                    ) {
-
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.AccessTime,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(28.dp)
-                        )
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(12.dp)
-                        )
-
-
-                        Column(
-
-                            modifier =
-                                Modifier.weight(1f)
-
-                        ) {
-
-                            Text(
-
-                                text =
-                                    "Absen Masuk",
-
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-
-                            Text(
-
-                                text =
-                                    if (
-                                        sudahAbsen &&
-                                        jamMasuk != "-"
-                                    ) {
-                                        "Berhasil melakukan absensi masuk"
-                                    } else {
-                                        "Belum melakukan absensi masuk"
-                                    },
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-
-
-                        Text(
-
-                            text =
-                                jamMasuk,
-
-                            fontSize =
-                                13.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                if (
-                                    jamMasuk != "-"
-                                ) {
-                                    PrimaryGreen
-                                } else {
-                                    TextGray
-                                }
-                        )
-                    }
+                        active =
+                            jamMasuk != "-"
+                    )
 
 
                     Spacer(
                         modifier =
-                            Modifier.height(16.dp)
+                            Modifier.height(18.dp)
                     )
 
 
-                    // ==========================================
-                    // AKTIVITAS PULANG
-                    // ==========================================
+                    ActivityItem(
 
-                    Row(
+                        icon =
+                            Icons.Default.Schedule,
 
-                        modifier =
-                            Modifier.fillMaxWidth(),
+                        title =
+                            "Absen Pulang",
 
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                        description =
+                            if (
+                                jamPulang != "-"
+                            ) {
+                                "Berhasil melakukan absensi pulang"
+                            } else {
+                                "Belum melakukan absensi pulang"
+                            },
 
-                    ) {
+                        time =
+                            jamPulang,
 
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.AccessTime,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                if (
-                                    jamPulang != "-"
-                                ) {
-                                    PrimaryGreen
-                                } else {
-                                    TextGray
-                                },
-
-                            modifier =
-                                Modifier.size(28.dp)
-                        )
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(12.dp)
-                        )
-
-
-                        Column(
-
-                            modifier =
-                                Modifier.weight(1f)
-
-                        ) {
-
-                            Text(
-
-                                text =
-                                    "Absen Pulang",
-
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-
-                            Text(
-
-                                text =
-                                    if (
-                                        jamPulang != "-"
-                                    ) {
-                                        "Berhasil melakukan absensi pulang"
-                                    } else {
-                                        "Belum melakukan absensi pulang"
-                                    },
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-
-
-                        Text(
-
-                            text =
-                                jamPulang,
-
-                            fontSize =
-                                13.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                if (
-                                    jamPulang != "-"
-                                ) {
-                                    PrimaryGreen
-                                } else {
-                                    TextGray
-                                }
-                        )
-                    }
+                        active =
+                            jamPulang != "-"
+                    )
                 }
             }
 
@@ -1305,6 +1148,163 @@ fun StaffDashboardScreen(
                 modifier =
                     Modifier.height(30.dp)
             )
+        }
+    }
+}
+
+
+// ==========================================================
+// SECTION TITLE
+// ==========================================================
+
+@Composable
+private fun SectionTitle(
+
+    title: String
+
+) {
+
+    Text(
+
+        text =
+            title,
+
+        fontSize =
+            18.sp,
+
+        fontWeight =
+            FontWeight.Bold,
+
+        color =
+            TextDark
+    )
+}
+
+
+// ==========================================================
+// ATTENDANCE TIME CARD
+// ==========================================================
+
+@Composable
+private fun AttendanceTimeCard(
+
+    modifier: Modifier,
+
+    title: String,
+
+    time: String,
+
+    icon: ImageVector
+
+) {
+
+    Surface(
+
+        modifier =
+            modifier,
+
+        shape =
+            RoundedCornerShape(15.dp),
+
+        color =
+            Background
+
+    ) {
+
+        Row(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+
+        ) {
+
+            Surface(
+
+                modifier =
+                    Modifier.size(34.dp),
+
+                shape =
+                    CircleShape,
+
+                color =
+                    if (time != "-") {
+                        Color(0xFFE8F5E9)
+                    } else {
+                        Color(0xFFEDEDED)
+                    }
+
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        icon,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        if (time != "-") {
+                            PrimaryGreen
+                        } else {
+                            TextGray
+                        },
+
+                    modifier =
+                        Modifier
+                            .padding(8.dp)
+                            .size(18.dp)
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.width(9.dp)
+            )
+
+
+            Column {
+
+                Text(
+
+                    text =
+                        title,
+
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(2.dp)
+                )
+
+
+                Text(
+
+                    text =
+                        time,
+
+                    fontSize =
+                        15.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+            }
         }
     }
 }
@@ -1323,7 +1323,9 @@ private fun QuickActionCard(
 
     subtitle: String,
 
-    onClick: () -> Unit
+    onClick: () -> Unit,
+
+    highlighted: Boolean = false
 
 ) {
 
@@ -1334,22 +1336,31 @@ private fun QuickActionCard(
 
         modifier =
             Modifier
-                .width(125.dp)
-                .height(125.dp),
+                .width(124.dp)
+                .height(118.dp),
 
         shape =
             RoundedCornerShape(18.dp),
 
         colors =
             CardDefaults.cardColors(
+
                 containerColor =
-                    Color.White
+                    if (highlighted) {
+                        PrimaryGreen
+                    } else {
+                        Color.White
+                    }
             ),
 
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    2.dp
+                    if (highlighted) {
+                        0.dp
+                    } else {
+                        1.dp
+                    }
             )
 
     ) {
@@ -1369,24 +1380,46 @@ private fun QuickActionCard(
 
         ) {
 
-            // ==================================================
-            // ICON
-            // ==================================================
-
-            Icon(
-
-                imageVector =
-                    icon,
-
-                contentDescription =
-                    title,
-
-                tint =
-                    PrimaryGreen,
+            Surface(
 
                 modifier =
-                    Modifier.size(32.dp)
-            )
+                    Modifier.size(42.dp),
+
+                shape =
+                    CircleShape,
+
+                color =
+                    if (highlighted) {
+                        Color.White.copy(
+                            alpha = 0.18f
+                        )
+                    } else {
+                        Color(0xFFE8F5E9)
+                    }
+
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        icon,
+
+                    contentDescription =
+                        title,
+
+                    tint =
+                        if (highlighted) {
+                            Color.White
+                        } else {
+                            PrimaryGreen
+                        },
+
+                    modifier =
+                        Modifier
+                            .padding(9.dp)
+                            .size(24.dp)
+                )
+            }
 
 
             Spacer(
@@ -1395,9 +1428,135 @@ private fun QuickActionCard(
             )
 
 
-            // ==================================================
-            // TITLE
-            // ==================================================
+            Text(
+
+                text =
+                    title,
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    if (highlighted) {
+                        Color.White
+                    } else {
+                        TextDark
+                    }
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(2.dp)
+            )
+
+
+            Text(
+
+                text =
+                    subtitle,
+
+                fontSize =
+                    11.sp,
+
+                color =
+                    if (highlighted) {
+                        Color.White.copy(
+                            alpha = 0.8f
+                        )
+                    } else {
+                        TextGray
+                    }
+            )
+        }
+    }
+}
+
+
+// ==========================================================
+// ACTIVITY ITEM
+// ==========================================================
+
+@Composable
+private fun ActivityItem(
+
+    icon: ImageVector,
+
+    title: String,
+
+    description: String,
+
+    time: String,
+
+    active: Boolean
+
+) {
+
+    Row(
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        verticalAlignment =
+            Alignment.CenterVertically
+
+    ) {
+
+        Surface(
+
+            modifier =
+                Modifier.size(42.dp),
+
+            shape =
+                CircleShape,
+
+            color =
+                if (active) {
+                    Color(0xFFE8F5E9)
+                } else {
+                    Color(0xFFF1F1F1)
+                }
+
+        ) {
+
+            Icon(
+
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    if (active) {
+                        PrimaryGreen
+                    } else {
+                        TextGray
+                    },
+
+                modifier =
+                    Modifier
+                        .padding(9.dp)
+                        .size(24.dp)
+            )
+        }
+
+
+        Spacer(
+            modifier =
+                Modifier.width(12.dp)
+        )
+
+
+        Column(
+
+            modifier =
+                Modifier.weight(1f)
+
+        ) {
 
             Text(
 
@@ -1417,18 +1576,14 @@ private fun QuickActionCard(
 
             Spacer(
                 modifier =
-                    Modifier.height(3.dp)
+                    Modifier.height(2.dp)
             )
 
-
-            // ==================================================
-            // SUBTITLE
-            // ==================================================
 
             Text(
 
                 text =
-                    subtitle,
+                    description,
 
                 fontSize =
                     11.sp,
@@ -1437,5 +1592,25 @@ private fun QuickActionCard(
                     TextGray
             )
         }
+
+
+        Text(
+
+            text =
+                time,
+
+            fontSize =
+                13.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                if (active) {
+                    PrimaryGreen
+                } else {
+                    TextGray
+                }
+        )
     }
 }
