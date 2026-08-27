@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrackChanges
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,11 +26,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,14 +40,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.example.absensikaryawan.ThemeDataStore
+
 import com.example.absensikaryawan.data.AbsensiDataStore
 import com.example.absensikaryawan.data.FirestoreRepository
 import com.example.absensikaryawan.data.UserRepository
 
-import com.example.absensikaryawan.screens.AbsenBerhasilScreen
-import com.example.absensikaryawan.screens.AbsenMasukScreen
 import com.example.absensikaryawan.screens.AdminDashboardScreen
+import com.example.absensikaryawan.screens.AdminSettingsScreen
 import com.example.absensikaryawan.screens.ApprovalScreen
+import com.example.absensikaryawan.screens.BantuanScreen
 import com.example.absensikaryawan.screens.KaryawanScreen
 import com.example.absensikaryawan.screens.LoginScreen
 import com.example.absensikaryawan.screens.NotifikasiScreen
@@ -55,7 +61,9 @@ import com.example.absensikaryawan.screens.RiwayatScreen
 import com.example.absensikaryawan.screens.ScanAbsenScreen
 import com.example.absensikaryawan.screens.SettingsScreen
 import com.example.absensikaryawan.screens.StaffDashboardScreen
-import com.example.absensikaryawan.screens.AdminSettingsScreen
+import com.example.absensikaryawan.screens.TampilanScreen
+import com.example.absensikaryawan.screens.TentangAplikasiScreen
+import com.example.absensikaryawan.screens.ThemeMode
 
 import com.google.firebase.auth.FirebaseAuth
 
@@ -82,15 +90,34 @@ private enum class AppScreen {
 
     Login,
 
+    // ======================================================
+    // ADMIN
+    // ======================================================
+
     Admin,
+
+    Approval,
 
     Karyawan,
 
     AdminRekap,
 
+    AdminTarget,
+
     AdminSettings,
 
-    Approval,
+    AdminProfile,
+
+    AdminTampilan,
+
+    AdminBantuan,
+
+    AdminTentangAplikasi,
+
+
+    // ======================================================
+    // STAFF
+    // ======================================================
 
     Staff,
 
@@ -102,15 +129,17 @@ private enum class AppScreen {
 
     Scan,
 
-    AbsenMasuk,
-
-    AbsenBerhasil,
-
     Riwayat,
 
     Settings,
 
-    Notifikasi
+    Tampilan,
+
+    Notifikasi,
+
+    Bantuan,
+
+    TentangAplikasi
 }
 
 
@@ -129,41 +158,81 @@ private data class BottomMenuItem(
 
 
 // ==========================================================
-// BOTTOM NAVIGATION MENU
+// BOTTOM NAVIGATION STAFF
 // ==========================================================
 
-private val bottomMenuItems = listOf(
+private val staffBottomMenuItems =
+    listOf(
 
-    BottomMenuItem(
-        screen = AppScreen.Staff,
-        label = "Beranda",
-        icon = Icons.Default.Home
-    ),
+        BottomMenuItem(
+            screen = AppScreen.Staff,
+            label = "Beranda",
+            icon = Icons.Default.Home
+        ),
 
-    BottomMenuItem(
-        screen = AppScreen.Pengajuan,
-        label = "Pengajuan",
-        icon = Icons.Default.NoteAdd
-    ),
+        BottomMenuItem(
+            screen = AppScreen.Pengajuan,
+            label = "Pengajuan",
+            icon = Icons.Default.NoteAdd
+        ),
 
-    BottomMenuItem(
-        screen = AppScreen.Scan,
-        label = "Scan",
-        icon = Icons.Default.QrCodeScanner
-    ),
+        BottomMenuItem(
+            screen = AppScreen.Scan,
+            label = "Scan",
+            icon = Icons.Default.QrCodeScanner
+        ),
 
-    BottomMenuItem(
-        screen = AppScreen.Riwayat,
-        label = "Riwayat",
-        icon = Icons.Default.History
-    ),
+        BottomMenuItem(
+            screen = AppScreen.Riwayat,
+            label = "Riwayat",
+            icon = Icons.Default.History
+        ),
 
-    BottomMenuItem(
-        screen = AppScreen.Settings,
-        label = "Setting",
-        icon = Icons.Default.Settings
+        BottomMenuItem(
+            screen = AppScreen.Settings,
+            label = "Setting",
+            icon = Icons.Default.Settings
+        )
     )
-)
+
+
+// ==========================================================
+// BOTTOM NAVIGATION ADMIN
+// ==========================================================
+
+private val adminBottomMenuItems =
+    listOf(
+
+        BottomMenuItem(
+            screen = AppScreen.Admin,
+            label = "Beranda",
+            icon = Icons.Default.Home
+        ),
+
+        BottomMenuItem(
+            screen = AppScreen.Approval,
+            label = "Pengajuan",
+            icon = Icons.Default.NoteAdd
+        ),
+
+        BottomMenuItem(
+            screen = AppScreen.AdminRekap,
+            label = "Rekap",
+            icon = Icons.Default.Assessment
+        ),
+
+        BottomMenuItem(
+            screen = AppScreen.AdminTarget,
+            label = "Target",
+            icon = Icons.Default.TrackChanges
+        ),
+
+        BottomMenuItem(
+            screen = AppScreen.AdminSettings,
+            label = "Setting",
+            icon = Icons.Default.Settings
+        )
+    )
 
 
 // ==========================================================
@@ -173,9 +242,9 @@ private val bottomMenuItems = listOf(
 @Composable
 fun AppNavigation() {
 
-    // ==========================================================
+    // ======================================================
     // REPOSITORY
-    // ==========================================================
+    // ======================================================
 
     val userRepository =
         remember {
@@ -188,74 +257,169 @@ fun AppNavigation() {
         }
 
 
-    // ==========================================================
+    // ======================================================
     // NAVIGATION STATE
-    // ==========================================================
+    // ======================================================
 
     val currentScreen =
         remember {
+
             mutableStateOf(
                 AppScreen.Login
             )
         }
 
 
-    // ==========================================================
+    // ======================================================
     // REFRESH DASHBOARD
-    // ==========================================================
+    // ======================================================
 
     var refreshKey by remember {
+
         mutableStateOf(0)
     }
 
 
-    // ==========================================================
+    // ======================================================
     // COROUTINE
-    // ==========================================================
+    // ======================================================
 
     val scope =
         rememberCoroutineScope()
 
 
-    // ==========================================================
+    // ======================================================
     // CONTEXT
-    // ==========================================================
+    // ======================================================
 
     val context: Context =
         LocalContext.current
 
 
-    // ==========================================================
-    // DATASTORE
-    // ==========================================================
+    // ======================================================
+    // DATASTORE ABSENSI
+    // ======================================================
 
     val absensiDataStore =
         remember {
-            AbsensiDataStore(context)
+
+            AbsensiDataStore(
+                context
+            )
         }
 
 
-    // ==========================================================
-    // BOTTOM NAVIGATION
-    // ==========================================================
+    // ======================================================
+    // THEME DATASTORE
+    // ======================================================
 
-    val showBottomNavigation =
-        currentScreen.value == AppScreen.Staff ||
-                currentScreen.value == AppScreen.Pengajuan ||
-                currentScreen.value == AppScreen.Scan ||
-                currentScreen.value == AppScreen.Riwayat ||
-                currentScreen.value == AppScreen.Settings
+    val themeDataStore =
+        remember {
+
+            ThemeDataStore(
+                context
+            )
+        }
 
 
-    // ==========================================================
+    val selectedThemeMode by
+    themeDataStore.themeMode
+        .collectAsState(
+            initial =
+                ThemeMode.TERANG
+        )
+
+
+    // ======================================================
+    // ADMIN AREA
+    // ======================================================
+
+    val isAdminArea =
+
+        currentScreen.value ==
+                AppScreen.Admin ||
+
+                currentScreen.value ==
+                AppScreen.Approval ||
+
+                currentScreen.value ==
+                AppScreen.Karyawan ||
+
+                currentScreen.value ==
+                AppScreen.AdminRekap ||
+
+                currentScreen.value ==
+                AppScreen.AdminTarget ||
+
+                currentScreen.value ==
+                AppScreen.AdminSettings ||
+
+                currentScreen.value ==
+                AppScreen.AdminProfile ||
+
+                currentScreen.value ==
+                AppScreen.AdminTampilan ||
+
+                currentScreen.value ==
+                AppScreen.AdminBantuan ||
+
+                currentScreen.value ==
+                AppScreen.AdminTentangAplikasi
+
+
+    // ======================================================
+    // STAFF AREA
+    // ======================================================
+
+    val isStaffArea =
+
+        currentScreen.value ==
+                AppScreen.Staff ||
+
+                currentScreen.value ==
+                AppScreen.Pengajuan ||
+
+                currentScreen.value ==
+                AppScreen.PengajuanBaru ||
+
+                currentScreen.value ==
+                AppScreen.Scan ||
+
+                currentScreen.value ==
+                AppScreen.Riwayat ||
+
+                currentScreen.value ==
+                AppScreen.Settings ||
+
+                currentScreen.value ==
+                AppScreen.Profile ||
+
+                currentScreen.value ==
+                AppScreen.Tampilan ||
+
+                currentScreen.value ==
+                AppScreen.Notifikasi ||
+
+                currentScreen.value ==
+                AppScreen.Bantuan ||
+
+                currentScreen.value ==
+                AppScreen.TentangAplikasi
+
+
+    // ======================================================
     // SCAFFOLD
-    // ==========================================================
+    // ======================================================
 
     Scaffold(
 
         bottomBar = {
 
-            if (showBottomNavigation) {
+            // ==================================================
+            // ADMIN BOTTOM NAVIGATION
+            // ==================================================
+
+            if (isAdminArea) {
 
                 NavigationBar(
 
@@ -267,10 +431,221 @@ fun AppNavigation() {
 
                 ) {
 
-                    bottomMenuItems.forEach { item ->
+                    adminBottomMenuItems.forEach { item ->
 
                         val isSelected =
-                            currentScreen.value == item.screen
+
+                            when (item.screen) {
+
+                                // --------------------------------
+                                // BERANDA
+                                // --------------------------------
+
+                                AppScreen.Admin ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Admin
+
+
+                                // --------------------------------
+                                // PENGAJUAN
+                                // --------------------------------
+
+                                AppScreen.Approval ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Approval
+
+
+                                // --------------------------------
+                                // REKAP
+                                // --------------------------------
+
+                                AppScreen.AdminRekap ->
+
+                                    currentScreen.value ==
+                                            AppScreen.AdminRekap
+
+
+                                // --------------------------------
+                                // TARGET
+                                // --------------------------------
+
+                                AppScreen.AdminTarget ->
+
+                                    currentScreen.value ==
+                                            AppScreen.AdminTarget
+
+
+                                // --------------------------------
+                                // SETTING
+                                // --------------------------------
+
+                                AppScreen.AdminSettings ->
+
+                                    currentScreen.value ==
+                                            AppScreen.AdminSettings ||
+
+                                            currentScreen.value ==
+                                            AppScreen.AdminProfile ||
+
+                                            currentScreen.value ==
+                                            AppScreen.AdminTampilan ||
+
+                                            currentScreen.value ==
+                                            AppScreen.AdminBantuan ||
+
+                                            currentScreen.value ==
+                                            AppScreen.AdminTentangAplikasi
+
+
+                                else ->
+                                    false
+                            }
+
+
+                        NavigationBarItem(
+
+                            selected =
+                                isSelected,
+
+                            onClick = {
+
+                                currentScreen.value =
+                                    item.screen
+                            },
+
+                            icon = {
+
+                                Icon(
+
+                                    imageVector =
+                                        item.icon,
+
+                                    contentDescription =
+                                        item.label,
+
+                                    modifier =
+                                        Modifier.size(
+
+                                            if (
+                                                item.screen ==
+                                                AppScreen.Admin
+                                            ) {
+
+                                                25.dp
+
+                                            } else {
+
+                                                23.dp
+                                            }
+                                        )
+                                )
+                            },
+
+                            label = {
+
+                                Text(
+
+                                    text =
+                                        item.label,
+
+                                    fontSize =
+                                        11.sp
+                                )
+                            },
+
+                            colors =
+                                NavigationBarItemDefaults.colors(
+
+                                    selectedIconColor =
+                                        BottomNavGreen,
+
+                                    selectedTextColor =
+                                        BottomNavGreen,
+
+                                    unselectedIconColor =
+                                        Color.Gray,
+
+                                    unselectedTextColor =
+                                        Color.Gray,
+
+                                    indicatorColor =
+                                        BottomNavGreen.copy(
+                                            alpha = 0.12f
+                                        )
+                                )
+                        )
+                    }
+                }
+            }
+
+
+            // ==================================================
+            // STAFF BOTTOM NAVIGATION
+            // ==================================================
+
+            else if (isStaffArea) {
+
+                NavigationBar(
+
+                    containerColor =
+                        Color.White,
+
+                    tonalElevation =
+                        6.dp
+
+                ) {
+
+                    staffBottomMenuItems.forEach { item ->
+
+                        val isSelected =
+
+                            when (item.screen) {
+
+                                AppScreen.Staff ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Staff
+
+                                AppScreen.Pengajuan ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Pengajuan
+
+                                AppScreen.Scan ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Scan
+
+                                AppScreen.Riwayat ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Riwayat
+
+                                AppScreen.Settings ->
+
+                                    currentScreen.value ==
+                                            AppScreen.Settings ||
+
+                                            currentScreen.value ==
+                                            AppScreen.Profile ||
+
+                                            currentScreen.value ==
+                                            AppScreen.Tampilan ||
+
+                                            currentScreen.value ==
+                                            AppScreen.Notifikasi ||
+
+                                            currentScreen.value ==
+                                            AppScreen.Bantuan ||
+
+                                            currentScreen.value ==
+                                            AppScreen.TentangAplikasi
+
+                                else ->
+                                    false
+                            }
 
 
                         NavigationBarItem(
@@ -367,11 +742,6 @@ fun AppNavigation() {
                     )
         ) {
 
-
-            // ==================================================
-            // SCREEN
-            // ==================================================
-
             when (currentScreen.value) {
 
 
@@ -401,7 +771,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // ADMIN
+                // ADMIN BERANDA
                 // ==================================================
 
                 AppScreen.Admin -> {
@@ -444,68 +814,9 @@ fun AppNavigation() {
                     )
                 }
 
-                // ==================================================
-                // ADMIN SETTINGS
-                // ==================================================
-
-                AppScreen.AdminSettings -> {
-
-                    AdminSettingsScreen(
-
-                        onBack = {
-
-                            currentScreen.value =
-                                AppScreen.Admin
-                        },
-
-                        onLogout = {
-
-                            FirebaseAuth
-                                .getInstance()
-                                .signOut()
-
-                            currentScreen.value =
-                                AppScreen.Login
-                        }
-                    )
-                }
 
                 // ==================================================
-                // KARYAWAN ADMIN
-                // ==================================================
-
-                AppScreen.Karyawan -> {
-
-                    KaryawanScreen(
-
-                        onBack = {
-
-                            currentScreen.value =
-                                AppScreen.Admin
-                        }
-                    )
-                }
-
-
-                // ==================================================
-                // REKAP ADMIN
-                // ==================================================
-
-                AppScreen.AdminRekap -> {
-
-                    RekapAdminScreen(
-
-                        onBack = {
-
-                            currentScreen.value =
-                                AppScreen.Admin
-                        }
-                    )
-                }
-
-
-                // ==================================================
-                // APPROVAL
+                // ADMIN APPROVAL
                 // ==================================================
 
                 AppScreen.Approval -> {
@@ -522,7 +833,233 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // STAFF / BERANDA
+                // ADMIN KARYAWAN
+                // ==================================================
+
+                AppScreen.Karyawan -> {
+
+                    KaryawanScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Admin
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN REKAP
+                // ==================================================
+
+                AppScreen.AdminRekap -> {
+
+                    RekapAdminScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Admin
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN TARGET
+                // ==================================================
+
+                AppScreen.AdminTarget -> {
+
+                    // ------------------------------------------------
+                    // TargetScreen akan kita sambungkan setelah
+                    // nama composable/file Target yang kita gunakan
+                    // sudah dipastikan.
+                    //
+                    // Untuk sementara tampilan aman tetap
+                    // menggunakan Beranda Admin.
+                    // ------------------------------------------------
+
+                    AdminDashboardScreen(
+
+                        onApproval = {
+
+                            currentScreen.value =
+                                AppScreen.Approval
+                        },
+
+                        onEmployees = {
+
+                            currentScreen.value =
+                                AppScreen.Karyawan
+                        },
+
+                        onRecap = {
+
+                            currentScreen.value =
+                                AppScreen.AdminRekap
+                        },
+
+                        onSettings = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        },
+
+                        onLogout = {
+
+                            FirebaseAuth
+                                .getInstance()
+                                .signOut()
+
+                            currentScreen.value =
+                                AppScreen.Login
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN SETTINGS
+                // ==================================================
+
+                AppScreen.AdminSettings -> {
+
+                    AdminSettingsScreen(
+
+                        onProfile = {
+
+                            currentScreen.value =
+                                AppScreen.AdminProfile
+                        },
+
+                        onTampilan = {
+
+                            currentScreen.value =
+                                AppScreen.AdminTampilan
+                        },
+
+                        onBantuan = {
+
+                            currentScreen.value =
+                                AppScreen.AdminBantuan
+                        },
+
+                        onTentangAplikasi = {
+
+                            currentScreen.value =
+                                AppScreen.AdminTentangAplikasi
+                        },
+
+                        onLogout = {
+
+                            FirebaseAuth
+                                .getInstance()
+                                .signOut()
+
+                            currentScreen.value =
+                                AppScreen.Login
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN PROFILE
+                // ==================================================
+
+                AppScreen.AdminProfile -> {
+
+                    ProfileScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN TAMPILAN
+                // ==================================================
+
+                AppScreen.AdminTampilan -> {
+
+                    TampilanScreen(
+
+                        selectedMode =
+                            selectedThemeMode,
+
+                        onModeSelected = { mode ->
+
+                            scope.launch {
+
+                                themeDataStore
+                                    .saveThemeMode(
+                                        mode
+                                    )
+                            }
+
+                            Log.d(
+                                "THEME_DEBUG",
+                                "MODE ADMIN DIPILIH = $mode"
+                            )
+                        },
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN BANTUAN
+                // ==================================================
+
+                AppScreen.AdminBantuan -> {
+
+                    BantuanScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        },
+
+                        onChatAdmin = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // ADMIN TENTANG APLIKASI
+                // ==================================================
+
+                AppScreen.AdminTentangAplikasi -> {
+
+                    TentangAplikasiScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.AdminSettings
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // STAFF BERANDA
                 // ==================================================
 
                 AppScreen.Staff -> {
@@ -588,7 +1125,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // PROFILE
+                // STAFF PROFILE
                 // ==================================================
 
                 AppScreen.Profile -> {
@@ -605,7 +1142,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // PENGAJUAN
+                // STAFF PENGAJUAN
                 // ==================================================
 
                 AppScreen.Pengajuan -> {
@@ -628,7 +1165,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // PENGAJUAN BARU
+                // STAFF PENGAJUAN BARU
                 // ==================================================
 
                 AppScreen.PengajuanBaru -> {
@@ -655,10 +1192,6 @@ fun AppNavigation() {
 
                                 try {
 
-                                    // ==================================
-                                    // AMBIL NAMA USER
-                                    // ==================================
-
                                     val hasil =
                                         userRepository
                                             .getCurrentUserName()
@@ -681,10 +1214,6 @@ fun AppNavigation() {
                                     }
 
 
-                                    // ==================================
-                                    // TANGGAL
-                                    // ==================================
-
                                     val tanggal =
                                         SimpleDateFormat(
                                             "yyyy-MM-dd",
@@ -693,10 +1222,6 @@ fun AppNavigation() {
                                             Date()
                                         )
 
-
-                                    // ==================================
-                                    // SIMPAN PENGAJUAN
-                                    // ==================================
 
                                     val hasilSimpan =
                                         firestoreRepository
@@ -770,7 +1295,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // SCAN QR
+                // STAFF SCAN QR
                 // ==================================================
 
                 AppScreen.Scan -> {
@@ -818,10 +1343,6 @@ fun AppNavigation() {
 
                                 try {
 
-                                    // ==================================
-                                    // VALIDASI QR
-                                    // ==================================
-
                                     if (
                                         qrData.isBlank()
                                     ) {
@@ -834,10 +1355,6 @@ fun AppNavigation() {
                                         return@launch
                                     }
 
-
-                                    // ==================================
-                                    // USER LOGIN
-                                    // ==================================
 
                                     val currentUser =
                                         FirebaseAuth
@@ -858,23 +1375,9 @@ fun AppNavigation() {
                                     }
 
 
-                                    // ==================================
-                                    // UID
-                                    // ==================================
-
                                     val uid =
                                         currentUser.uid
 
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "UID = $uid"
-                                    )
-
-
-                                    // ==================================
-                                    // NAMA USER
-                                    // ==================================
 
                                     val hasilNama =
                                         userRepository
@@ -900,16 +1403,6 @@ fun AppNavigation() {
                                     }
 
 
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "NAMA = $nama"
-                                    )
-
-
-                                    // ==================================
-                                    // TANGGAL
-                                    // ==================================
-
                                     val tanggal =
                                         SimpleDateFormat(
                                             "yyyy-MM-dd",
@@ -919,10 +1412,6 @@ fun AppNavigation() {
                                         )
 
 
-                                    // ==================================
-                                    // JAM SEKARANG
-                                    // ==================================
-
                                     val jam =
                                         SimpleDateFormat(
                                             "HH:mm:ss",
@@ -931,21 +1420,6 @@ fun AppNavigation() {
                                             Date()
                                         )
 
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "TANGGAL = $tanggal"
-                                    )
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "JAM = $jam"
-                                    )
-
-
-                                    // ==================================
-                                    // CEK ABSEN HARI INI
-                                    // ==================================
 
                                     val absenHariIni =
                                         firestoreRepository
@@ -959,24 +1433,13 @@ fun AppNavigation() {
                                             )
 
 
-                                    // ==================================================
+                                    // ==================================
                                     // ABSEN MASUK
-                                    // ==================================================
+                                    // ==================================
 
                                     if (
                                         absenHariIni == null
                                     ) {
-
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "BELUM ADA ABSEN HARI INI"
-                                        )
-
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "SCAN PERTAMA = ABSEN MASUK"
-                                        )
-
 
                                         val hasilSimpan =
                                             firestoreRepository
@@ -1034,24 +1497,16 @@ fun AppNavigation() {
                                             )
 
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "ABSEN MASUK BERHASIL"
-                                        )
-
-
                                         refreshKey++
+
 
                                         currentScreen.value =
                                             AppScreen.Staff
 
+
                                         return@launch
                                     }
 
-
-                                    // ==================================================
-                                    // DATA ABSEN SUDAH ADA
-                                    // ==================================================
 
                                     val (
                                         documentId,
@@ -1060,30 +1515,13 @@ fun AppNavigation() {
                                         absenHariIni
 
 
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "DOCUMENT ID = $documentId"
-                                    )
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "JAM PULANG LAMA = $jamPulangLama"
-                                    )
-
-
-                                    // ==================================================
+                                    // ==================================
                                     // ABSEN PULANG
-                                    // ==================================================
+                                    // ==================================
 
                                     if (
                                         jamPulangLama.isBlank()
                                     ) {
-
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "SCAN KEDUA = ABSEN PULANG"
-                                        )
-
 
                                         val hasilPulang =
                                             firestoreRepository
@@ -1118,37 +1556,23 @@ fun AppNavigation() {
                                             )
 
 
-                                        Log.d(
-                                            "ABSEN_DEBUG",
-                                            "ABSEN PULANG BERHASIL"
-                                        )
-
-
                                         refreshKey++
+
 
                                         currentScreen.value =
                                             AppScreen.Staff
+
 
                                         return@launch
                                     }
 
 
-                                    // ==================================================
-                                    // ABSEN SUDAH LENGKAP
-                                    // ==================================================
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "ABSEN SUDAH LENGKAP"
-                                    )
-
-                                    Log.d(
-                                        "ABSEN_DEBUG",
-                                        "SCAN KETIGA DIABAIKAN"
-                                    )
-
+                                    // ==================================
+                                    // SUDAH LENGKAP
+                                    // ==================================
 
                                     refreshKey++
+
 
                                     currentScreen.value =
                                         AppScreen.Staff
@@ -1170,51 +1594,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // ABSEN MASUK LAMA
-                // ==================================================
-
-                AppScreen.AbsenMasuk -> {
-
-                    AbsenMasukScreen(
-
-                        onBack = {
-
-                            currentScreen.value =
-                                AppScreen.Staff
-                        },
-
-                        onAbsenSuccess = {
-
-                            refreshKey++
-
-                            currentScreen.value =
-                                AppScreen.AbsenBerhasil
-                        }
-                    )
-                }
-
-
-                // ==================================================
-                // ABSEN BERHASIL
-                // ==================================================
-
-                AppScreen.AbsenBerhasil -> {
-
-                    AbsenBerhasilScreen(
-
-                        onSelesai = {
-
-                            refreshKey++
-
-                            currentScreen.value =
-                                AppScreen.Staff
-                        }
-                    )
-                }
-
-
-                // ==================================================
-                // RIWAYAT
+                // RIWAYAT STAFF
                 // ==================================================
 
                 AppScreen.Riwayat -> {
@@ -1231,7 +1611,7 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // SETTINGS
+                // SETTINGS STAFF
                 // ==================================================
 
                 AppScreen.Settings -> {
@@ -1242,6 +1622,30 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.Staff
+                        },
+
+                        onProfile = {
+
+                            currentScreen.value =
+                                AppScreen.Profile
+                        },
+
+                        onTampilan = {
+
+                            currentScreen.value =
+                                AppScreen.Tampilan
+                        },
+
+                        onBantuan = {
+
+                            currentScreen.value =
+                                AppScreen.Bantuan
+                        },
+
+                        onTentangAplikasi = {
+
+                            currentScreen.value =
+                                AppScreen.TentangAplikasi
                         },
 
                         onLogout = {
@@ -1258,7 +1662,43 @@ fun AppNavigation() {
 
 
                 // ==================================================
-                // NOTIFIKASI
+                // TAMPILAN STAFF
+                // ==================================================
+
+                AppScreen.Tampilan -> {
+
+                    TampilanScreen(
+
+                        selectedMode =
+                            selectedThemeMode,
+
+                        onModeSelected = { mode ->
+
+                            scope.launch {
+
+                                themeDataStore
+                                    .saveThemeMode(
+                                        mode
+                                    )
+                            }
+
+                            Log.d(
+                                "THEME_DEBUG",
+                                "MODE STAFF DIPILIH = $mode"
+                            )
+                        },
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Settings
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // NOTIFIKASI STAFF
                 // ==================================================
 
                 AppScreen.Notifikasi -> {
@@ -1269,6 +1709,46 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.Staff
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // BANTUAN STAFF
+                // ==================================================
+
+                AppScreen.Bantuan -> {
+
+                    BantuanScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Settings
+                        },
+
+                        onChatAdmin = {
+
+                            currentScreen.value =
+                                AppScreen.Settings
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // TENTANG APLIKASI STAFF
+                // ==================================================
+
+                AppScreen.TentangAplikasi -> {
+
+                    TentangAplikasiScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Settings
                         }
                     )
                 }

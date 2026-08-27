@@ -1,6 +1,7 @@
 package com.example.absensikaryawan.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,54 +12,45 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Logout
-
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 
 // ==========================================================
-// ADMIN SETTINGS SCREEN
+// ADMIN SETTINGS
 // ==========================================================
 
 @Composable
 fun AdminSettingsScreen(
 
-    onBack: () -> Unit,
+    onProfile: () -> Unit,
 
-    onProfile: () -> Unit = {},
+    onTampilan: () -> Unit,
 
-    onNotification: () -> Unit = {},
+    onBantuan: () -> Unit,
 
-    onAppearance: () -> Unit = {},
-
-    onHelp: () -> Unit = {},
-
-    onAbout: () -> Unit = {},
+    onTentangAplikasi: () -> Unit,
 
     onLogout: () -> Unit
 
@@ -77,463 +69,381 @@ fun AdminSettingsScreen(
         Column(
 
             modifier =
-                Modifier.fillMaxSize()
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(
+                        horizontal = 20.dp,
+                        vertical = 20.dp
+                    )
+
         ) {
 
             // ==================================================
             // HEADER
             // ==================================================
 
-            Row(
+            Text(
+
+                text =
+                    "Setting",
+
+                fontSize =
+                    26.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(6.dp)
+            )
+
+
+            Text(
+
+                text =
+                    "Pengaturan akun dan aplikasi",
+
+                fontSize =
+                    14.sp,
+
+                color =
+                    TextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // AKUN
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Akun",
+
+                fontSize =
+                    16.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            SettingMenuCard(
+
+                icon =
+                    Icons.Default.Person,
+
+                title =
+                    "Profile",
+
+                subtitle =
+                    "Informasi akun Admin",
+
+                onClick =
+                    onProfile
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // TAMPILAN
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Preferensi",
+
+                fontSize =
+                    16.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark,
+
+                modifier =
+                    Modifier.padding(
+                        top = 10.dp
+                    )
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            SettingMenuCard(
+
+                icon =
+                    Icons.Default.Palette,
+
+                title =
+                    "Tampilan",
+
+                subtitle =
+                    "Atur mode tampilan aplikasi",
+
+                onClick =
+                    onTampilan
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // BANTUAN
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Bantuan",
+
+                fontSize =
+                    16.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            SettingMenuCard(
+
+                icon =
+                    Icons.Default.HelpOutline,
+
+                title =
+                    "Bantuan",
+
+                subtitle =
+                    "Panduan penggunaan aplikasi",
+
+                onClick =
+                    onBantuan
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // TENTANG APLIKASI
+            // ==================================================
+
+            SettingMenuCard(
+
+                icon =
+                    Icons.Default.Info,
+
+                title =
+                    "Tentang Aplikasi",
+
+                subtitle =
+                    "Informasi aplikasi",
+
+                onClick =
+                    onTentangAplikasi
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // LOGOUT
+            // ==================================================
+
+            Card(
 
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 12.dp
-                        ),
+                        .clickable {
 
-                verticalAlignment =
-                    Alignment.CenterVertically
+                            onLogout()
+                        },
+
+                shape =
+                    RoundedCornerShape(
+                        16.dp
+                    ),
+
+                colors =
+                    CardDefaults.cardColors(
+
+                        containerColor =
+                            Color.White
+
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+
+                        defaultElevation =
+                            2.dp
+
+                    )
+
             ) {
 
-                IconButton(
+                Row(
 
-                    onClick =
-                        onBack
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                16.dp
+                            ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+
                 ) {
 
                     Icon(
 
                         imageVector =
-                            Icons.Default.ArrowBack,
+                            Icons.Default.Logout,
 
                         contentDescription =
-                            "Kembali",
+                            "Keluar",
 
                         tint =
-                            PrimaryGreen
-                    )
-                }
-
-
-                Spacer(
-                    modifier =
-                        Modifier.width(4.dp)
-                )
-
-
-                Icon(
-
-                    imageVector =
-                        Icons.Default.Settings,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        PrimaryGreen,
-
-                    modifier =
-                        Modifier.size(25.dp)
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.width(8.dp)
-                )
-
-
-                Column {
-
-                    Text(
-
-                        text =
-                            "Pengaturan Admin",
-
-                        fontSize =
-                            22.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
-                    )
-
-
-                    Text(
-
-                        text =
-                            "Kelola pengaturan aplikasi",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-            }
-
-
-            // ==================================================
-            // CONTENT
-            // ==================================================
-
-            Column(
-
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(
-                            horizontal = 20.dp
-                        )
-            ) {
-
-                // ==================================================
-                // AKUN
-                // ==================================================
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-
-                Text(
-
-                    text =
-                        "Akun",
-
-                    fontSize =
-                        13.sp,
-
-                    fontWeight =
-                        FontWeight.SemiBold,
-
-                    color =
-                        TextGray
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-
-                AdminSettingItem(
-
-                    icon =
-                        Icons.Default.Person,
-
-                    title =
-                        "Profil Admin",
-
-                    subtitle =
-                        "Lihat informasi akun admin",
-
-                    onClick =
-                        onProfile
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-
-                AdminSettingItem(
-
-                    icon =
-                        Icons.Default.Notifications,
-
-                    title =
-                        "Notifikasi",
-
-                    subtitle =
-                        "Kelola notifikasi aplikasi",
-
-                    onClick =
-                        onNotification
-                )
-
-
-                // ==================================================
-                // APLIKASI
-                // ==================================================
-
-                Spacer(
-                    modifier =
-                        Modifier.height(22.dp)
-                )
-
-
-                Text(
-
-                    text =
-                        "Aplikasi",
-
-                    fontSize =
-                        13.sp,
-
-                    fontWeight =
-                        FontWeight.SemiBold,
-
-                    color =
-                        TextGray
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-
-                AdminSettingItem(
-
-                    icon =
-                        Icons.Default.DarkMode,
-
-                    title =
-                        "Tampilan",
-
-                    subtitle =
-                        "Atur mode tampilan aplikasi",
-
-                    onClick =
-                        onAppearance
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-
-                AdminSettingItem(
-
-                    icon =
-                        Icons.Default.HelpOutline,
-
-                    title =
-                        "Bantuan",
-
-                    subtitle =
-                        "Panduan penggunaan aplikasi",
-
-                    onClick =
-                        onHelp
-                )
-
-
-                // ==================================================
-                // TENTANG
-                // ==================================================
-
-                Spacer(
-                    modifier =
-                        Modifier.height(22.dp)
-                )
-
-
-                Text(
-
-                    text =
-                        "Tentang",
-
-                    fontSize =
-                        13.sp,
-
-                    fontWeight =
-                        FontWeight.SemiBold,
-
-                    color =
-                        TextGray
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-
-                AdminSettingItem(
-
-                    icon =
-                        Icons.Default.Info,
-
-                    title =
-                        "Tentang Aplikasi",
-
-                    subtitle =
-                        "Informasi aplikasi",
-
-                    onClick =
-                        onAbout
-                )
-
-
-                // ==================================================
-                // LOGOUT
-                // ==================================================
-
-                Spacer(
-                    modifier =
-                        Modifier.height(28.dp)
-                )
-
-
-                Card(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(15.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-
-                            containerColor =
-                                Color.White
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation =
-                                1.dp
-                        )
-                ) {
-
-                    Row(
+                            Color(0xFFB91C1C),
 
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Color.White
-                                )
-                                .padding(
-                                    horizontal = 16.dp,
-                                    vertical = 15.dp
-                                ),
+                            Modifier.size(
+                                24.dp
+                            )
+                    )
 
-                        verticalAlignment =
-                            Alignment.CenterVertically
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                14.dp
+                            )
+                    )
+
+
+                    Column(
+
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+
                     ) {
 
-                        Icon(
+                        Text(
 
-                            imageVector =
-                                Icons.Default.Logout,
-
-                            contentDescription =
+                            text =
                                 "Keluar",
 
-                            tint =
-                                Color(0xFFDC2626),
+                            fontSize =
+                                15.sp,
 
-                            modifier =
-                                Modifier.size(23.dp)
+                            fontWeight =
+                                FontWeight.SemiBold,
+
+                            color =
+                                Color(0xFFB91C1C)
                         )
 
 
                         Spacer(
                             modifier =
-                                Modifier.width(13.dp)
+                                Modifier.height(
+                                    2.dp
+                                )
                         )
 
 
-                        Column(
+                        Text(
 
-                            modifier =
-                                Modifier.weight(1f)
-                        ) {
+                            text =
+                                "Keluar dari akun Admin",
 
-                            Text(
+                            fontSize =
+                                12.sp,
 
-                                text =
-                                    "Keluar",
-
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.SemiBold,
-
-                                color =
-                                    Color(0xFFDC2626)
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-
-                            Text(
-
-                                text =
-                                    "Keluar dari akun admin",
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-
-
-                        IconButton(
-
-                            onClick =
-                                onLogout
-                        ) {
-
-                            Icon(
-
-                                imageVector =
-                                    Icons.Default.ChevronRight,
-
-                                contentDescription =
-                                    "Keluar",
-
-                                tint =
-                                    Color(0xFFDC2626)
-                            )
-                        }
+                            color =
+                                TextGray
+                        )
                     }
                 }
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(20.dp)
-                )
             }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
         }
     }
 }
 
 
 // ==========================================================
-// SETTING ITEM
+// SETTING MENU CARD
 // ==========================================================
 
 @Composable
-private fun AdminSettingItem(
+private fun SettingMenuCard(
 
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
 
     title: String,
 
@@ -546,26 +456,34 @@ private fun AdminSettingItem(
     Card(
 
         modifier =
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+
+                    onClick()
+                },
 
         shape =
-            RoundedCornerShape(15.dp),
+            RoundedCornerShape(
+                16.dp
+            ),
 
         colors =
             CardDefaults.cardColors(
 
                 containerColor =
                     Color.White
+
             ),
 
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation =
-                    1.dp
-            ),
 
-        onClick =
-            onClick
+                defaultElevation =
+                    2.dp
+
+            )
+
     ) {
 
         Row(
@@ -575,23 +493,26 @@ private fun AdminSettingItem(
                     .fillMaxWidth()
                     .padding(
                         horizontal = 16.dp,
-                        vertical = 14.dp
+                        vertical = 15.dp
                     ),
 
             verticalAlignment =
                 Alignment.CenterVertically
+
         ) {
+
+            // ==================================================
+            // ICON
+            // ==================================================
 
             Row(
 
                 modifier =
                     Modifier
-                        .size(43.dp)
+                        .size(46.dp)
                         .background(
-
                             color =
                                 Color(0xFFE6EEE9),
-
                             shape =
                                 RoundedCornerShape(
                                     12.dp
@@ -603,6 +524,7 @@ private fun AdminSettingItem(
 
                 verticalAlignment =
                     Alignment.CenterVertically
+
             ) {
 
                 Icon(
@@ -617,21 +539,32 @@ private fun AdminSettingItem(
                         PrimaryGreen,
 
                     modifier =
-                        Modifier.size(21.dp)
+                        Modifier.size(
+                            23.dp
+                        )
                 )
             }
 
 
             Spacer(
                 modifier =
-                    Modifier.width(13.dp)
+                    Modifier.width(
+                        14.dp
+                    )
             )
 
+
+            // ==================================================
+            // TEXT
+            // ==================================================
 
             Column(
 
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
+
             ) {
 
                 Text(
@@ -640,7 +573,7 @@ private fun AdminSettingItem(
                         title,
 
                     fontSize =
-                        14.sp,
+                        15.sp,
 
                     fontWeight =
                         FontWeight.SemiBold,
@@ -652,7 +585,9 @@ private fun AdminSettingItem(
 
                 Spacer(
                     modifier =
-                        Modifier.height(2.dp)
+                        Modifier.height(
+                            3.dp
+                        )
                 )
 
 
@@ -662,7 +597,7 @@ private fun AdminSettingItem(
                         subtitle,
 
                     fontSize =
-                        11.sp,
+                        12.sp,
 
                     color =
                         TextGray
@@ -670,19 +605,25 @@ private fun AdminSettingItem(
             }
 
 
+            // ==================================================
+            // CHEVRON
+            // ==================================================
+
             Icon(
 
                 imageVector =
                     Icons.Default.ChevronRight,
 
                 contentDescription =
-                    null,
+                    "Buka $title",
 
                 tint =
                     TextGray,
 
                 modifier =
-                    Modifier.size(21.dp)
+                    Modifier.size(
+                        22.dp
+                    )
             )
         }
     }
