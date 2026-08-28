@@ -279,10 +279,6 @@ fun RiwayatScreen(
             filterAktif
         ) {
 
-            // ----------------------------------------------
-            // SEMUA RIWAYAT
-            // ----------------------------------------------
-
             if (
                 filterAktif.jumlahHari == null
             ) {
@@ -298,10 +294,6 @@ fun RiwayatScreen(
                     )
 
                 formatter.isLenient = false
-
-                // ------------------------------------------
-                // TANGGAL HARI INI
-                // ------------------------------------------
 
                 val calendar =
                     Calendar.getInstance()
@@ -329,10 +321,6 @@ fun RiwayatScreen(
                 val tanggalHariIni =
                     calendar.time
 
-                // ------------------------------------------
-                // TANGGAL AWAL
-                // ------------------------------------------
-
                 calendar.add(
                     Calendar.DAY_OF_YEAR,
                     -(filterAktif.jumlahHari!! - 1)
@@ -340,10 +328,6 @@ fun RiwayatScreen(
 
                 val tanggalAwal =
                     calendar.time
-
-                // ------------------------------------------
-                // FILTER
-                // ------------------------------------------
 
                 semuaRiwayat.filter { riwayat ->
 
@@ -394,10 +378,7 @@ fun RiwayatScreen(
                     )
         ) {
 
-            // ==================================================
             // HEADER
-            // ==================================================
-
             Row(
                 modifier =
                     Modifier.fillMaxWidth(),
@@ -464,10 +445,7 @@ fun RiwayatScreen(
                     Modifier.height(14.dp)
             )
 
-            // ==================================================
             // TAB ABSENSI / PENGAJUAN
-            // ==================================================
-
             Row(
                 modifier =
                     Modifier
@@ -484,18 +462,11 @@ fun RiwayatScreen(
                         .padding(4.dp)
             ) {
 
-                // ==================================================
-                // TAB ABSENSI
-                // ==================================================
-
                 Button(
                     onClick = {
 
                         tabAktif =
                             TabRiwayat.ABSENSI
-
-                        // Reload data saat kembali
-                        // ke tab Absensi
                     },
 
                     modifier =
@@ -558,10 +529,6 @@ fun RiwayatScreen(
                             FontWeight.SemiBold
                     )
                 }
-
-                // ==================================================
-                // TAB PENGAJUAN
-                // ==================================================
 
                 Button(
                     onClick = {
@@ -637,18 +604,10 @@ fun RiwayatScreen(
                     Modifier.height(14.dp)
             )
 
-            // ==================================================
-            // TAB ABSENSI
-            // ==================================================
-
             if (
                 tabAktif ==
                 TabRiwayat.ABSENSI
             ) {
-
-                // ==================================================
-                // FILTER
-                // ==================================================
 
                 Text(
                     text =
@@ -764,10 +723,6 @@ fun RiwayatScreen(
                         Modifier.height(14.dp)
                 )
 
-                // ==================================================
-                // LOADING
-                // ==================================================
-
                 if (loading) {
 
                     Column(
@@ -803,13 +758,7 @@ fun RiwayatScreen(
                         )
                     }
 
-                }
-
-                // ==================================================
-                // ERROR
-                // ==================================================
-
-                else if (
+                } else if (
                     errorMessage.isNotEmpty()
                 ) {
 
@@ -852,13 +801,7 @@ fun RiwayatScreen(
                         )
                     }
 
-                }
-
-                // ==================================================
-                // DATA KOSONG
-                // ==================================================
-
-                else if (
+                } else if (
                     daftarRiwayat.isEmpty()
                 ) {
 
@@ -921,13 +864,7 @@ fun RiwayatScreen(
                         )
                     }
 
-                }
-
-                // ==================================================
-                // DAFTAR
-                // ==================================================
-
-                else {
+                } else {
 
                     LazyColumn(
                         modifier =
@@ -952,13 +889,7 @@ fun RiwayatScreen(
                     }
                 }
 
-            }
-
-            // ==================================================
-            // TAB PENGAJUAN
-            // ==================================================
-
-            else {
+            } else {
 
                 Column(
                     modifier =
@@ -1064,10 +995,6 @@ private fun RiwayatCard(
                     .padding(17.dp)
         ) {
 
-            // ==================================================
-            // HEADER
-            // ==================================================
-
             Row(
                 modifier =
                     Modifier.fillMaxWidth(),
@@ -1158,10 +1085,6 @@ private fun RiwayatCard(
                 modifier =
                     Modifier.height(16.dp)
             )
-
-            // ==================================================
-            // JAM MASUK & PULANG
-            // ==================================================
 
             Row(
                 modifier =
@@ -1298,10 +1221,6 @@ private fun RiwayatCard(
                 }
             }
 
-            // ==================================================
-            // CATATAN
-            // ==================================================
-
             if (
                 riwayat.catatan.isNotBlank()
             ) {
@@ -1338,10 +1257,6 @@ private fun RiwayatCard(
                         TextDark
                 )
             }
-
-            // ==================================================
-            // STATUS
-            // ==================================================
 
             Spacer(
                 modifier =

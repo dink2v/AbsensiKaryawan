@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.NoteAdd
@@ -27,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -93,48 +93,29 @@ private enum class AppScreen {
     // ======================================================
 
     Admin,
-
     Approval,
-
     Karyawan,
-
     AdminRekap,
-
     AdminSettings,
-
     AdminProfile,
-
     AdminTampilan,
-
     AdminBantuan,
-
     AdminTentangAplikasi,
-
 
     // ======================================================
     // STAFF
     // ======================================================
 
     Staff,
-
     Profile,
-
     Pengajuan,
-
     PengajuanBaru,
-
     Scan,
-
     Riwayat,
-
     Settings,
-
     Tampilan,
-
     Notifikasi,
-
     Bantuan,
-
     TentangAplikasi
 }
 
@@ -266,7 +247,7 @@ fun AppNavigation() {
 
     var refreshKey by remember {
 
-        mutableStateOf(0)
+        mutableIntStateOf(0)
     }
 
 
@@ -1071,12 +1052,55 @@ fun AppNavigation() {
 
                                 try {
 
-                                    val hasil =
+                                    // ==================================
+                                    // USER LOGIN
+                                    // ==================================
+
+                                    val currentUser =
+                                        FirebaseAuth
+                                            .getInstance()
+                                            .currentUser
+
+
+                                    if (
+                                        currentUser == null
+                                    ) {
+
+                                        Log.e(
+                                            "PENGAJUAN_DEBUG",
+                                            "USER BELUM LOGIN"
+                                        )
+
+                                        return@launch
+                                    }
+
+
+                                    // ==================================
+                                    // UID USER
+                                    // ==================================
+
+                                    val uid =
+                                        currentUser.uid
+
+
+                                    Log.d(
+                                        "PENGAJUAN_DEBUG",
+                                        "UID = $uid"
+                                    )
+
+
+                                    // ==================================
+                                    // NAMA USER
+                                    // ==================================
+
+                                    val hasilNama =
                                         userRepository
                                             .getCurrentUserName()
 
+
                                     val nama =
-                                        hasil.getOrNull()
+                                        hasilNama
+                                            .getOrNull()
                                             ?: ""
 
 
@@ -1093,6 +1117,10 @@ fun AppNavigation() {
                                     }
 
 
+                                    // ==================================
+                                    // TANGGAL PENGAJUAN
+                                    // ==================================
+
                                     val tanggal =
                                         SimpleDateFormat(
                                             "yyyy-MM-dd",
@@ -1102,9 +1130,16 @@ fun AppNavigation() {
                                         )
 
 
+                                    // ==================================
+                                    // SIMPAN PENGAJUAN
+                                    // ==================================
+
                                     val hasilSimpan =
                                         firestoreRepository
                                             .simpanPengajuan(
+
+                                                uid =
+                                                    uid,
 
                                                 nama =
                                                     nama,
@@ -1134,6 +1169,10 @@ fun AppNavigation() {
                                                     alasan
                                             )
 
+
+                                    // ==================================
+                                    // HASIL SIMPAN
+                                    // ==================================
 
                                     if (
                                         hasilSimpan.isSuccess
@@ -1262,6 +1301,10 @@ fun AppNavigation() {
                                     }
 
 
+                                    // ==================================
+                                    // UID USER
+                                    // ==================================
+
                                     val uid =
                                         currentUser.uid
 
@@ -1355,6 +1398,7 @@ fun AppNavigation() {
                                             "BELUM ADA ABSEN HARI INI"
                                         )
 
+
                                         val hasilSimpan =
                                             firestoreRepository
                                                 .simpanAbsenMasuk(
@@ -1435,12 +1479,14 @@ fun AppNavigation() {
                                     // AMBIL DATA ABSEN
                                     // ==================================
 
-                                    val (
-                                        documentId,
-                                        jamMasukLama,
-                                        jamPulangLama
-                                    ) =
-                                        absenHariIni
+                                    val documentId =
+                                        absenHariIni.documentId
+
+                                    val jamMasukLama =
+                                        absenHariIni.jamMasuk
+
+                                    val jamPulangLama =
+                                        absenHariIni.jamPulang
 
 
                                     Log.d(
