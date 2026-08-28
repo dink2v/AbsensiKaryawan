@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -50,9 +49,7 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-fun ApprovalScreen(
-    onBack: () -> Unit
-) {
+fun ApprovalScreen() {
 
     // ==========================================================
     // REPOSITORY
@@ -150,23 +147,11 @@ fun ApprovalScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        horizontal = 16.dp,
+                        horizontal = 20.dp,
                         vertical = 12.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
-                IconButton(
-                    onClick = onBack
-                ) {
-
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Kembali",
-                        tint = TextDark
-                    )
-                }
-
 
                 Column(
                     modifier = Modifier.weight(1f)

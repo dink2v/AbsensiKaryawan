@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TrackChanges
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -41,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.example.absensikaryawan.ThemeDataStore
-
 import com.example.absensikaryawan.data.AbsensiDataStore
 import com.example.absensikaryawan.data.FirestoreRepository
 import com.example.absensikaryawan.data.UserRepository
@@ -101,8 +99,6 @@ private enum class AppScreen {
     Karyawan,
 
     AdminRekap,
-
-    AdminTarget,
 
     AdminSettings,
 
@@ -211,7 +207,7 @@ private val adminBottomMenuItems =
 
         BottomMenuItem(
             screen = AppScreen.Approval,
-            label = "Pengajuan",
+            label = "Approval",
             icon = Icons.Default.NoteAdd
         ),
 
@@ -219,12 +215,6 @@ private val adminBottomMenuItems =
             screen = AppScreen.AdminRekap,
             label = "Rekap",
             icon = Icons.Default.Assessment
-        ),
-
-        BottomMenuItem(
-            screen = AppScreen.AdminTarget,
-            label = "Target",
-            icon = Icons.Default.TrackChanges
         ),
 
         BottomMenuItem(
@@ -349,9 +339,6 @@ fun AppNavigation() {
                 AppScreen.AdminRekap ||
 
                 currentScreen.value ==
-                AppScreen.AdminTarget ||
-
-                currentScreen.value ==
                 AppScreen.AdminSettings ||
 
                 currentScreen.value ==
@@ -437,49 +424,20 @@ fun AppNavigation() {
 
                             when (item.screen) {
 
-                                // --------------------------------
-                                // BERANDA
-                                // --------------------------------
-
                                 AppScreen.Admin ->
 
                                     currentScreen.value ==
                                             AppScreen.Admin
-
-
-                                // --------------------------------
-                                // PENGAJUAN
-                                // --------------------------------
 
                                 AppScreen.Approval ->
 
                                     currentScreen.value ==
                                             AppScreen.Approval
 
-
-                                // --------------------------------
-                                // REKAP
-                                // --------------------------------
-
                                 AppScreen.AdminRekap ->
 
                                     currentScreen.value ==
                                             AppScreen.AdminRekap
-
-
-                                // --------------------------------
-                                // TARGET
-                                // --------------------------------
-
-                                AppScreen.AdminTarget ->
-
-                                    currentScreen.value ==
-                                            AppScreen.AdminTarget
-
-
-                                // --------------------------------
-                                // SETTING
-                                // --------------------------------
 
                                 AppScreen.AdminSettings ->
 
@@ -497,7 +455,6 @@ fun AppNavigation() {
 
                                             currentScreen.value ==
                                             AppScreen.AdminTentangAplikasi
-
 
                                 else ->
                                     false
@@ -800,16 +757,6 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.AdminSettings
-                        },
-
-                        onLogout = {
-
-                            FirebaseAuth
-                                .getInstance()
-                                .signOut()
-
-                            currentScreen.value =
-                                AppScreen.Login
                         }
                     )
                 }
@@ -821,14 +768,7 @@ fun AppNavigation() {
 
                 AppScreen.Approval -> {
 
-                    ApprovalScreen(
-
-                        onBack = {
-
-                            currentScreen.value =
-                                AppScreen.Admin
-                        }
-                    )
+                    ApprovalScreen()
                 }
 
 
@@ -855,68 +795,7 @@ fun AppNavigation() {
 
                 AppScreen.AdminRekap -> {
 
-                    RekapAdminScreen(
-
-                        onBack = {
-
-                            currentScreen.value =
-                                AppScreen.Admin
-                        }
-                    )
-                }
-
-
-                // ==================================================
-                // ADMIN TARGET
-                // ==================================================
-
-                AppScreen.AdminTarget -> {
-
-                    // ------------------------------------------------
-                    // TargetScreen akan kita sambungkan setelah
-                    // nama composable/file Target yang kita gunakan
-                    // sudah dipastikan.
-                    //
-                    // Untuk sementara tampilan aman tetap
-                    // menggunakan Beranda Admin.
-                    // ------------------------------------------------
-
-                    AdminDashboardScreen(
-
-                        onApproval = {
-
-                            currentScreen.value =
-                                AppScreen.Approval
-                        },
-
-                        onEmployees = {
-
-                            currentScreen.value =
-                                AppScreen.Karyawan
-                        },
-
-                        onRecap = {
-
-                            currentScreen.value =
-                                AppScreen.AdminRekap
-                        },
-
-                        onSettings = {
-
-                            currentScreen.value =
-                                AppScreen.AdminSettings
-                        },
-
-                        onLogout = {
-
-                            FirebaseAuth
-                                .getInstance()
-                                .signOut()
-
-                            currentScreen.value =
-                                AppScreen.Login
-                        }
-                    )
+                    RekapAdminScreen()
                 }
 
 
@@ -1343,6 +1222,10 @@ fun AppNavigation() {
 
                                 try {
 
+                                    // ==================================
+                                    // VALIDASI QR
+                                    // ==================================
+
                                     if (
                                         qrData.isBlank()
                                     ) {
@@ -1355,6 +1238,10 @@ fun AppNavigation() {
                                         return@launch
                                     }
 
+
+                                    // ==================================
+                                    // USER LOGIN
+                                    // ==================================
 
                                     val currentUser =
                                         FirebaseAuth
@@ -1378,6 +1265,10 @@ fun AppNavigation() {
                                     val uid =
                                         currentUser.uid
 
+
+                                    // ==================================
+                                    // NAMA USER
+                                    // ==================================
 
                                     val hasilNama =
                                         userRepository
@@ -1403,6 +1294,10 @@ fun AppNavigation() {
                                     }
 
 
+                                    // ==================================
+                                    // TANGGAL
+                                    // ==================================
+
                                     val tanggal =
                                         SimpleDateFormat(
                                             "yyyy-MM-dd",
@@ -1412,6 +1307,10 @@ fun AppNavigation() {
                                         )
 
 
+                                    // ==================================
+                                    // JAM SEKARANG
+                                    // ==================================
+
                                     val jam =
                                         SimpleDateFormat(
                                             "HH:mm:ss",
@@ -1420,6 +1319,10 @@ fun AppNavigation() {
                                             Date()
                                         )
 
+
+                                    // ==================================
+                                    // CEK ABSEN HARI INI
+                                    // ==================================
 
                                     val absenHariIni =
                                         firestoreRepository
@@ -1433,6 +1336,12 @@ fun AppNavigation() {
                                             )
 
 
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "ABSEN HARI INI = $absenHariIni"
+                                    )
+
+
                                     // ==================================
                                     // ABSEN MASUK
                                     // ==================================
@@ -1440,6 +1349,11 @@ fun AppNavigation() {
                                     if (
                                         absenHariIni == null
                                     ) {
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "BELUM ADA ABSEN HARI INI"
+                                        )
 
                                         val hasilSimpan =
                                             firestoreRepository
@@ -1480,6 +1394,16 @@ fun AppNavigation() {
                                         }
 
 
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "ABSEN MASUK BERHASIL"
+                                        )
+
+
+                                        // ==================================
+                                        // DATASTORE
+                                        // ==================================
+
                                         absensiDataStore
                                             .simpanAbsen(
 
@@ -1503,16 +1427,36 @@ fun AppNavigation() {
                                         currentScreen.value =
                                             AppScreen.Staff
 
-
                                         return@launch
                                     }
 
 
+                                    // ==================================
+                                    // AMBIL DATA ABSEN
+                                    // ==================================
+
                                     val (
                                         documentId,
+                                        jamMasukLama,
                                         jamPulangLama
                                     ) =
                                         absenHariIni
+
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "DOCUMENT ID = $documentId"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM MASUK LAMA = $jamMasukLama"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM PULANG LAMA = $jamPulangLama"
+                                    )
 
 
                                     // ==================================
@@ -1522,6 +1466,12 @@ fun AppNavigation() {
                                     if (
                                         jamPulangLama.isBlank()
                                     ) {
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "PROSES ABSEN PULANG"
+                                        )
+
 
                                         val hasilPulang =
                                             firestoreRepository
@@ -1550,6 +1500,16 @@ fun AppNavigation() {
                                         }
 
 
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "ABSEN PULANG BERHASIL"
+                                        )
+
+
+                                        // ==================================
+                                        // DATASTORE PULANG
+                                        // ==================================
+
                                         absensiDataStore
                                             .simpanPulang(
                                                 jam
@@ -1559,9 +1519,24 @@ fun AppNavigation() {
                                         refreshKey++
 
 
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "DOCUMENT ID = $documentId"
+                                        )
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "JAM MASUK = $jamMasukLama"
+                                        )
+
+                                        Log.d(
+                                            "ABSEN_DEBUG",
+                                            "JAM PULANG = $jam"
+                                        )
+
+
                                         currentScreen.value =
                                             AppScreen.Staff
-
 
                                         return@launch
                                     }
@@ -1570,6 +1545,27 @@ fun AppNavigation() {
                                     // ==================================
                                     // SUDAH LENGKAP
                                     // ==================================
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "ABSEN HARI INI SUDAH LENGKAP"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "DOCUMENT ID = $documentId"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM MASUK = $jamMasukLama"
+                                    )
+
+                                    Log.d(
+                                        "ABSEN_DEBUG",
+                                        "JAM PULANG = $jamPulangLama"
+                                    )
+
 
                                     refreshKey++
 
