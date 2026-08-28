@@ -12,16 +12,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Approval
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.NoteAdd
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PendingActions
+import androidx.compose.material.icons.filled.Settings
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +32,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,9 +46,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.google.firebase.firestore.FirebaseFirestore
+
+import kotlinx.coroutines.tasks.await
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 
 // ==========================================================
-// ADMIN DASHBOARD
+// ADMIN DASHBOARD / BERANDA ADMIN
 // ==========================================================
 
 @Composable
@@ -52,105 +68,673 @@ fun AdminDashboardScreen(
 
     onRecap: () -> Unit,
 
-    onSettings: () -> Unit,
-
-    onLogout: () -> Unit
+    onSettings: () -> Unit
 
 ) {
 
-    Column(
+    // ======================================================
+    // FIRESTORE
+    // ======================================================
+
+    val db =
+        remember {
+            FirebaseFirestore.getInstance()
+        }
+
+
+    // ======================================================
+    // STATE PENGAJUAN
+    // ======================================================
+
+    var jumlahPengajuanHariIni by remember {
+
+        mutableStateOf(0)
+    }
+
+
+    var jumlahPengajuanMenunggu by remember {
+
+        mutableStateOf(0)
+    }
+
+
+    // ======================================================
+    // LOAD PENGAJUAN
+    // ======================================================
+
+    LaunchedEffect(Unit) {
+
+        try {
+
+            val snapshot =
+                db.collection("pengajuan")
+                    .get()
+                    .await()
+
+
+            val tanggalHariIni =
+                SimpleDateFormat(
+                    "yyyy-MM-dd",
+                    Locale.getDefault()
+                ).format(
+                    Date()
+                )
+
+
+            var totalHariIni =
+                0
+
+
+            var totalMenunggu =
+                0
+
+
+            snapshot.documents.forEach { document ->
+
+                val tanggalMulai =
+                    document.getString(
+                        "tanggalMulai"
+                    )
+                        ?: ""
+
+
+                val status =
+                    document.getString(
+                        "status"
+                    )
+                        ?.lowercase()
+                        ?: ""
+
+
+                if (
+                    tanggalMulai ==
+                    tanggalHariIni
+                ) {
+
+                    totalHariIni++
+                }
+
+
+                if (
+                    status == "menunggu"
+                ) {
+
+                    totalMenunggu++
+                }
+            }
+
+
+            jumlahPengajuanHariIni =
+                totalHariIni
+
+
+            jumlahPengajuanMenunggu =
+                totalMenunggu
+
+        } catch (
+            e: Exception
+        ) {
+
+            e.printStackTrace()
+        }
+    }
+
+
+    // ======================================================
+    // UI
+    // ======================================================
+
+    LazyColumn(
 
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(Background)
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 20.dp
+                .background(
+                    Background
                 )
+                .padding(
+                    horizontal = 20.dp
+                ),
+
+        verticalArrangement =
+            Arrangement.spacedBy(
+                14.dp
+            )
     ) {
 
         // ==================================================
         // HEADER
         // ==================================================
 
-        Text(
+        item {
 
-            text =
-                "Dashboard Admin",
-
-            fontSize =
-                26.sp,
-
-            fontWeight =
-                FontWeight.Bold,
-
-            color =
-                TextDark
-        )
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
 
 
-        Spacer(
-            modifier =
-                Modifier.height(4.dp)
-        )
+            Row(
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = 4.dp
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Column(
+
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+
+                        text =
+                            "Beranda",
+
+                        fontSize =
+                            26.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
 
 
-        Text(
-
-            text =
-                "Kelola aplikasi dan aktivitas karyawan",
-
-            fontSize =
-                13.sp,
-
-            color =
-                TextGray
-        )
+                    Spacer(
+                        modifier =
+                            Modifier.height(4.dp)
+                    )
 
 
-        Spacer(
-            modifier =
-                Modifier.height(24.dp)
-        )
+                    Text(
+
+                        text =
+                            "Kelola aktivitas aplikasi",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            TextGray
+                    )
+                }
+
+
+                // ==========================================
+                // NOTIFIKASI
+                // ==========================================
+
+                Row(
+
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .background(
+
+                                color =
+                                    Color.White,
+
+                                shape =
+                                    RoundedCornerShape(
+                                        14.dp
+                                    )
+                            ),
+
+                    horizontalArrangement =
+                        Arrangement.Center,
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+
+                        imageVector =
+                            Icons.Default.Notifications,
+
+                        contentDescription =
+                            "Notifikasi",
+
+                        tint =
+                            TextDark,
+
+                        modifier =
+                            Modifier.size(
+                                23.dp
+                            )
+                    )
+                }
+            }
+        }
 
 
         // ==================================================
-        // MENU UTAMA
+        // PANEL ADMIN
         // ==================================================
 
-        Text(
+        item {
 
-            text =
-                "Menu Utama",
+            Card(
 
-            fontSize =
-                16.sp,
+                modifier =
+                    Modifier.fillMaxWidth(),
 
-            fontWeight =
-                FontWeight.Bold,
+                shape =
+                    RoundedCornerShape(
+                        20.dp
+                    ),
 
-            color =
-                TextDark
-        )
+                colors =
+                    CardDefaults.cardColors(
+
+                        containerColor =
+                            PrimaryGreen
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation =
+                            2.dp
+                    )
+            ) {
+
+                Row(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 20.dp,
+                                vertical = 20.dp
+                            ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Column(
+
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+
+                        Text(
+
+                            text =
+                                "Panel Admin",
+
+                            fontSize =
+                                19.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color.White
+                        )
 
 
-        Spacer(
-            modifier =
-                Modifier.height(10.dp)
-        )
+                        Spacer(
+                            modifier =
+                                Modifier.height(6.dp)
+                        )
+
+
+                        Text(
+
+                            text =
+                                "Pantau dan kelola aktivitas karyawan.",
+
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.88f
+                                )
+                        )
+                    }
+
+
+                    Row(
+
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .background(
+
+                                    color =
+                                        Color.White.copy(
+                                            alpha = 0.14f
+                                        ),
+
+                                    shape =
+                                        RoundedCornerShape(
+                                            16.dp
+                                        )
+                                ),
+
+                        horizontalArrangement =
+                            Arrangement.Center,
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Default.Home,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(
+                                    30.dp
+                                )
+                        )
+                    }
+                }
+            }
+        }
+
+
+        // ==================================================
+        // PENGAJUAN BARU
+        // ==================================================
+
+        item {
+
+            if (
+                jumlahPengajuanMenunggu > 0
+            ) {
+
+                Card(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+
+                                onApproval()
+                            },
+
+                    shape =
+                        RoundedCornerShape(
+                            18.dp
+                        ),
+
+                    colors =
+                        CardDefaults.cardColors(
+
+                            containerColor =
+                                Color.White
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+
+                            defaultElevation =
+                                2.dp
+                        )
+                ) {
+
+                    Row(
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 17.dp,
+                                    vertical = 15.dp
+                                ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Row(
+
+                            modifier =
+                                Modifier
+                                    .size(46.dp)
+                                    .background(
+
+                                        color =
+                                            Color(0xFFFFF3E0),
+
+                                        shape =
+                                            RoundedCornerShape(
+                                                12.dp
+                                            )
+                                    ),
+
+                            horizontalArrangement =
+                                Arrangement.Center,
+
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+
+                            Icon(
+
+                                imageVector =
+                                    Icons.Default.PendingActions,
+
+                                contentDescription =
+                                    "Pengajuan baru",
+
+                                tint =
+                                    Color(0xFFD97706),
+
+                                modifier =
+                                    Modifier.size(
+                                        24.dp
+                                    )
+                            )
+                        }
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(14.dp)
+                        )
+
+
+                        Column(
+
+                            modifier =
+                                Modifier.weight(1f)
+                        ) {
+
+                            Text(
+
+                                text =
+                                    "Pengajuan Baru",
+
+                                fontSize =
+                                    15.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
+                            )
+
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(3.dp)
+                            )
+
+
+                            Text(
+
+                                text =
+                                    "$jumlahPengajuanMenunggu pengajuan menunggu persetujuan",
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    TextGray
+                            )
+                        }
+
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Default.ChevronRight,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                TextGray,
+
+                            modifier =
+                                Modifier.size(
+                                    22.dp
+                                )
+                        )
+                    }
+                }
+            }
+        }
+
+
+        // ==================================================
+        // RINGKASAN
+        // ==================================================
+
+        item {
+
+            Text(
+
+                text =
+                    "Ringkasan",
+
+                fontSize =
+                    18.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark,
+
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp
+                    )
+            )
+        }
+
+
+        // ==================================================
+        // STATISTIK RINGKASAN
+        // ==================================================
+
+        item {
+
+            Row(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                AdminSummaryCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.NoteAdd,
+
+                    title =
+                        "Pengajuan Hari Ini",
+
+                    value =
+                        jumlahPengajuanHariIni.toString()
+                )
+
+
+                AdminSummaryCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.PendingActions,
+
+                    title =
+                        "Menunggu Approval",
+
+                    value =
+                        jumlahPengajuanMenunggu.toString()
+                )
+            }
+        }
+
+
+        // ==================================================
+        // AKSES CEPAT
+        // ==================================================
+
+        item {
+
+            Text(
+
+                text =
+                    "Akses Cepat",
+
+                fontSize =
+                    18.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark,
+
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp
+                    )
+            )
+        }
 
 
         // ==================================================
         // APPROVAL
         // ==================================================
 
-        AdminDashboardCard {
+        item {
 
-            AdminDashboardItem(
+            AdminQuickMenu(
 
                 icon =
-                    Icons.Default.Approval,
+                    Icons.Default.NoteAdd,
 
                 title =
                     "Approval",
@@ -164,19 +748,13 @@ fun AdminDashboardScreen(
         }
 
 
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
-
-
         // ==================================================
         // KARYAWAN
         // ==================================================
 
-        AdminDashboardCard {
+        item {
 
-            AdminDashboardItem(
+            AdminQuickMenu(
 
                 icon =
                     Icons.Default.Groups,
@@ -193,19 +771,13 @@ fun AdminDashboardScreen(
         }
 
 
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
-
-
         // ==================================================
         // REKAP
         // ==================================================
 
-        AdminDashboardCard {
+        item {
 
-            AdminDashboardItem(
+            AdminQuickMenu(
 
                 icon =
                     Icons.Default.Assessment,
@@ -222,19 +794,13 @@ fun AdminDashboardScreen(
         }
 
 
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
-
-
         // ==================================================
         // SETTING
         // ==================================================
 
-        AdminDashboardCard {
+        item {
 
-            AdminDashboardItem(
+            AdminQuickMenu(
 
                 icon =
                     Icons.Default.Settings,
@@ -251,200 +817,223 @@ fun AdminDashboardScreen(
         }
 
 
-        Spacer(
-            modifier =
-                Modifier.height(24.dp)
-        )
-
-
         // ==================================================
         // KELUAR
         // ==================================================
 
-        Card(
+        item {
 
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable {
-
-                        onLogout()
-                    },
-
-            shape =
-                RoundedCornerShape(18.dp),
-
-            colors =
-                CardDefaults.cardColors(
-
-                    containerColor =
-                        Color.White
-                ),
-
-            elevation =
-                CardDefaults.cardElevation(
-
-                    defaultElevation =
-                        2.dp
-                )
-        ) {
-
-            Row(
+            Card(
 
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(
-                            horizontal = 18.dp,
-                            vertical = 16.dp
-                        ),
+                        .clickable {
 
-                verticalAlignment =
-                    Alignment.CenterVertically
+                            // onLogout()
+                        },
+
+                shape =
+                    RoundedCornerShape(
+                        18.dp
+                    ),
+
+                colors =
+                    CardDefaults.cardColors(
+
+                        containerColor =
+                            Color.White
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+
+                        defaultElevation =
+                            2.dp
+                    )
             ) {
-
-                // ==========================================
-                // LOGOUT ICON
-                // ==========================================
 
                 Row(
 
                     modifier =
                         Modifier
-                            .size(46.dp)
-                            .background(
-
-                                color =
-                                    Color(0xFFFDECEC),
-
-                                shape =
-                                    RoundedCornerShape(12.dp)
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 18.dp,
+                                vertical = 15.dp
                             ),
-
-                    horizontalArrangement =
-                        Arrangement.Center,
 
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
 
-                    Icon(
-
-                        imageVector =
-                            Icons.Default.Logout,
-
-                        contentDescription =
-                            "Keluar",
-
-                        tint =
-                            Color(0xFFB91C1C),
+                    Row(
 
                         modifier =
-                            Modifier.size(24.dp)
-                    )
-                }
+                            Modifier
+                                .size(46.dp)
+                                .background(
 
+                                    color =
+                                        Color(0xFFFDECEC),
 
-                Spacer(
-                    modifier =
-                        Modifier.width(14.dp)
-                )
+                                    shape =
+                                        RoundedCornerShape(
+                                            12.dp
+                                        )
+                                ),
 
+                        horizontalArrangement =
+                            Arrangement.Center,
 
-                // ==========================================
-                // LOGOUT TEXT
-                // ==========================================
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
 
-                Column(
+                        Icon(
 
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
+                            imageVector =
+                                Icons.Default.Logout,
 
-                    Text(
+                            contentDescription =
+                                "Keluar",
 
-                        text =
-                            "Keluar",
+                            tint =
+                                Color(0xFFB91C1C),
 
-                        fontSize =
-                            15.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            Color(0xFFB91C1C)
-                    )
+                            modifier =
+                                Modifier.size(
+                                    23.dp
+                                )
+                        )
+                    }
 
 
                     Spacer(
                         modifier =
-                            Modifier.height(2.dp)
+                            Modifier.width(14.dp)
                     )
 
 
-                    Text(
+                    Column(
 
-                        text =
-                            "Keluar dari akun Admin",
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
 
-                        fontSize =
-                            11.sp,
+                        Text(
 
-                        color =
-                            TextGray
+                            text =
+                                "Keluar",
+
+                            fontSize =
+                                15.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color(0xFFB91C1C)
+                        )
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(3.dp)
+                        )
+
+
+                        Text(
+
+                            text =
+                                "Keluar dari akun Admin",
+
+                            fontSize =
+                                11.sp,
+
+                            color =
+                                TextGray
+                        )
+                    }
+
+
+                    Icon(
+
+                        imageVector =
+                            Icons.Default.ChevronRight,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            TextGray,
+
+                        modifier =
+                            Modifier.size(
+                                21.dp
+                            )
                     )
                 }
             }
         }
 
 
-        Spacer(
-            modifier =
-                Modifier.height(16.dp)
-        )
-
-
         // ==================================================
         // VERSI
         // ==================================================
 
-        Text(
+        item {
 
-            text =
-                "Versi 1.0.0",
+            Text(
 
-            modifier =
-                Modifier.fillMaxWidth(),
+                text =
+                    "Versi 1.0.0",
 
-            fontSize =
-                11.sp,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            top = 2.dp,
+                            bottom = 14.dp
+                        ),
 
-            color =
-                TextGray
-        )
+                fontSize =
+                    11.sp,
+
+                color =
+                    TextGray
+            )
+        }
     }
 }
 
 
 // ==========================================================
-// DASHBOARD CARD
+// SUMMARY CARD
 // ==========================================================
 
 @Composable
-private fun AdminDashboardCard(
+private fun AdminSummaryCard(
 
-    content: @Composable () -> Unit
+    modifier: Modifier,
+
+    icon: ImageVector,
+
+    title: String,
+
+    value: String
 
 ) {
 
     Card(
 
         modifier =
-            Modifier.fillMaxWidth(),
+            modifier,
 
         shape =
-            RoundedCornerShape(18.dp),
+            RoundedCornerShape(
+                18.dp
+            ),
 
         colors =
             CardDefaults.cardColors(
@@ -464,21 +1053,106 @@ private fun AdminDashboardCard(
         Column(
 
             modifier =
-                Modifier.fillMaxWidth()
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 16.dp
+                    )
         ) {
 
-            content()
+            Row(
+
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .background(
+
+                            color =
+                                Color(0xFFE6EEE9),
+
+                            shape =
+                                RoundedCornerShape(
+                                    11.dp
+                                )
+                        ),
+
+                horizontalArrangement =
+                    Arrangement.Center,
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        icon,
+
+                    contentDescription =
+                        title,
+
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(
+                            21.dp
+                        )
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(11.dp)
+            )
+
+
+            Text(
+
+                text =
+                    title,
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    TextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(3.dp)
+            )
+
+
+            Text(
+
+                text =
+                    value,
+
+                fontSize =
+                    22.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
         }
     }
 }
 
 
 // ==========================================================
-// DASHBOARD ITEM
+// QUICK MENU
 // ==========================================================
 
 @Composable
-private fun AdminDashboardItem(
+private fun AdminQuickMenu(
 
     icon: ImageVector,
 
@@ -490,7 +1164,7 @@ private fun AdminDashboardItem(
 
 ) {
 
-    Row(
+    Card(
 
         modifier =
             Modifier
@@ -498,127 +1172,148 @@ private fun AdminDashboardItem(
                 .clickable {
 
                     onClick()
-                }
-                .padding(
-                    horizontal = 18.dp,
-                    vertical = 16.dp
-                ),
+                },
 
-        verticalAlignment =
-            Alignment.CenterVertically
+        shape =
+            RoundedCornerShape(
+                18.dp
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+
+                defaultElevation =
+                    2.dp
+            )
     ) {
-
-        // ==================================================
-        // ICON
-        // ==================================================
 
         Row(
 
             modifier =
                 Modifier
-                    .size(46.dp)
-                    .background(
-
-                        color =
-                            Color(0xFFE6EEE9),
-
-                        shape =
-                            RoundedCornerShape(12.dp)
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 18.dp,
+                        vertical = 15.dp
                     ),
-
-            horizontalArrangement =
-                Arrangement.Center,
 
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
 
-            Icon(
-
-                imageVector =
-                    icon,
-
-                contentDescription =
-                    title,
-
-                tint =
-                    PrimaryGreen,
+            Row(
 
                 modifier =
-                    Modifier.size(24.dp)
-            )
-        }
+                    Modifier
+                        .size(46.dp)
+                        .background(
 
+                            color =
+                                Color(0xFFE6EEE9),
 
-        Spacer(
-            modifier =
-                Modifier.width(14.dp)
-        )
+                            shape =
+                                RoundedCornerShape(
+                                    12.dp
+                                )
+                        ),
 
+                horizontalArrangement =
+                    Arrangement.Center,
 
-        // ==================================================
-        // TEXT
-        // ==================================================
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
 
-        Column(
+                Icon(
 
-            modifier =
-                Modifier.weight(1f)
-        ) {
+                    imageVector =
+                        icon,
 
-            Text(
+                    contentDescription =
+                        title,
 
-                text =
-                    title,
+                    tint =
+                        PrimaryGreen,
 
-                fontSize =
-                    15.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
-            )
+                    modifier =
+                        Modifier.size(
+                            23.dp
+                        )
+                )
+            }
 
 
             Spacer(
                 modifier =
-                    Modifier.height(2.dp)
+                    Modifier.width(14.dp)
             )
 
 
-            Text(
+            Column(
 
-                text =
-                    subtitle,
+                modifier =
+                    Modifier.weight(1f)
+            ) {
 
-                fontSize =
-                    11.sp,
+                Text(
 
-                color =
-                    TextGray
+                    text =
+                        title,
+
+                    fontSize =
+                        15.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(3.dp)
+                )
+
+
+                Text(
+
+                    text =
+                        subtitle,
+
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
+            }
+
+
+            Icon(
+
+                imageVector =
+                    Icons.Default.ChevronRight,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    TextGray,
+
+                modifier =
+                    Modifier.size(
+                        22.dp
+                    )
             )
         }
-
-
-        // ==================================================
-        // ARROW
-        // ==================================================
-
-        Icon(
-
-            imageVector =
-                androidx.compose.material.icons.Icons.Default.ChevronRight,
-
-            contentDescription =
-                null,
-
-            tint =
-                TextGray,
-
-            modifier =
-                Modifier.size(22.dp)
-        )
     }
 }

@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -117,11 +116,7 @@ enum class FilterRekap(
 // ==========================================================
 
 @Composable
-fun RekapAdminScreen(
-
-    onBack: () -> Unit
-
-) {
+fun RekapAdminScreen() {
 
     // ======================================================
     // FIRESTORE
@@ -474,101 +469,55 @@ fun RekapAdminScreen(
                 Icon(
 
                     imageVector =
-                        Icons.Default.ArrowBack,
-
-                    contentDescription =
-                        "Kembali",
-
-                    tint =
-                        PrimaryGreen,
-
-                    modifier =
-                        Modifier
-                            .size(28.dp)
-                            .background(
-                                Color.Transparent
-                            )
-                )
-
-
-                androidx.compose.foundation.layout.Box(
-
-                    modifier =
-                        Modifier
-                            .size(42.dp)
-                            .background(
-                                Color.Transparent
-                            )
-                            .padding(0.dp)
-                            .then(
-                                Modifier
-                            )
-                    // area klik sengaja
-                ) {
-
-                    androidx.compose.material3.IconButton(
-
-                        onClick =
-                            onBack,
-
-                        modifier =
-                            Modifier.fillMaxSize()
-                    ) {
-
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.ArrowBack,
-
-                            contentDescription =
-                                "Kembali",
-
-                            tint =
-                                PrimaryGreen
-                        )
-                    }
-                }
-
-
-                Spacer(
-                    modifier =
-                        Modifier.width(2.dp)
-                )
-
-
-                Icon(
-
-                    imageVector =
                         Icons.Default.Assessment,
 
                     contentDescription =
                         null,
 
                     tint =
-                        PrimaryGreen
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(28.dp)
                 )
 
 
                 Spacer(
                     modifier =
-                        Modifier.width(8.dp)
+                        Modifier.width(10.dp)
                 )
 
 
-                Text(
+                Column {
 
-                    text =
-                        "Rekap Absensi",
+                    Text(
 
-                    fontSize =
-                        22.sp,
+                        text =
+                            "Rekap Absensi",
 
-                    fontWeight =
-                        FontWeight.Bold,
+                        fontSize =
+                            22.sp,
 
-                    color =
-                        TextDark
-                )
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
+
+
+                    Text(
+
+                        text =
+                            "Lihat dan pantau rekap absensi karyawan",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
+                    )
+                }
             }
 
 
@@ -1062,6 +1011,7 @@ fun RekapAdminScreen(
 
                             items =
                                 daftarRekap
+
                         ) { rekap ->
 
                             RekapAbsensiCard(
