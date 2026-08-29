@@ -15,19 +15,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Palette
+
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+
 import androidx.compose.runtime.Composable
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,8 +46,6 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun AdminSettingsScreen(
-
-    onProfile: () -> Unit,
 
     onTampilan: () -> Unit,
 
@@ -127,55 +128,7 @@ fun AdminSettingsScreen(
 
 
             // ==================================================
-            // AKUN
-            // ==================================================
-
-            Text(
-
-                text =
-                    "Akun",
-
-                fontSize =
-                    16.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
-
-
-            SettingMenuCard(
-
-                icon =
-                    Icons.Default.Person,
-
-                title =
-                    "Profile",
-
-                subtitle =
-                    "Informasi akun Admin",
-
-                onClick =
-                    onProfile
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
-
-
-            // ==================================================
-            // TAMPILAN
+            // PREFERENSI
             // ==================================================
 
             Text(
@@ -190,12 +143,7 @@ fun AdminSettingsScreen(
                     FontWeight.Bold,
 
                 color =
-                    TextDark,
-
-                modifier =
-                    Modifier.padding(
-                        top = 10.dp
-                    )
+                    TextDark
             )
 
 
@@ -423,6 +371,24 @@ fun AdminSettingsScreen(
                                 TextGray
                         )
                     }
+
+
+                    Icon(
+
+                        imageVector =
+                            Icons.Default.ChevronRight,
+
+                        contentDescription =
+                            "Keluar",
+
+                        tint =
+                            TextGray,
+
+                        modifier =
+                            Modifier.size(
+                                22.dp
+                            )
+                    )
                 }
             }
 
@@ -511,8 +477,10 @@ private fun SettingMenuCard(
                     Modifier
                         .size(46.dp)
                         .background(
+
                             color =
                                 Color(0xFFE6EEE9),
+
                             shape =
                                 RoundedCornerShape(
                                     12.dp
