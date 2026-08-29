@@ -1,8 +1,9 @@
 package com.example.absensikaryawan.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,57 +14,52 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.EventAvailable
-
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import com.google.firebase.firestore.FirebaseFirestore
-
 import kotlinx.coroutines.tasks.await
 
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-
 
 // ==========================================================
-// MODEL REKAP ABSENSI
+// MODEL
 // ==========================================================
 
-data class RekapAbsensi(
+private data class DataRekapAbsensi(
+
+    val id: String,
 
     val uid: String,
 
@@ -80,49 +76,11 @@ data class RekapAbsensi(
 
 
 // ==========================================================
-// FILTER REKAP
-// ==========================================================
-
-enum class FilterRekap(
-
-    val label: String,
-
-    val jumlahHari: Int?
-
-) {
-
-    HARI_INI(
-        label = "Hari Ini",
-        jumlahHari = 1
-    ),
-
-    TUJUH_HARI(
-        label = "7 Hari Terakhir",
-        jumlahHari = 7
-    ),
-
-    TIGA_PULUH_HARI(
-        label = "30 Hari Terakhir",
-        jumlahHari = 30
-    ),
-
-    SEMUA(
-        label = "Semua Rekap",
-        jumlahHari = null
-    )
-}
-
-
-// ==========================================================
-// REKAP ADMIN SCREEN
+// REKAP ADMIN
 // ==========================================================
 
 @Composable
 fun RekapAdminScreen() {
-
-    // ======================================================
-    // FIRESTORE
-    // ======================================================
 
     val db =
         remember {
@@ -130,14 +88,10 @@ fun RekapAdminScreen() {
         }
 
 
-    // ======================================================
-    // STATE
-    // ======================================================
+    var daftarRekap by remember {
 
-    var semuaRekap by remember {
-
-        mutableStateOf<List<RekapAbsensi>>(
-            emptyList()
+        mutableStateOf(
+            emptyList<DataRekapAbsensi>()
         )
     }
 
@@ -154,21 +108,15 @@ fun RekapAdminScreen() {
     }
 
 
-    // ======================================================
-    // FILTER
-    // ======================================================
+    var searchQuery by remember {
 
-    var filterAktif by remember {
-
-        mutableStateOf(
-            FilterRekap.HARI_INI
-        )
+        mutableStateOf("")
     }
 
 
-    var dropdownTerbuka by remember {
+    var refreshKey by remember {
 
-        mutableStateOf(false)
+        mutableIntStateOf(0)
     }
 
 
@@ -176,7 +124,7 @@ fun RekapAdminScreen() {
     // LOAD FIRESTORE
     // ======================================================
 
-    suspend fun loadRekap() {
+    LaunchedEffect(refreshKey) {
 
         try {
 
@@ -186,248 +134,147 @@ fun RekapAdminScreen() {
 
 
             val snapshot =
-                db.collection("attendance")
+                db
+                    .collection("attendance")
                     .get()
                     .await()
 
 
-            semuaRekap =
+            daftarRekap =
                 snapshot.documents
-                    .mapNotNull { document ->
+                    .map { document ->
 
-                        val tanggal =
-                            document.getString(
-                                "tanggal"
-                            )
-                                ?: return@mapNotNull null
+                        DataRekapAbsensi(
 
-
-                        val nama =
-                            document.getString(
-                                "nama"
-                            )
-                                ?: "Karyawan"
-
-
-                        val uid =
-                            document.getString(
-                                "uid"
-                            )
-                                ?: ""
-
-
-                        val jamMasuk =
-                            document.getString(
-                                "jamMasuk"
-                            )
-                                ?: "-"
-
-
-                        val jamPulang =
-                            document.getString(
-                                "jamPulang"
-                            )
-                                ?: "-"
-
-
-                        val catatan =
-                            document.getString(
-                                "catatan"
-                            )
-                                ?: ""
-
-
-                        RekapAbsensi(
+                            id =
+                                document.id,
 
                             uid =
-                                uid,
+                                document.getString(
+                                    "uid"
+                                ) ?: "",
 
                             nama =
-                                nama,
+                                document.getString(
+                                    "nama"
+                                ) ?: "Tanpa Nama",
 
                             tanggal =
-                                tanggal,
+                                document.getString(
+                                    "tanggal"
+                                ) ?: "",
 
                             jamMasuk =
-                                jamMasuk,
+                                document.getString(
+                                    "jamMasuk"
+                                ) ?: "",
 
                             jamPulang =
-                                jamPulang,
+                                document.getString(
+                                    "jamPulang"
+                                ) ?: "",
 
                             catatan =
-                                catatan
+                                document.getString(
+                                    "catatan"
+                                ) ?: ""
                         )
                     }
                     .sortedWith(
 
-                        compareByDescending<RekapAbsensi> {
+                        compareByDescending<DataRekapAbsensi> {
 
                             it.tanggal
 
                         }.thenBy {
 
-                            it.nama
+                            it.nama.lowercase()
                         }
                     )
 
-
-            loading = false
-
         } catch (e: Exception) {
-
-            loading = false
 
             errorMessage =
                 e.message
-                    ?: "Gagal mengambil data rekap"
+                    ?: "Gagal mengambil data rekap."
 
-            e.printStackTrace()
+        } finally {
+
+            loading = false
         }
     }
 
 
     // ======================================================
-    // LOAD SAAT SCREEN DIBUKA
+    // SEARCH
     // ======================================================
 
-    LaunchedEffect(Unit) {
+    val hasilPencarian =
 
-        loadRekap()
-    }
-
-
-    // ======================================================
-    // FILTER DATA
-    // ======================================================
-
-    val daftarRekap = remember(
-
-        semuaRekap,
-
-        filterAktif
-
-    ) {
-
-        if (
-            filterAktif.jumlahHari == null
+        remember(
+            daftarRekap,
+            searchQuery
         ) {
 
-            semuaRekap
+            if (searchQuery.isBlank()) {
 
-        } else {
+                daftarRekap
 
-            val formatter =
-                SimpleDateFormat(
-                    "yyyy-MM-dd",
-                    Locale.getDefault()
-                )
+            } else {
 
-            formatter.isLenient = false
-
-
-            val calendar =
-                Calendar.getInstance()
+                val query =
+                    searchQuery
+                        .trim()
+                        .lowercase()
 
 
-            calendar.set(
-                Calendar.HOUR_OF_DAY,
-                0
-            )
+                daftarRekap.filter { data ->
 
-            calendar.set(
-                Calendar.MINUTE,
-                0
-            )
+                    data.nama
+                        .lowercase()
+                        .contains(query)
 
-            calendar.set(
-                Calendar.SECOND,
-                0
-            )
+                            ||
 
-            calendar.set(
-                Calendar.MILLISECOND,
-                0
-            )
-
-
-            val hariIni =
-                calendar.time
-
-
-            calendar.add(
-                Calendar.DAY_OF_YEAR,
-                -(filterAktif.jumlahHari!! - 1)
-            )
-
-
-            val tanggalAwal =
-                calendar.time
-
-
-            semuaRekap.filter { data ->
-
-                try {
-
-                    val tanggal =
-                        formatter.parse(
                             data.tanggal
-                        )
+                                .lowercase()
+                                .contains(query)
 
+                            ||
 
-                    tanggal != null &&
-                            !tanggal.before(
-                                tanggalAwal
-                            ) &&
-                            !tanggal.after(
-                                hariIni
-                            )
+                            data.jamMasuk
+                                .lowercase()
+                                .contains(query)
 
-                } catch (
-                    e: Exception
-                ) {
+                            ||
 
-                    false
+                            data.jamPulang
+                                .lowercase()
+                                .contains(query)
                 }
             }
         }
-    }
 
 
     // ======================================================
     // STATISTIK
     // ======================================================
 
-    val total =
+    val totalData =
         daftarRekap.size
 
 
-    val hadir =
+    val totalHadir =
         daftarRekap.count {
 
-            it.jamMasuk.isNotBlank() &&
-                    it.jamMasuk != "-"
+            it.jamMasuk.isNotBlank()
         }
 
 
-    val belumPulang =
+    val totalPulang =
         daftarRekap.count {
 
-            it.jamMasuk.isNotBlank() &&
-                    it.jamMasuk != "-" &&
-                    (
-                            it.jamPulang.isBlank() ||
-                                    it.jamPulang == "-"
-                            )
-        }
-
-
-    val lengkap =
-        daftarRekap.count {
-
-            it.jamMasuk.isNotBlank() &&
-                    it.jamMasuk != "-" &&
-                    it.jamPulang.isNotBlank() &&
-                    it.jamPulang != "-"
+            it.jamPulang.isNotBlank()
         }
 
 
@@ -450,6 +297,7 @@ fun RekapAdminScreen() {
                 Modifier.fillMaxSize()
         ) {
 
+
             // ==================================================
             // HEADER
             // ==================================================
@@ -468,29 +316,56 @@ fun RekapAdminScreen() {
                     Alignment.CenterVertically
             ) {
 
-                Icon(
-
-                    imageVector =
-                        Icons.Default.Assessment,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        PrimaryGreen,
+                Surface(
 
                     modifier =
-                        Modifier.size(28.dp)
-                )
+                        Modifier.size(44.dp),
+
+                    shape =
+                        RoundedCornerShape(13.dp),
+
+                    color =
+                        Color(0xFFE6EEE9)
+                ) {
+
+                    Box(
+
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Default.Assessment,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(24.dp)
+                        )
+                    }
+                }
 
 
                 Spacer(
                     modifier =
-                        Modifier.width(10.dp)
+                        Modifier.width(11.dp)
                 )
 
 
-                Column {
+                // TANPA WEIGHT
+                Column(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(end = 40.dp)
+                ) {
 
                     Text(
 
@@ -498,7 +373,7 @@ fun RekapAdminScreen() {
                             "Rekap Absensi",
 
                         fontSize =
-                            22.sp,
+                            21.sp,
 
                         fontWeight =
                             FontWeight.Bold,
@@ -511,515 +386,310 @@ fun RekapAdminScreen() {
                     Text(
 
                         text =
-                            "Lihat dan pantau rekap absensi karyawan",
+                            "Data kehadiran seluruh karyawan",
 
                         fontSize =
                             12.sp,
 
                         color =
-                            TextGray
+                            TextGray,
+
+                        maxLines =
+                            1,
+
+                        overflow =
+                            TextOverflow.Ellipsis
+                    )
+                }
+
+
+                IconButton(
+
+                    onClick = {
+
+                        refreshKey++
+                    }
+                ) {
+
+                    Icon(
+
+                        imageVector =
+                            Icons.Default.Refresh,
+
+                        contentDescription =
+                            "Refresh",
+
+                        tint =
+                            PrimaryGreen
                     )
                 }
             }
 
 
             // ==================================================
-            // CONTENT
+            // SUMMARY
             // ==================================================
 
-            if (loading) {
+            Row(
 
-                Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp
+                        ),
 
-                    modifier =
-                        Modifier.fillMaxSize(),
-
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally,
-
-                    verticalArrangement =
-                        Arrangement.Center
-                ) {
-
-                    CircularProgressIndicator(
-
-                        color =
-                            PrimaryGreen
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
-
-
-                    Text(
-
-                        text =
-                            "Memuat rekap...",
-
-                        fontSize =
-                            13.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-            } else if (
-                errorMessage.isNotBlank()
+                horizontalArrangement =
+                    Arrangement.spacedBy(9.dp)
             ) {
 
-                Column(
+                // TOTAL
+                RekapSummaryCard(
 
                     modifier =
                         Modifier
-                            .fillMaxSize()
-                            .padding(20.dp),
+                            .fillMaxWidth(
+                                fraction = 0.31f
+                            ),
 
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally,
+                    icon =
+                        Icons.Default.Assessment,
 
-                    verticalArrangement =
-                        Arrangement.Center
-                ) {
+                    title =
+                        "Total",
 
-                    Icon(
-
-                        imageVector =
-                            Icons.Default.Warning,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            Color.Red,
-
-                        modifier =
-                            Modifier.size(42.dp)
-                    )
+                    value =
+                        totalData.toString()
+                )
 
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
+                // MASUK
+                RekapSummaryCard(
 
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(
+                                fraction = 0.31f
+                            ),
+
+                    icon =
+                        Icons.Default.CheckCircle,
+
+                    title =
+                        "Masuk",
+
+                    value =
+                        totalHadir.toString()
+                )
+
+
+                // PULANG
+                RekapSummaryCard(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(
+                                fraction = 0.31f
+                            ),
+
+                    icon =
+                        Icons.Default.AccessTime,
+
+                    title =
+                        "Pulang",
+
+                    value =
+                        totalPulang.toString()
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(14.dp)
+            )
+
+
+            // ==================================================
+            // SEARCH
+            // ==================================================
+
+            OutlinedTextField(
+
+                value =
+                    searchQuery,
+
+                onValueChange = {
+
+                    searchQuery = it
+                },
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp
+                        ),
+
+                singleLine =
+                    true,
+
+                shape =
+                    RoundedCornerShape(14.dp),
+
+                placeholder = {
 
                     Text(
 
                         text =
-                            errorMessage,
-
-                        color =
-                            Color.Red,
-
-                        textAlign =
-                            TextAlign.Center,
+                            "Cari nama atau tanggal...",
 
                         fontSize =
                             13.sp
                     )
-                }
+                },
 
-            } else {
+                leadingIcon = {
 
-                LazyColumn(
+                    Icon(
 
-                    modifier =
-                        Modifier.fillMaxSize(),
+                        imageVector =
+                            Icons.Default.Search,
 
-                    contentPadding =
-                        androidx.compose.foundation.layout
-                            .PaddingValues(
+                        contentDescription =
+                            "Cari",
 
-                                start = 20.dp,
+                        tint =
+                            PrimaryGreen
+                    )
+                },
 
-                                top = 4.dp,
+                trailingIcon = {
 
-                                end = 20.dp,
+                    if (
+                        searchQuery.isNotBlank()
+                    ) {
 
-                                bottom = 24.dp
-                            ),
-
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp)
-                ) {
-
-                    // ==================================================
-                    // FILTER
-                    // ==================================================
-
-                    item {
-
-                        Text(
-
-                            text =
-                                "Periode Rekap",
-
-                            fontSize =
-                                12.sp,
-
-                            fontWeight =
-                                FontWeight.Medium,
-
-                            color =
-                                TextGray
-                        )
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(6.dp)
-                        )
-
-
-                        Button(
+                        IconButton(
 
                             onClick = {
 
-                                dropdownTerbuka =
-                                    !dropdownTerbuka
-                            },
-
-                            modifier =
-                                Modifier.fillMaxWidth(),
-
-                            shape =
-                                RoundedCornerShape(
-                                    12.dp
-                                ),
-
-                            colors =
-                                ButtonDefaults.buttonColors(
-
-                                    containerColor =
-                                        Color.White,
-
-                                    contentColor =
-                                        TextDark
-                                )
+                                searchQuery = ""
+                            }
                         ) {
-
-                            Text(
-
-                                text =
-                                    filterAktif.label,
-
-                                modifier =
-                                    Modifier.weight(1f),
-
-                                textAlign =
-                                    TextAlign.Start,
-
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.Medium
-                            )
-
 
                             Icon(
 
                                 imageVector =
-                                    Icons.Default.KeyboardArrowDown,
+                                    Icons.Default.Close,
 
                                 contentDescription =
-                                    "Pilih periode"
-                            )
-                        }
-
-
-                        DropdownMenu(
-
-                            expanded =
-                                dropdownTerbuka,
-
-                            onDismissRequest = {
-
-                                dropdownTerbuka =
-                                    false
-                            }
-                        ) {
-
-                            FilterRekap.values()
-                                .forEach { filter ->
-
-                                    DropdownMenuItem(
-
-                                        text = {
-
-                                            Text(
-                                                text =
-                                                    filter.label
-                                            )
-                                        },
-
-                                        onClick = {
-
-                                            filterAktif =
-                                                filter
-
-                                            dropdownTerbuka =
-                                                false
-                                        }
-                                    )
-                                }
-                        }
-                    }
-
-
-                    // ==================================================
-                    // STATISTIK
-                    // ==================================================
-
-                    item {
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(4.dp)
-                        )
-
-
-                        Text(
-
-                            text =
-                                "Ringkasan",
-
-                            fontSize =
-                                18.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
-
-
-                        Row(
-
-                            modifier =
-                                Modifier.fillMaxWidth(),
-
-                            horizontalArrangement =
-                                Arrangement.spacedBy(10.dp)
-                        ) {
-
-                            RekapSummaryCard(
-
-                                modifier =
-                                    Modifier.weight(1f),
-
-                                number =
-                                    total.toString(),
-
-                                label =
-                                    "Total",
-
-                                icon =
-                                    Icons.Default.People
-                            )
-
-
-                            RekapSummaryCard(
-
-                                modifier =
-                                    Modifier.weight(1f),
-
-                                number =
-                                    hadir.toString(),
-
-                                label =
-                                    "Hadir",
-
-                                icon =
-                                    Icons.Default.CheckCircle
-                            )
-                        }
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
-
-
-                        Row(
-
-                            modifier =
-                                Modifier.fillMaxWidth(),
-
-                            horizontalArrangement =
-                                Arrangement.spacedBy(10.dp)
-                        ) {
-
-                            RekapSummaryCard(
-
-                                modifier =
-                                    Modifier.weight(1f),
-
-                                number =
-                                    lengkap.toString(),
-
-                                label =
-                                    "Lengkap",
-
-                                icon =
-                                    Icons.Default.EventAvailable
-                            )
-
-
-                            RekapSummaryCard(
-
-                                modifier =
-                                    Modifier.weight(1f),
-
-                                number =
-                                    belumPulang.toString(),
-
-                                label =
-                                    "Belum Pulang",
-
-                                icon =
-                                    Icons.Default.AccessTime
+                                    "Hapus pencarian"
                             )
                         }
                     }
+                },
+
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+
+                        focusedBorderColor =
+                            PrimaryGreen,
+
+                        unfocusedBorderColor =
+                            Color(0xFFD1D5DB),
+
+                        focusedContainerColor =
+                            Color.White,
+
+                        unfocusedContainerColor =
+                            Color.White
+                    )
+            )
 
 
-                    // ==================================================
-                    // JUDUL DAFTAR
-                    // ==================================================
-
-                    item {
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(4.dp)
-                        )
+            Spacer(
+                modifier =
+                    Modifier.height(14.dp)
+            )
 
 
-                        Text(
+            // ==================================================
+            // CONTENT
+            // ==================================================
 
-                            text =
-                                "Daftar Absensi",
+            when {
 
-                            fontSize =
-                                18.sp,
+                loading -> {
 
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-                    }
+                    RekapLoading()
+                }
 
 
-                    // ==================================================
-                    // DATA KOSONG
-                    // ==================================================
+                errorMessage.isNotBlank() -> {
 
-                    if (
-                        daftarRekap.isEmpty()
+                    RekapError(
+
+                        message =
+                            errorMessage,
+
+                        onRetry = {
+
+                            refreshKey++
+                        }
+                    )
+                }
+
+
+                hasilPencarian.isEmpty() -> {
+
+                    RekapEmpty(
+
+                        searchQuery =
+                            searchQuery
+                    )
+                }
+
+
+                else -> {
+
+                    LazyColumn(
+
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        verticalArrangement =
+                            Arrangement.spacedBy(10.dp),
+
+                        contentPadding =
+                            PaddingValues(
+
+                                start = 20.dp,
+
+                                top = 0.dp,
+
+                                end = 20.dp,
+
+                                bottom = 24.dp
+                            )
                     ) {
-
-                        item {
-
-                            Column(
-
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            vertical = 50.dp
-                                        ),
-
-                                horizontalAlignment =
-                                    Alignment.CenterHorizontally
-                            ) {
-
-                                Icon(
-
-                                    imageVector =
-                                        Icons.Default.Assessment,
-
-                                    contentDescription =
-                                        null,
-
-                                    tint =
-                                        TextGray,
-
-                                    modifier =
-                                        Modifier.size(44.dp)
-                                )
-
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(12.dp)
-                                )
-
-
-                                Text(
-
-                                    text =
-                                        "Belum ada data absensi",
-
-                                    fontWeight =
-                                        FontWeight.Bold,
-
-                                    color =
-                                        TextDark
-                                )
-
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(4.dp)
-                                )
-
-
-                                Text(
-
-                                    text =
-                                        "Tidak ada absensi pada periode ini",
-
-                                    fontSize =
-                                        12.sp,
-
-                                    color =
-                                        TextGray
-                                )
-                            }
-                        }
-
-                    } else {
-
-                        // ==================================================
-                        // DAFTAR
-                        // ==================================================
 
                         items(
 
                             items =
-                                daftarRekap
+                                hasilPencarian,
 
-                        ) { rekap ->
+                            key = {
 
-                            RekapAbsensiCard(
+                                it.id
+                            }
 
-                                rekap =
-                                    rekap
+                        ) { data ->
+
+                            RekapAttendanceCard(
+
+                                data =
+                                    data
                             )
                         }
                     }
@@ -1039,11 +709,12 @@ private fun RekapSummaryCard(
 
     modifier: Modifier,
 
-    number: String,
+    icon:
+    androidx.compose.ui.graphics.vector.ImageVector,
 
-    label: String,
+    title: String,
 
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    value: String
 
 ) {
 
@@ -1053,7 +724,7 @@ private fun RekapSummaryCard(
             modifier,
 
         shape =
-            RoundedCornerShape(16.dp),
+            RoundedCornerShape(15.dp),
 
         colors =
             CardDefaults.cardColors(
@@ -1064,8 +735,129 @@ private fun RekapSummaryCard(
 
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
+                defaultElevation = 1.dp
+            )
+    ) {
+
+        Column(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(11.dp)
+        ) {
+
+            Surface(
+
+                modifier =
+                    Modifier.size(34.dp),
+
+                shape =
+                    RoundedCornerShape(10.dp),
+
+                color =
+                    Color(0xFFE6EEE9)
+            ) {
+
+                Box(
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Icon(
+
+                        imageVector =
+                            icon,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.size(18.dp)
+                    )
+                }
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(7.dp)
+            )
+
+
+            Text(
+
+                text =
+                    title,
+
+                fontSize =
+                    10.sp,
+
+                color =
+                    TextGray
+            )
+
+
+            Text(
+
+                text =
+                    value,
+
+                fontSize =
+                    19.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+        }
+    }
+}
+
+
+// ==========================================================
+// ATTENDANCE CARD
+// ==========================================================
+
+@Composable
+private fun RekapAttendanceCard(
+
+    data: DataRekapAbsensi
+
+) {
+
+    val sudahMasuk =
+        data.jamMasuk.isNotBlank()
+
+
+    val sudahPulang =
+        data.jamPulang.isNotBlank()
+
+
+    Card(
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(17.dp),
+
+        colors =
+            CardDefaults.cardColors(
+
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 2.dp
             )
     ) {
 
@@ -1077,110 +869,9 @@ private fun RekapSummaryCard(
                     .padding(15.dp)
         ) {
 
-            Icon(
-
-                imageVector =
-                    icon,
-
-                contentDescription =
-                    label,
-
-                tint =
-                    PrimaryGreen,
-
-                modifier =
-                    Modifier.size(22.dp)
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
-
-
-            Text(
-
-                text =
-                    number,
-
-                fontSize =
-                    25.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
-            )
-
-
-            Text(
-
-                text =
-                    label,
-
-                fontSize =
-                    12.sp,
-
-                color =
-                    TextGray
-            )
-        }
-    }
-}
-
-
-// ==========================================================
-// REKAP CARD
-// ==========================================================
-
-@Composable
-private fun RekapAbsensiCard(
-
-    rekap: RekapAbsensi
-
-) {
-
-    val lengkap =
-        rekap.jamMasuk.isNotBlank() &&
-                rekap.jamMasuk != "-" &&
-                rekap.jamPulang.isNotBlank() &&
-                rekap.jamPulang != "-"
-
-
-    Card(
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(18.dp),
-
-        colors =
-            CardDefaults.cardColors(
-
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
-            )
-    ) {
-
-        Column(
-
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(17.dp)
-        ) {
 
             // ==================================================
-            // HEADER
+            // NAMA
             // ==================================================
 
             Row(
@@ -1192,25 +883,77 @@ private fun RekapAbsensiCard(
                     Alignment.CenterVertically
             ) {
 
+                Surface(
+
+                    modifier =
+                        Modifier.size(45.dp),
+
+                    shape =
+                        CircleShape,
+
+                    color =
+                        Color(0xFFE6EEE9)
+                ) {
+
+                    Box(
+
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+
+                        Text(
+
+                            text =
+                                getRekapInitials(
+                                    data.nama
+                                ),
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                PrimaryGreen
+                        )
+                    }
+                }
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(11.dp)
+                )
+
+
                 Column(
 
                     modifier =
-                        Modifier.weight(1f)
+                        Modifier.fillMaxWidth()
                 ) {
 
                     Text(
 
                         text =
-                            rekap.nama,
+                            data.nama.ifBlank {
+                                "Tanpa Nama"
+                            },
 
                         fontSize =
-                            16.sp,
+                            15.sp,
 
                         fontWeight =
                             FontWeight.Bold,
 
                         color =
-                            TextDark
+                            TextDark,
+
+                        maxLines =
+                            1,
+
+                        overflow =
+                            TextOverflow.Ellipsis
                     )
 
 
@@ -1220,92 +963,48 @@ private fun RekapAbsensiCard(
                     )
 
 
-                    Text(
+                    Row(
 
-                        text =
-                            formatTanggalRekap(
-                                rekap.tanggal
-                            ),
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
 
-                        fontSize =
-                            12.sp,
+                        Icon(
 
-                        color =
-                            TextGray
-                    )
-                }
+                            imageVector =
+                                Icons.Default.CalendarMonth,
 
+                            contentDescription =
+                                null,
 
-                Row(
+                            tint =
+                                TextGray,
 
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Icon(
-
-                        imageVector =
-                            if (lengkap) {
-
-                                Icons.Default.CheckCircle
-
-                            } else {
-
-                                Icons.Default.AccessTime
-                            },
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            if (lengkap) {
-
-                                PrimaryGreen
-
-                            } else {
-
-                                Color(0xFFD97706)
-                            },
-
-                        modifier =
-                            Modifier.size(18.dp)
-                    )
+                            modifier =
+                                Modifier.size(13.dp)
+                        )
 
 
-                    Spacer(
-                        modifier =
-                            Modifier.width(5.dp)
-                    )
+                        Spacer(
+                            modifier =
+                                Modifier.width(4.dp)
+                        )
 
 
-                    Text(
+                        Text(
 
-                        text =
-                            if (lengkap) {
+                            text =
+                                data.tanggal.ifBlank {
+                                    "-"
+                                },
 
-                                "Lengkap"
+                            fontSize =
+                                11.sp,
 
-                            } else {
-
-                                "Belum Pulang"
-                            },
-
-                        fontSize =
-                            11.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            if (lengkap) {
-
-                                PrimaryGreen
-
-                            } else {
-
-                                Color(0xFFD97706)
-                            }
-                    )
+                            color =
+                                TextGray
+                        )
+                    }
                 }
             }
 
@@ -1313,6 +1012,77 @@ private fun RekapAbsensiCard(
             Spacer(
                 modifier =
                     Modifier.height(14.dp)
+            )
+
+
+            // ==================================================
+            // STATUS
+            // ==================================================
+
+            Surface(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                shape =
+                    RoundedCornerShape(10.dp),
+
+                color =
+                    if (sudahPulang) {
+
+                        Color(0xFFE8F5E9)
+
+                    } else {
+
+                        Color(0xFFFFF7ED)
+                    }
+            ) {
+
+                Text(
+
+                    text =
+                        if (sudahPulang) {
+
+                            "✓ Absensi Lengkap"
+
+                        } else if (sudahMasuk) {
+
+                            "● Sudah Absen Masuk"
+
+                        } else {
+
+                            "Belum Absen"
+                        },
+
+                    modifier =
+                        Modifier.padding(10.dp),
+
+                    fontSize =
+                        11.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        if (sudahPulang) {
+
+                            Color(0xFF15803D)
+
+                        } else if (sudahMasuk) {
+
+                            Color(0xFFC2410C)
+
+                        } else {
+
+                            TextGray
+                        }
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
             )
 
 
@@ -1326,134 +1096,51 @@ private fun RekapAbsensiCard(
                     Modifier.fillMaxWidth(),
 
                 horizontalArrangement =
-                    Arrangement.SpaceBetween
+                    Arrangement.spacedBy(10.dp)
             ) {
 
-                Column {
+                RekapTimeBox(
 
-                    Text(
+                    modifier =
+                        Modifier.fillMaxWidth(
+                            fraction = 0.48f
+                        ),
 
-                        text =
-                            "Jam Masuk",
+                    title =
+                        "Jam Masuk",
 
-                        fontSize =
-                            11.sp,
+                    value =
+                        if (sudahMasuk) {
 
-                        color =
-                            TextGray
-                    )
+                            data.jamMasuk
 
+                        } else {
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
-
-
-                    Row(
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.AccessTime,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(18.dp)
-                        )
+                            "--:--:--"
+                        }
+                )
 
 
-                        Spacer(
-                            modifier =
-                                Modifier.width(5.dp)
-                        )
+                RekapTimeBox(
 
+                    modifier =
+                        Modifier.fillMaxWidth(
+                            fraction = 0.48f
+                        ),
 
-                        Text(
+                    title =
+                        "Jam Pulang",
 
-                            text =
-                                if (
-                                    rekap.jamMasuk.isBlank()
-                                ) {
+                    value =
+                        if (sudahPulang) {
 
-                                    "-"
+                            data.jamPulang
 
-                                } else {
+                        } else {
 
-                                    rekap.jamMasuk
-                                },
-
-                            fontSize =
-                                14.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-                    }
-                }
-
-
-                Column(
-
-                    horizontalAlignment =
-                        Alignment.End
-                ) {
-
-                    Text(
-
-                        text =
-                            "Jam Pulang",
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
-
-
-                    Text(
-
-                        text =
-                            if (
-                                rekap.jamPulang.isBlank()
-                            ) {
-
-                                "-"
-
-                            } else {
-
-                                rekap.jamPulang
-                            },
-
-                        fontSize =
-                            14.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
-                    )
-                }
+                            "--:--:--"
+                        }
+                )
             }
 
 
@@ -1462,45 +1149,68 @@ private fun RekapAbsensiCard(
             // ==================================================
 
             if (
-                rekap.catatan.isNotBlank()
+                data.catatan.isNotBlank()
             ) {
 
                 Spacer(
                     modifier =
-                        Modifier.height(12.dp)
+                        Modifier.height(10.dp)
                 )
 
 
-                Text(
+                Surface(
 
-                    text =
-                        "Catatan",
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-
-
-                Spacer(
                     modifier =
-                        Modifier.height(3.dp)
-                )
+                        Modifier.fillMaxWidth(),
 
-
-                Text(
-
-                    text =
-                        rekap.catatan,
-
-                    fontSize =
-                        13.sp,
+                    shape =
+                        RoundedCornerShape(10.dp),
 
                     color =
-                        TextDark
-                )
+                        Color(0xFFF8FAF9)
+                ) {
+
+                    Column(
+
+                        modifier =
+                            Modifier.padding(10.dp)
+                    ) {
+
+                        Text(
+
+                            text =
+                                "Catatan",
+
+                            fontSize =
+                                10.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                TextGray
+                        )
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(3.dp)
+                        )
+
+
+                        Text(
+
+                            text =
+                                data.catatan,
+
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                TextDark
+                        )
+                    }
+                }
             }
         }
     }
@@ -1508,63 +1218,422 @@ private fun RekapAbsensiCard(
 
 
 // ==========================================================
-// FORMAT TANGGAL
+// TIME BOX
 // ==========================================================
 
-private fun formatTanggalRekap(
+@Composable
+private fun RekapTimeBox(
 
-    tanggal: String
+    modifier: Modifier,
+
+    title: String,
+
+    value: String
+
+) {
+
+    Surface(
+
+        modifier =
+            modifier,
+
+        shape =
+            RoundedCornerShape(11.dp),
+
+        color =
+            Color(0xFFF8FAF9)
+    ) {
+
+        Column(
+
+            modifier =
+                Modifier.padding(11.dp)
+        ) {
+
+            Text(
+
+                text =
+                    title,
+
+                fontSize =
+                    10.sp,
+
+                color =
+                    TextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(3.dp)
+            )
+
+
+            Text(
+
+                text =
+                    value,
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+        }
+    }
+}
+
+
+// ==========================================================
+// LOADING
+// ==========================================================
+
+@Composable
+private fun RekapLoading() {
+
+    Column(
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(30.dp),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+
+        Spacer(
+            modifier =
+                Modifier.height(40.dp)
+        )
+
+
+        CircularProgressIndicator(
+
+            color =
+                PrimaryGreen
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(10.dp)
+        )
+
+
+        Text(
+
+            text =
+                "Memuat rekap absensi...",
+
+            fontSize =
+                13.sp,
+
+            color =
+                TextGray
+        )
+    }
+}
+
+
+// ==========================================================
+// ERROR
+// ==========================================================
+
+@Composable
+private fun RekapError(
+
+    message: String,
+
+    onRetry: () -> Unit
+
+) {
+
+    Column(
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(30.dp),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+
+        Spacer(
+            modifier =
+                Modifier.height(30.dp)
+        )
+
+
+        Icon(
+
+            imageVector =
+                Icons.Default.Warning,
+
+            contentDescription =
+                null,
+
+            tint =
+                Color(0xFFB91C1C),
+
+            modifier =
+                Modifier.size(42.dp)
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(10.dp)
+        )
+
+
+        Text(
+
+            text =
+                "Gagal memuat rekap",
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextDark
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(6.dp)
+        )
+
+
+        Text(
+
+            text =
+                message,
+
+            fontSize =
+                12.sp,
+
+            color =
+                Color(0xFFB91C1C),
+
+            textAlign =
+                TextAlign.Center
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(14.dp)
+        )
+
+
+        IconButton(
+
+            onClick =
+                onRetry
+        ) {
+
+            Icon(
+
+                imageVector =
+                    Icons.Default.Refresh,
+
+                contentDescription =
+                    "Coba lagi",
+
+                tint =
+                    PrimaryGreen
+            )
+        }
+    }
+}
+
+
+// ==========================================================
+// EMPTY
+// ==========================================================
+
+@Composable
+private fun RekapEmpty(
+
+    searchQuery: String
+
+) {
+
+    Column(
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(30.dp),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+
+        Spacer(
+            modifier =
+                Modifier.height(30.dp)
+        )
+
+
+        Surface(
+
+            modifier =
+                Modifier.size(70.dp),
+
+            shape =
+                CircleShape,
+
+            color =
+                Color(0xFFE6EEE9)
+        ) {
+
+            Box(
+
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Icon(
+
+                    imageVector =
+
+                        if (
+                            searchQuery.isBlank()
+                        ) {
+
+                            Icons.Default.Assessment
+
+                        } else {
+
+                            Icons.Default.Search
+                        },
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        TextGray,
+
+                    modifier =
+                        Modifier.size(32.dp)
+                )
+            }
+        }
+
+
+        Spacer(
+            modifier =
+                Modifier.height(14.dp)
+        )
+
+
+        Text(
+
+            text =
+
+                if (
+                    searchQuery.isBlank()
+                ) {
+
+                    "Belum Ada Rekap"
+
+                } else {
+
+                    "Data Tidak Ditemukan"
+                },
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextDark
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(5.dp)
+        )
+
+
+        Text(
+
+            text =
+
+                if (
+                    searchQuery.isBlank()
+                ) {
+
+                    "Belum ada data absensi di Firestore."
+
+                } else {
+
+                    "Coba gunakan kata kunci pencarian lain."
+                },
+
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray,
+
+            textAlign =
+                TextAlign.Center
+        )
+    }
+}
+
+
+// ==========================================================
+// INITIAL
+// ==========================================================
+
+private fun getRekapInitials(
+
+    nama: String
 
 ): String {
 
-    return try {
-
-        val input =
-            SimpleDateFormat(
-
-                "yyyy-MM-dd",
-
-                Locale.getDefault()
-            )
+    val parts =
+        nama
+            .trim()
+            .split(" ")
+            .filter {
+                it.isNotBlank()
+            }
 
 
-        input.isLenient =
-            false
+    return when {
+
+        parts.isEmpty() ->
+
+            "?"
 
 
-        val output =
-            SimpleDateFormat(
+        parts.size == 1 ->
 
-                "dd MMMM yyyy",
-
-                Locale(
-                    "id",
-                    "ID"
-                )
-            )
+            parts[0]
+                .take(2)
+                .uppercase()
 
 
-        val date =
-            input.parse(
-                tanggal
-            )
+        else ->
 
-
-        if (date != null) {
-
-            output.format(
-                date
-            )
-
-        } else {
-
-            tanggal
-        }
-
-    } catch (
-        e: Exception
-    ) {
-
-        tanggal
+            "${parts.first().first()}${parts.last().first()}"
+                .uppercase()
     }
 }

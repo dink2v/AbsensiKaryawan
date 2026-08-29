@@ -21,6 +21,14 @@ class FirestoreRepository {
         db.collection("attendance")
 
     // ==========================================================
+    // COLLECTION USERS / KARYAWAN
+    // ==========================================================
+
+    private val usersCollection =
+        db.collection("users")
+
+
+    // ==========================================================
     // SIMPAN ABSEN MASUK
     // ==========================================================
 
@@ -36,7 +44,7 @@ class FirestoreRepository {
         return try {
 
             val data =
-                hashMapOf(
+                hashMapOf<String, Any>(
                     "uid" to uid,
                     "nama" to nama,
                     "tanggal" to tanggal,
@@ -58,6 +66,7 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
 
     // ==========================================================
     // CARI ABSEN HARI INI
@@ -93,10 +102,12 @@ class FirestoreRepository {
 
             AbsenHariIni(
                 documentId = document.id,
+
                 jamMasuk =
                     document.getString(
                         "jamMasuk"
                     ) ?: "",
+
                 jamPulang =
                     document.getString(
                         "jamPulang"
@@ -108,6 +119,7 @@ class FirestoreRepository {
             throw e
         }
     }
+
 
     // ==========================================================
     // SIMPAN ABSEN PULANG
@@ -138,6 +150,7 @@ class FirestoreRepository {
         }
     }
 
+
     // ==========================================================
     // SIMPAN PENGAJUAN
     // ==========================================================
@@ -158,7 +171,7 @@ class FirestoreRepository {
         return try {
 
             val data =
-                hashMapOf(
+                hashMapOf<String, Any>(
                     "uid" to uid,
                     "nama" to nama,
                     "jenis" to jenis,
@@ -186,6 +199,7 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
 
     // ==========================================================
     // AMBIL PENGAJUAN MENUNGGU
@@ -277,6 +291,7 @@ class FirestoreRepository {
         }
     }
 
+
     // ==========================================================
     // UPDATE STATUS PENGAJUAN
     // ==========================================================
@@ -307,7 +322,204 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
+
+    // ==========================================================
+    // KARYAWAN
+    // ==========================================================
+
+
+    // ==========================================================
+    // TAMBAH KARYAWAN
+    // ==========================================================
+
+    suspend fun tambahKaryawan(
+        nama: String,
+        email: String,
+        jabatan: String,
+        divisi: String,
+        usernameTele: String,
+        isAdmin: Boolean
+    ): Result<String> {
+
+        return try {
+
+            val data =
+                hashMapOf<String, Any>(
+
+                    "nama" to nama,
+
+                    "email" to email,
+
+                    "jabatan" to jabatan,
+
+                    "divisi" to divisi,
+
+                    "usernameTele" to usernameTele,
+
+                    "isAdmin" to isAdmin
+                )
+
+            val document =
+                usersCollection
+                    .add(data)
+                    .await()
+
+            Result.success(
+                document.id
+            )
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+
+    // ==========================================================
+    // AMBIL SEMUA KARYAWAN
+    // ==========================================================
+
+    suspend fun getSemuaKaryawan():
+            Result<List<KaryawanData>> {
+
+        return try {
+
+            val snapshot =
+                usersCollection
+                    .get()
+                    .await()
+
+            val daftar =
+                snapshot.documents.map { document ->
+
+                    KaryawanData(
+
+                        id =
+                            document.id,
+
+                        nama =
+                            document.getString(
+                                "nama"
+                            ) ?: "",
+
+                        email =
+                            document.getString(
+                                "email"
+                            ) ?: "",
+
+                        jabatan =
+                            document.getString(
+                                "jabatan"
+                            ) ?: "",
+
+                        divisi =
+                            document.getString(
+                                "divisi"
+                            ) ?: "",
+
+                        usernameTele =
+                            document.getString(
+                                "usernameTele"
+                            ) ?: "",
+
+                        isAdmin =
+                            document.getBoolean(
+                                "isAdmin"
+                            ) ?: false
+                    )
+                }
+                    .sortedBy {
+                        it.nama.lowercase()
+                    }
+
+            Result.success(
+                daftar
+            )
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+
+    // ==========================================================
+    // UPDATE KARYAWAN
+    // ==========================================================
+
+    suspend fun updateKaryawan(
+        documentId: String,
+        nama: String,
+        email: String,
+        jabatan: String,
+        divisi: String,
+        usernameTele: String,
+        isAdmin: Boolean
+    ): Result<Unit> {
+
+        return try {
+
+            val data =
+                hashMapOf<String, Any>(
+
+                    "nama" to nama,
+
+                    "email" to email,
+
+                    "jabatan" to jabatan,
+
+                    "divisi" to divisi,
+
+                    "usernameTele" to usernameTele,
+
+                    "isAdmin" to isAdmin
+                )
+
+            usersCollection
+                .document(
+                    documentId
+                )
+                .update(
+                    data
+                )
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+
+    // ==========================================================
+    // HAPUS KARYAWAN
+    // ==========================================================
+
+    suspend fun hapusKaryawan(
+        documentId: String
+    ): Result<Unit> {
+
+        return try {
+
+            usersCollection
+                .document(
+                    documentId
+                )
+                .delete()
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
 }
+
 
 // ==========================================================
 // DATA ABSEN HARI INI
@@ -321,6 +533,7 @@ data class AbsenHariIni(
 
     val jamPulang: String
 )
+
 
 // ==========================================================
 // DATA PENGAJUAN
@@ -349,4 +562,26 @@ data class PengajuanData(
     val alasan: String,
 
     val status: String
+)
+
+
+// ==========================================================
+// DATA KARYAWAN
+// ==========================================================
+
+data class KaryawanData(
+
+    val id: String,
+
+    val nama: String,
+
+    val email: String,
+
+    val jabatan: String,
+
+    val divisi: String,
+
+    val usernameTele: String,
+
+    val isAdmin: Boolean
 )

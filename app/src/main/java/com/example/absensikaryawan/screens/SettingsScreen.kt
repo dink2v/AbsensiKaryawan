@@ -20,7 +20,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.NotificationsNone
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.sp
 
 
 // ==========================================================
-// SETTINGS STAFF
+// SETTINGS ADMIN
 // ==========================================================
 
 @Composable
@@ -47,7 +47,7 @@ fun SettingsScreen(
 
     onBack: () -> Unit,
 
-    onProfile: () -> Unit,
+    onNotification: () -> Unit,
 
     onTampilan: () -> Unit,
 
@@ -88,7 +88,8 @@ fun SettingsScreen(
 
             Text(
 
-                text = "‹",
+                text =
+                    "‹",
 
                 modifier =
                     Modifier
@@ -161,22 +162,22 @@ fun SettingsScreen(
 
 
             // ==================================================
-            // PROFILE
+            // NOTIFIKASI
             // ==================================================
 
             SettingsItem(
 
                 icon =
-                    Icons.Default.Person,
+                    Icons.Default.NotificationsNone,
 
                 title =
-                    "Profile",
+                    "Notifikasi",
 
                 subtitle =
-                    "Informasi akun",
+                    "Atur pemberitahuan aplikasi",
 
                 onClick =
-                    onProfile
+                    onNotification
             )
 
 
@@ -219,7 +220,7 @@ fun SettingsScreen(
                     "Bantuan",
 
                 subtitle =
-                    "Panduan penggunaan",
+                    "Panduan penggunaan aplikasi",
 
                 onClick =
                     onBantuan

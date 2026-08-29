@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
@@ -24,7 +25,9 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PendingActions
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Schedule
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -99,18 +102,48 @@ fun AdminDashboardScreen(
 
 
     // ======================================================
-    // LOAD PENGAJUAN
+    // STATE KARYAWAN
+    // ======================================================
+
+    var jumlahKaryawan by remember {
+
+        mutableStateOf(0)
+    }
+
+
+    // ======================================================
+    // STATE KEHADIRAN
+    // ======================================================
+
+    var jumlahHadir by remember {
+
+        mutableStateOf(0)
+    }
+
+
+    var jumlahSudahPulang by remember {
+
+        mutableStateOf(0)
+    }
+
+
+    var jumlahBelumPulang by remember {
+
+        mutableStateOf(0)
+    }
+
+
+    // ======================================================
+    // LOAD DATA DASHBOARD
     // ======================================================
 
     LaunchedEffect(Unit) {
 
         try {
 
-            val snapshot =
-                db.collection("pengajuan")
-                    .get()
-                    .await()
-
+            // ==================================================
+            // TANGGAL HARI INI
+            // ==================================================
 
             val tanggalHariIni =
                 SimpleDateFormat(
@@ -121,55 +154,183 @@ fun AdminDashboardScreen(
                 )
 
 
-            var totalHariIni =
-                0
+            // ==================================================
+            // LOAD USERS
+            // ==================================================
+
+            try {
+
+                val usersSnapshot =
+                    db.collection("users")
+                        .get()
+                        .await()
 
 
-            var totalMenunggu =
-                0
+                jumlahKaryawan =
+                    usersSnapshot.size()
 
+            } catch (
+                e: Exception
+            ) {
 
-            snapshot.documents.forEach { document ->
-
-                val tanggalMulai =
-                    document.getString(
-                        "tanggalMulai"
-                    )
-                        ?: ""
-
-
-                val status =
-                    document.getString(
-                        "status"
-                    )
-                        ?.lowercase()
-                        ?: ""
-
-
-                if (
-                    tanggalMulai ==
-                    tanggalHariIni
-                ) {
-
-                    totalHariIni++
-                }
-
-
-                if (
-                    status == "menunggu"
-                ) {
-
-                    totalMenunggu++
-                }
+                e.printStackTrace()
             }
 
 
-            jumlahPengajuanHariIni =
-                totalHariIni
+            // ==================================================
+            // LOAD ATTENDANCE HARI INI
+            // ==================================================
+
+            try {
+
+                val attendanceSnapshot =
+                    db.collection("attendance")
+                        .whereEqualTo(
+                            "tanggal",
+                            tanggalHariIni
+                        )
+                        .get()
+                        .await()
 
 
-            jumlahPengajuanMenunggu =
-                totalMenunggu
+                var totalHadir =
+                    0
+
+
+                var totalSudahPulang =
+                    0
+
+
+                var totalBelumPulang =
+                    0
+
+
+                attendanceSnapshot.documents.forEach { document ->
+
+                    val jamMasuk =
+                        document.getString(
+                            "jamMasuk"
+                        )
+                            ?: ""
+
+
+                    val jamPulang =
+                        document.getString(
+                            "jamPulang"
+                        )
+                            ?: ""
+
+
+                    if (
+                        jamMasuk.isNotBlank()
+                    ) {
+
+                        totalHadir++
+                    }
+
+
+                    if (
+                        jamPulang.isNotBlank()
+                    ) {
+
+                        totalSudahPulang++
+
+                    } else if (
+                        jamMasuk.isNotBlank()
+                    ) {
+
+                        totalBelumPulang++
+                    }
+                }
+
+
+                jumlahHadir =
+                    totalHadir
+
+
+                jumlahSudahPulang =
+                    totalSudahPulang
+
+
+                jumlahBelumPulang =
+                    totalBelumPulang
+
+            } catch (
+                e: Exception
+            ) {
+
+                e.printStackTrace()
+            }
+
+
+            // ==================================================
+            // LOAD PENGAJUAN
+            // ==================================================
+
+            try {
+
+                val snapshot =
+                    db.collection("pengajuan")
+                        .get()
+                        .await()
+
+
+                var totalHariIni =
+                    0
+
+
+                var totalMenunggu =
+                    0
+
+
+                snapshot.documents.forEach { document ->
+
+                    val tanggalMulai =
+                        document.getString(
+                            "tanggalMulai"
+                        )
+                            ?: ""
+
+
+                    val status =
+                        document.getString(
+                            "status"
+                        )
+                            ?.lowercase()
+                            ?: ""
+
+
+                    if (
+                        tanggalMulai ==
+                        tanggalHariIni
+                    ) {
+
+                        totalHariIni++
+                    }
+
+
+                    if (
+                        status == "menunggu"
+                    ) {
+
+                        totalMenunggu++
+                    }
+                }
+
+
+                jumlahPengajuanHariIni =
+                    totalHariIni
+
+
+                jumlahPengajuanMenunggu =
+                    totalMenunggu
+
+            } catch (
+                e: Exception
+            ) {
+
+                e.printStackTrace()
+            }
 
         } catch (
             e: Exception
@@ -453,6 +614,136 @@ fun AdminDashboardScreen(
 
 
         // ==================================================
+        // STATISTIK UTAMA
+        // ==================================================
+
+        item {
+
+            Text(
+
+                text =
+                    "Statistik Hari Ini",
+
+                fontSize =
+                    18.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark,
+
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp
+                    )
+            )
+        }
+
+
+        // ==================================================
+        // STATISTIK BARIS 1
+        // ==================================================
+
+        item {
+
+            Row(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                AdminSummaryCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Groups,
+
+                    title =
+                        "Karyawan",
+
+                    value =
+                        jumlahKaryawan.toString()
+                )
+
+
+                AdminSummaryCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.CheckCircle,
+
+                    title =
+                        "Hadir",
+
+                    value =
+                        jumlahHadir.toString()
+                )
+            }
+        }
+
+
+        // ==================================================
+        // STATISTIK BARIS 2
+        // ==================================================
+
+        item {
+
+            Row(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                AdminSummaryCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Schedule,
+
+                    title =
+                        "Belum Pulang",
+
+                    value =
+                        jumlahBelumPulang.toString()
+                )
+
+
+                AdminSummaryCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.CheckCircle,
+
+                    title =
+                        "Sudah Pulang",
+
+                    value =
+                        jumlahSudahPulang.toString()
+                )
+            }
+        }
+
+
+        // ==================================================
         // PENGAJUAN BARU
         // ==================================================
 
@@ -619,7 +910,7 @@ fun AdminDashboardScreen(
 
 
         // ==================================================
-        // RINGKASAN
+        // RINGKASAN PENGAJUAN
         // ==================================================
 
         item {
@@ -627,7 +918,7 @@ fun AdminDashboardScreen(
             Text(
 
                 text =
-                    "Ringkasan",
+                    "Ringkasan Pengajuan",
 
                 fontSize =
                     18.sp,
@@ -645,10 +936,6 @@ fun AdminDashboardScreen(
             )
         }
 
-
-        // ==================================================
-        // STATISTIK RINGKASAN
-        // ==================================================
 
         item {
 
@@ -693,6 +980,143 @@ fun AdminDashboardScreen(
                     value =
                         jumlahPengajuanMenunggu.toString()
                 )
+            }
+        }
+
+
+        // ==================================================
+        // KEHADIRAN HARI INI
+        // ==================================================
+
+        item {
+
+            Text(
+
+                text =
+                    "Kehadiran Hari Ini",
+
+                fontSize =
+                    18.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark,
+
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp
+                    )
+            )
+        }
+
+
+        item {
+
+            Card(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                shape =
+                    RoundedCornerShape(
+                        18.dp
+                    ),
+
+                colors =
+                    CardDefaults.cardColors(
+
+                        containerColor =
+                            Color.White
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation =
+                            2.dp
+                    )
+            ) {
+
+                Column(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                17.dp
+                            )
+                ) {
+
+                    AdminAttendanceRow(
+
+                        icon =
+                            Icons.Default.CheckCircle,
+
+                        title =
+                            "Sudah Absen Masuk",
+
+                        value =
+                            jumlahHadir.toString()
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+
+                    AdminAttendanceRow(
+
+                        icon =
+                            Icons.Default.Schedule,
+
+                        title =
+                            "Belum Absen Pulang",
+
+                        value =
+                            jumlahBelumPulang.toString()
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+
+                    AdminAttendanceRow(
+
+                        icon =
+                            Icons.Default.CheckCircle,
+
+                        title =
+                            "Sudah Absen Pulang",
+
+                        value =
+                            jumlahSudahPulang.toString()
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(14.dp)
+                    )
+
+
+                    Text(
+
+                        text =
+                            "Data berdasarkan absensi hari ini.",
+
+                        fontSize =
+                            11.sp,
+
+                        color =
+                            TextGray
+                    )
+                }
             }
         }
 
@@ -830,7 +1254,8 @@ fun AdminDashboardScreen(
                         .fillMaxWidth()
                         .clickable {
 
-                            // onLogout()
+                            // Tetap dipertahankan.
+                            // Logout utama masih melalui Setting.
                         },
 
                 shape =
@@ -1143,6 +1568,112 @@ private fun AdminSummaryCard(
                     TextDark
             )
         }
+    }
+}
+
+
+// ==========================================================
+// ATTENDANCE ROW
+// ==========================================================
+
+@Composable
+private fun AdminAttendanceRow(
+
+    icon: ImageVector,
+
+    title: String,
+
+    value: String
+
+) {
+
+    Row(
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Row(
+
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .background(
+
+                        color =
+                            Color(0xFFE6EEE9),
+
+                        shape =
+                            RoundedCornerShape(
+                                11.dp
+                            )
+                    ),
+
+            horizontalArrangement =
+                Arrangement.Center,
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Icon(
+
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    title,
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier.size(
+                        21.dp
+                    )
+            )
+        }
+
+
+        Spacer(
+            modifier =
+                Modifier.width(12.dp)
+        )
+
+
+        Text(
+
+            text =
+                title,
+
+            modifier =
+                Modifier.weight(1f),
+
+            fontSize =
+                13.sp,
+
+            color =
+                TextDark
+        )
+
+
+        Text(
+
+            text =
+                value,
+
+            fontSize =
+                17.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                PrimaryGreen
+        )
     }
 }
 
