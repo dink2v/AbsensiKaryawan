@@ -435,7 +435,7 @@ fun StaffDashboardScreen(
                     Text(
 
                         text =
-                            "Halo, ${namaUser.ifBlank { "Staff" }} 👋",
+                            "Absensi Karyawan",
 
                         fontSize =
                             22.sp,

@@ -10,18 +10,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,7 +44,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,12 +58,13 @@ import kotlinx.coroutines.tasks.await
 @Composable
 fun LoginScreen(
     onStaffLogin: () -> Unit,
-    onAdminLogin: () -> Unit
+    onAdminLogin: () -> Unit,
+    onForgotPassword: () -> Unit
 ) {
 
-    // =========================
+    // ==========================================================
     // STATE
-    // =========================
+    // ==========================================================
 
     var email by remember {
         mutableStateOf("")
@@ -60,6 +72,10 @@ fun LoginScreen(
 
     var password by remember {
         mutableStateOf("")
+    }
+
+    var isPasswordVisible by remember {
+        mutableStateOf(false)
     }
 
     var isLoading by remember {
@@ -76,6 +92,26 @@ fun LoginScreen(
         UserRepository()
     }
 
+    // ==========================================================
+    // AUTO SCROLL PASSWORD
+    // ==========================================================
+
+    val passwordBringIntoViewRequester =
+        remember {
+            BringIntoViewRequester()
+        }
+
+    // ==========================================================
+    // SCROLL
+    // ==========================================================
+
+    val scrollState =
+        rememberScrollState()
+
+    // ==========================================================
+    // SCREEN
+    // ==========================================================
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Background
@@ -84,35 +120,38 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .verticalScroll(scrollState)
+                .imePadding()
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 20.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Spacer(
-                modifier = Modifier.height(55.dp)
+                modifier = Modifier.height(42.dp)
             )
 
-            // =========================
+            // ==================================================
             // LOGO
-            // =========================
+            // ==================================================
 
-            Card(
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = DarkGreen
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 5.dp
-                )
+            Box(
+                modifier = Modifier
+                    .size(82.dp)
+                    .background(
+                        color = DarkGreen,
+                        shape = RoundedCornerShape(24.dp)
+                    ),
+                contentAlignment = Alignment.Center
             ) {
 
                 Icon(
                     imageVector = Icons.Default.Badge,
-                    contentDescription = "Logo",
+                    contentDescription = "Logo Absensi Karyawan",
                     tint = Color.White,
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .size(48.dp)
+                    modifier = Modifier.size(45.dp)
                 )
             }
 
@@ -120,50 +159,60 @@ fun LoginScreen(
                 modifier = Modifier.height(18.dp)
             )
 
+            // ==================================================
+            // TITLE
+            // ==================================================
+
             Text(
                 text = "Absensi Karyawan",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextDark
+                color = TextDark,
+                textAlign = TextAlign.Center
             )
 
             Spacer(
-                modifier = Modifier.height(6.dp)
+                modifier = Modifier.height(5.dp)
             )
 
             Text(
                 text = "Sistem Presensi Karyawan",
-                fontSize = 14.sp,
-                color = TextGray
+                fontSize = 13.sp,
+                color = TextGray,
+                textAlign = TextAlign.Center
             )
 
             Spacer(
-                modifier = Modifier.height(30.dp)
+                modifier = Modifier.height(28.dp)
             )
 
-            // =========================
+            // ==================================================
             // LOGIN CARD
-            // =========================
+            // ==================================================
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = Color.White
                 ),
                 elevation = CardDefaults.cardElevation(
-                    defaultElevation = 3.dp
+                    defaultElevation = 4.dp
                 )
             ) {
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
+                        .padding(22.dp)
                 ) {
 
+                    // ==================================================
+                    // CARD TITLE
+                    // ==================================================
+
                     Text(
-                        text = "Masuk ke Akun",
+                        text = "Selamat Datang 👋",
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextDark
@@ -174,8 +223,8 @@ fun LoginScreen(
                     )
 
                     Text(
-                        text = "Gunakan akun yang telah didaftarkan Admin.",
-                        fontSize = 13.sp,
+                        text = "Masuk menggunakan akun yang telah didaftarkan Admin.",
+                        fontSize = 12.sp,
                         color = TextGray
                     )
 
@@ -183,13 +232,14 @@ fun LoginScreen(
                         modifier = Modifier.height(20.dp)
                     )
 
-                    // =========================
+                    // ==================================================
                     // EMAIL
-                    // =========================
+                    // ==================================================
 
                     OutlinedTextField(
                         value = email,
                         onValueChange = { value ->
+
                             email = value
                             errorMessage = ""
                         },
@@ -198,6 +248,7 @@ fun LoginScreen(
                             Text("Email")
                         },
                         leadingIcon = {
+
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
@@ -205,54 +256,99 @@ fun LoginScreen(
                             )
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(13.dp)
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(14.dp),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Next
+                        )
                     )
 
                     Spacer(
                         modifier = Modifier.height(12.dp)
                     )
 
-                    // =========================
+                    // ==================================================
                     // PASSWORD
-                    // =========================
+                    // ==================================================
 
                     OutlinedTextField(
                         value = password,
                         onValueChange = { value ->
+
                             password = value
                             errorMessage = ""
                         },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewRequester(
+                                passwordBringIntoViewRequester
+                            ),
                         label = {
                             Text("Password")
                         },
                         leadingIcon = {
+
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = null,
                                 tint = PrimaryGreen
                             )
                         },
+                        trailingIcon = {
+
+                            IconButton(
+                                onClick = {
+
+                                    isPasswordVisible =
+                                        !isPasswordVisible
+                                }
+                            ) {
+
+                                Icon(
+                                    imageVector =
+                                        if (isPasswordVisible) {
+                                            Icons.Default.VisibilityOff
+                                        } else {
+                                            Icons.Default.Visibility
+                                        },
+                                    contentDescription =
+                                        if (isPasswordVisible) {
+                                            "Sembunyikan password"
+                                        } else {
+                                            "Tampilkan password"
+                                        },
+                                    tint = TextGray
+                                )
+                            }
+                        },
                         visualTransformation =
-                            PasswordVisualTransformation(),
+                            if (isPasswordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
                         singleLine = true,
-                        shape = RoundedCornerShape(13.dp)
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(14.dp),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Done
+                        )
                     )
 
                     Spacer(
-                        modifier = Modifier.height(18.dp)
+                        modifier = Modifier.height(20.dp)
                     )
 
-                    // =========================
+                    // ==================================================
                     // LOGIN BUTTON
-                    // =========================
+                    // ==================================================
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
                                 color = DarkGreen,
-                                shape = RoundedCornerShape(13.dp)
+                                shape = RoundedCornerShape(14.dp)
                             )
                             .clickable(
                                 enabled = !isLoading
@@ -276,9 +372,9 @@ fun LoginScreen(
 
                                     try {
 
-                                        // =========================
+                                        // ==================================================
                                         // FIREBASE AUTH
-                                        // =========================
+                                        // ==================================================
 
                                         FirebaseAuth
                                             .getInstance()
@@ -288,9 +384,9 @@ fun LoginScreen(
                                             )
                                             .await()
 
-                                        // =========================
-                                        // USER FIREBASE
-                                        // =========================
+                                        // ==================================================
+                                        // CURRENT USER
+                                        // ==================================================
 
                                         val currentUser =
                                             FirebaseAuth
@@ -305,9 +401,9 @@ fun LoginScreen(
                                             return@launch
                                         }
 
-                                        // =========================
+                                        // ==================================================
                                         // EMAIL FIREBASE
-                                        // =========================
+                                        // ==================================================
 
                                         val userEmail =
                                             currentUser.email
@@ -324,9 +420,9 @@ fun LoginScreen(
                                             return@launch
                                         }
 
-                                        // =========================
+                                        // ==================================================
                                         // PROFILE FIRESTORE
-                                        // =========================
+                                        // ==================================================
 
                                         val userProfile =
                                             userRepository
@@ -346,9 +442,9 @@ fun LoginScreen(
                                             return@launch
                                         }
 
-                                        // =========================
+                                        // ==================================================
                                         // ROLE
-                                        // =========================
+                                        // ==================================================
 
                                         if (userProfile.isAdmin) {
 
@@ -363,6 +459,7 @@ fun LoginScreen(
 
                                         errorMessage =
                                             when {
+
                                                 e.message
                                                     ?.contains(
                                                         "password",
@@ -430,13 +527,39 @@ fun LoginScreen(
                         )
                     }
 
+                    // ==================================================
+                    // FORGOT PASSWORD
+                    // ==================================================
+
+                    Spacer(
+                        modifier = Modifier.height(14.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Text(
+                            text = "Lupa Sandi?",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PrimaryGreen,
+                            modifier = Modifier.clickable(
+                                enabled = !isLoading
+                            ) {
+                                onForgotPassword()
+                            }
+                        )
+                    }
+
                     Spacer(
                         modifier = Modifier.height(18.dp)
                     )
 
-                    // =========================
-                    // INFO LOGIN
-                    // =========================
+                    // ==================================================
+                    // INFO
+                    // ==================================================
 
                     Box(
                         modifier = Modifier.fillMaxWidth()
@@ -453,9 +576,9 @@ fun LoginScreen(
                 }
             }
 
-            // =========================
+            // ==================================================
             // ERROR
-            // =========================
+            // ==================================================
 
             if (errorMessage.isNotBlank()) {
 
@@ -465,7 +588,7 @@ fun LoginScreen(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(13.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFFFF0F0)
                     )
@@ -483,12 +606,12 @@ fun LoginScreen(
             }
 
             Spacer(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.height(30.dp)
             )
 
-            // =========================
+            // ==================================================
             // FOOTER
-            // =========================
+            // ==================================================
 
             Text(
                 text = "Belum memiliki akun?",
@@ -508,7 +631,7 @@ fun LoginScreen(
             )
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier = Modifier.height(8.dp)
             )
 
             Text(
@@ -518,7 +641,7 @@ fun LoginScreen(
             )
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier = Modifier.height(5.dp)
             )
         }
     }

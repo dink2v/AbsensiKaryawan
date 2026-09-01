@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,17 +22,13 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,11 +80,19 @@ private data class DataRekapAbsensi(
 @Composable
 fun RekapAdminScreen() {
 
+    // ======================================================
+    // FIRESTORE
+    // ======================================================
+
     val db =
         remember {
             FirebaseFirestore.getInstance()
         }
 
+
+    // ======================================================
+    // STATE
+    // ======================================================
 
     var daftarRekap by remember {
 
@@ -108,12 +114,6 @@ fun RekapAdminScreen() {
     }
 
 
-    var searchQuery by remember {
-
-        mutableStateOf("")
-    }
-
-
     var refreshKey by remember {
 
         mutableIntStateOf(0)
@@ -121,7 +121,7 @@ fun RekapAdminScreen() {
 
 
     // ======================================================
-    // LOAD FIRESTORE
+    // LOAD DATA FIRESTORE
     // ======================================================
 
     LaunchedEffect(refreshKey) {
@@ -186,9 +186,9 @@ fun RekapAdminScreen() {
 
                             it.tanggal
 
-                        }.thenBy {
+                        }.thenByDescending {
 
-                            it.nama.lowercase()
+                            it.jamMasuk
                         }
                     )
 
@@ -203,57 +203,6 @@ fun RekapAdminScreen() {
             loading = false
         }
     }
-
-
-    // ======================================================
-    // SEARCH
-    // ======================================================
-
-    val hasilPencarian =
-
-        remember(
-            daftarRekap,
-            searchQuery
-        ) {
-
-            if (searchQuery.isBlank()) {
-
-                daftarRekap
-
-            } else {
-
-                val query =
-                    searchQuery
-                        .trim()
-                        .lowercase()
-
-
-                daftarRekap.filter { data ->
-
-                    data.nama
-                        .lowercase()
-                        .contains(query)
-
-                            ||
-
-                            data.tanggal
-                                .lowercase()
-                                .contains(query)
-
-                            ||
-
-                            data.jamMasuk
-                                .lowercase()
-                                .contains(query)
-
-                            ||
-
-                            data.jamPulang
-                                .lowercase()
-                                .contains(query)
-                }
-            }
-        }
 
 
     // ======================================================
@@ -297,7 +246,6 @@ fun RekapAdminScreen() {
                 Modifier.fillMaxSize()
         ) {
 
-
             // ==================================================
             // HEADER
             // ==================================================
@@ -315,6 +263,10 @@ fun RekapAdminScreen() {
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
+
+                // ==================================================
+                // ICON
+                // ==================================================
 
                 Surface(
 
@@ -358,13 +310,14 @@ fun RekapAdminScreen() {
                 )
 
 
-                // TANPA WEIGHT
+                // ==================================================
+                // JUDUL
+                // ==================================================
+
                 Column(
 
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(end = 40.dp)
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
@@ -402,6 +355,10 @@ fun RekapAdminScreen() {
                     )
                 }
 
+
+                // ==================================================
+                // REFRESH
+                // ==================================================
 
                 IconButton(
 
@@ -443,14 +400,14 @@ fun RekapAdminScreen() {
                     Arrangement.spacedBy(9.dp)
             ) {
 
+                // ==================================================
                 // TOTAL
+                // ==================================================
+
                 RekapSummaryCard(
 
                     modifier =
-                        Modifier
-                            .fillMaxWidth(
-                                fraction = 0.31f
-                            ),
+                        Modifier.weight(1f),
 
                     icon =
                         Icons.Default.Assessment,
@@ -463,14 +420,14 @@ fun RekapAdminScreen() {
                 )
 
 
+                // ==================================================
                 // MASUK
+                // ==================================================
+
                 RekapSummaryCard(
 
                     modifier =
-                        Modifier
-                            .fillMaxWidth(
-                                fraction = 0.31f
-                            ),
+                        Modifier.weight(1f),
 
                     icon =
                         Icons.Default.CheckCircle,
@@ -483,14 +440,14 @@ fun RekapAdminScreen() {
                 )
 
 
+                // ==================================================
                 // PULANG
+                // ==================================================
+
                 RekapSummaryCard(
 
                     modifier =
-                        Modifier
-                            .fillMaxWidth(
-                                fraction = 0.31f
-                            ),
+                        Modifier.weight(1f),
 
                     icon =
                         Icons.Default.AccessTime,
@@ -504,113 +461,13 @@ fun RekapAdminScreen() {
             }
 
 
-            Spacer(
-                modifier =
-                    Modifier.height(14.dp)
-            )
-
-
             // ==================================================
-            // SEARCH
+            // JARAK SUMMARY KE DATA
             // ==================================================
-
-            OutlinedTextField(
-
-                value =
-                    searchQuery,
-
-                onValueChange = {
-
-                    searchQuery = it
-                },
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 20.dp
-                        ),
-
-                singleLine =
-                    true,
-
-                shape =
-                    RoundedCornerShape(14.dp),
-
-                placeholder = {
-
-                    Text(
-
-                        text =
-                            "Cari nama atau tanggal...",
-
-                        fontSize =
-                            13.sp
-                    )
-                },
-
-                leadingIcon = {
-
-                    Icon(
-
-                        imageVector =
-                            Icons.Default.Search,
-
-                        contentDescription =
-                            "Cari",
-
-                        tint =
-                            PrimaryGreen
-                    )
-                },
-
-                trailingIcon = {
-
-                    if (
-                        searchQuery.isNotBlank()
-                    ) {
-
-                        IconButton(
-
-                            onClick = {
-
-                                searchQuery = ""
-                            }
-                        ) {
-
-                            Icon(
-
-                                imageVector =
-                                    Icons.Default.Close,
-
-                                contentDescription =
-                                    "Hapus pencarian"
-                            )
-                        }
-                    }
-                },
-
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-
-                        focusedBorderColor =
-                            PrimaryGreen,
-
-                        unfocusedBorderColor =
-                            Color(0xFFD1D5DB),
-
-                        focusedContainerColor =
-                            Color.White,
-
-                        unfocusedContainerColor =
-                            Color.White
-                    )
-            )
-
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.height(20.dp)
             )
 
 
@@ -620,11 +477,19 @@ fun RekapAdminScreen() {
 
             when {
 
+                // ==================================================
+                // LOADING
+                // ==================================================
+
                 loading -> {
 
                     RekapLoading()
                 }
 
+
+                // ==================================================
+                // ERROR
+                // ==================================================
 
                 errorMessage.isNotBlank() -> {
 
@@ -641,25 +506,33 @@ fun RekapAdminScreen() {
                 }
 
 
-                hasilPencarian.isEmpty() -> {
+                // ==================================================
+                // EMPTY
+                // ==================================================
 
-                    RekapEmpty(
+                daftarRekap.isEmpty() -> {
 
-                        searchQuery =
-                            searchQuery
-                    )
+                    RekapEmpty()
                 }
 
+
+                // ==================================================
+                // DATA
+                // ==================================================
 
                 else -> {
 
                     LazyColumn(
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
 
                         verticalArrangement =
-                            Arrangement.spacedBy(10.dp),
+                            Arrangement.spacedBy(
+                                10.dp
+                            ),
 
                         contentPadding =
                             PaddingValues(
@@ -677,7 +550,7 @@ fun RekapAdminScreen() {
                         items(
 
                             items =
-                                hasilPencarian,
+                                daftarRekap,
 
                             key = {
 
@@ -709,8 +582,7 @@ private fun RekapSummaryCard(
 
     modifier: Modifier,
 
-    icon:
-    androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
 
     title: String,
 
@@ -735,7 +607,9 @@ private fun RekapSummaryCard(
 
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation = 1.dp
+
+                defaultElevation =
+                    1.dp
             )
     ) {
 
@@ -746,6 +620,10 @@ private fun RekapSummaryCard(
                     .fillMaxWidth()
                     .padding(11.dp)
         ) {
+
+            // ==================================================
+            // ICON
+            // ==================================================
 
             Surface(
 
@@ -789,6 +667,10 @@ private fun RekapSummaryCard(
             )
 
 
+            // ==================================================
+            // TITLE
+            // ==================================================
+
             Text(
 
                 text =
@@ -798,9 +680,19 @@ private fun RekapSummaryCard(
                     10.sp,
 
                 color =
-                    TextGray
+                    TextGray,
+
+                maxLines =
+                    1,
+
+                overflow =
+                    TextOverflow.Clip
             )
 
+
+            // ==================================================
+            // VALUE
+            // ==================================================
 
             Text(
 
@@ -832,6 +724,10 @@ private fun RekapAttendanceCard(
 
 ) {
 
+    // ======================================================
+    // STATUS
+    // ======================================================
+
     val sudahMasuk =
         data.jamMasuk.isNotBlank()
 
@@ -839,6 +735,10 @@ private fun RekapAttendanceCard(
     val sudahPulang =
         data.jamPulang.isNotBlank()
 
+
+    // ======================================================
+    // CARD
+    // ======================================================
 
     Card(
 
@@ -857,7 +757,9 @@ private fun RekapAttendanceCard(
 
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation = 2.dp
+
+                defaultElevation =
+                    2.dp
             )
     ) {
 
@@ -869,9 +771,8 @@ private fun RekapAttendanceCard(
                     .padding(15.dp)
         ) {
 
-
             // ==================================================
-            // NAMA
+            // IDENTITAS KARYAWAN
             // ==================================================
 
             Row(
@@ -882,6 +783,10 @@ private fun RekapAttendanceCard(
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
+
+                // ==================================================
+                // INITIAL
+                // ==================================================
 
                 Surface(
 
@@ -927,16 +832,21 @@ private fun RekapAttendanceCard(
                 )
 
 
+                // ==================================================
+                // NAMA + TANGGAL
+                // ==================================================
+
                 Column(
 
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
 
                         text =
                             data.nama.ifBlank {
+
                                 "Tanpa Nama"
                             },
 
@@ -995,6 +905,7 @@ private fun RekapAttendanceCard(
 
                             text =
                                 data.tanggal.ifBlank {
+
                                     "-"
                                 },
 
@@ -1028,30 +939,32 @@ private fun RekapAttendanceCard(
                     RoundedCornerShape(10.dp),
 
                 color =
-                    if (sudahPulang) {
+                    when {
 
-                        Color(0xFFE8F5E9)
+                        sudahPulang ->
+                            Color(0xFFE8F5E9)
 
-                    } else {
+                        sudahMasuk ->
+                            Color(0xFFFFF7ED)
 
-                        Color(0xFFFFF7ED)
+                        else ->
+                            Color(0xFFF3F4F6)
                     }
             ) {
 
                 Text(
 
                     text =
-                        if (sudahPulang) {
+                        when {
 
-                            "✓ Absensi Lengkap"
+                            sudahPulang ->
+                                "✓ Absensi Lengkap"
 
-                        } else if (sudahMasuk) {
+                            sudahMasuk ->
+                                "● Sudah Absen Masuk"
 
-                            "● Sudah Absen Masuk"
-
-                        } else {
-
-                            "Belum Absen"
+                            else ->
+                                "Belum Absen"
                         },
 
                     modifier =
@@ -1064,17 +977,16 @@ private fun RekapAttendanceCard(
                         FontWeight.Bold,
 
                     color =
-                        if (sudahPulang) {
+                        when {
 
-                            Color(0xFF15803D)
+                            sudahPulang ->
+                                Color(0xFF15803D)
 
-                        } else if (sudahMasuk) {
+                            sudahMasuk ->
+                                Color(0xFFC2410C)
 
-                            Color(0xFFC2410C)
-
-                        } else {
-
-                            TextGray
+                            else ->
+                                TextGray
                         }
                 )
             }
@@ -1087,7 +999,7 @@ private fun RekapAttendanceCard(
 
 
             // ==================================================
-            // JAM
+            // JAM MASUK / PULANG
             // ==================================================
 
             Row(
@@ -1099,12 +1011,14 @@ private fun RekapAttendanceCard(
                     Arrangement.spacedBy(10.dp)
             ) {
 
+                // ==================================================
+                // JAM MASUK
+                // ==================================================
+
                 RekapTimeBox(
 
                     modifier =
-                        Modifier.fillMaxWidth(
-                            fraction = 0.48f
-                        ),
+                        Modifier.weight(1f),
 
                     title =
                         "Jam Masuk",
@@ -1121,12 +1035,14 @@ private fun RekapAttendanceCard(
                 )
 
 
+                // ==================================================
+                // JAM PULANG
+                // ==================================================
+
                 RekapTimeBox(
 
                     modifier =
-                        Modifier.fillMaxWidth(
-                            fraction = 0.48f
-                        ),
+                        Modifier.weight(1f),
 
                     title =
                         "Jam Pulang",
@@ -1300,17 +1216,14 @@ private fun RekapLoading() {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(30.dp),
+                .fillMaxHeight(),
 
         horizontalAlignment =
-            Alignment.CenterHorizontally
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
     ) {
-
-        Spacer(
-            modifier =
-                Modifier.height(40.dp)
-        )
-
 
         CircularProgressIndicator(
 
@@ -1358,17 +1271,19 @@ private fun RekapError(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(30.dp),
 
         horizontalAlignment =
-            Alignment.CenterHorizontally
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
     ) {
 
-        Spacer(
-            modifier =
-                Modifier.height(30.dp)
-        )
-
+        // ==================================================
+        // ICON
+        // ==================================================
 
         Icon(
 
@@ -1392,6 +1307,10 @@ private fun RekapError(
         )
 
 
+        // ==================================================
+        // TITLE
+        // ==================================================
+
         Text(
 
             text =
@@ -1414,6 +1333,10 @@ private fun RekapError(
         )
 
 
+        // ==================================================
+        // ERROR MESSAGE
+        // ==================================================
+
         Text(
 
             text =
@@ -1435,6 +1358,10 @@ private fun RekapError(
                 Modifier.height(14.dp)
         )
 
+
+        // ==================================================
+        // RETRY
+        // ==================================================
 
         IconButton(
 
@@ -1463,28 +1390,26 @@ private fun RekapError(
 // ==========================================================
 
 @Composable
-private fun RekapEmpty(
-
-    searchQuery: String
-
-) {
+private fun RekapEmpty() {
 
     Column(
 
         modifier =
             Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(30.dp),
 
         horizontalAlignment =
-            Alignment.CenterHorizontally
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
     ) {
 
-        Spacer(
-            modifier =
-                Modifier.height(30.dp)
-        )
-
+        // ==================================================
+        // ICON
+        // ==================================================
 
         Surface(
 
@@ -1507,17 +1432,7 @@ private fun RekapEmpty(
                 Icon(
 
                     imageVector =
-
-                        if (
-                            searchQuery.isBlank()
-                        ) {
-
-                            Icons.Default.Assessment
-
-                        } else {
-
-                            Icons.Default.Search
-                        },
+                        Icons.Default.Assessment,
 
                     contentDescription =
                         null,
@@ -1538,20 +1453,14 @@ private fun RekapEmpty(
         )
 
 
+        // ==================================================
+        // TITLE
+        // ==================================================
+
         Text(
 
             text =
-
-                if (
-                    searchQuery.isBlank()
-                ) {
-
-                    "Belum Ada Rekap"
-
-                } else {
-
-                    "Data Tidak Ditemukan"
-                },
+                "Belum Ada Rekap",
 
             fontSize =
                 16.sp,
@@ -1570,20 +1479,14 @@ private fun RekapEmpty(
         )
 
 
+        // ==================================================
+        // DESCRIPTION
+        // ==================================================
+
         Text(
 
             text =
-
-                if (
-                    searchQuery.isBlank()
-                ) {
-
-                    "Belum ada data absensi di Firestore."
-
-                } else {
-
-                    "Coba gunakan kata kunci pencarian lain."
-                },
+                "Belum ada data absensi di Firestore.",
 
             fontSize =
                 12.sp,
@@ -1599,7 +1502,7 @@ private fun RekapEmpty(
 
 
 // ==========================================================
-// INITIAL
+// INITIAL KARYAWAN
 // ==========================================================
 
 private fun getRekapInitials(
@@ -1613,6 +1516,7 @@ private fun getRekapInitials(
             .trim()
             .split(" ")
             .filter {
+
                 it.isNotBlank()
             }
 

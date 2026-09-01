@@ -30,10 +30,6 @@ class PengajuanRepository {
 
         return try {
 
-            // --------------------------------------------------
-            // CEK USER LOGIN
-            // --------------------------------------------------
-
             val currentUser =
                 auth.currentUser
                     ?: return Result.failure(
@@ -44,9 +40,9 @@ class PengajuanRepository {
                 currentUser.uid
 
 
-            // --------------------------------------------------
-            // AMBIL DATA USER
-            // --------------------------------------------------
+            // ==================================================
+            // DATA USER
+            // ==================================================
 
             val userDocument =
                 firestore
@@ -57,15 +53,14 @@ class PengajuanRepository {
 
 
             val nama =
-                userDocument
-                    .getString("nama")
+                userDocument.getString("nama")
                     ?: currentUser.displayName
                     ?: "Karyawan"
 
 
-            // --------------------------------------------------
+            // ==================================================
             // DATA PENGAJUAN
-            // --------------------------------------------------
+            // ==================================================
 
             val data =
                 hashMapOf<String, Any>(
@@ -90,7 +85,8 @@ class PengajuanRepository {
 
                     "status" to "menunggu",
 
-                    "createdAt" to FieldValue.serverTimestamp(),
+                    "createdAt" to
+                            FieldValue.serverTimestamp(),
 
                     "approvedAt" to "",
 
@@ -100,9 +96,9 @@ class PengajuanRepository {
                 )
 
 
-            // --------------------------------------------------
+            // ==================================================
             // SIMPAN
-            // --------------------------------------------------
+            // ==================================================
 
             firestore
                 .collection("pengajuan")
@@ -121,16 +117,13 @@ class PengajuanRepository {
 
     // ==========================================================
     // AMBIL PENGAJUAN SAYA
+    // KHUSUS USER YANG SEDANG LOGIN
     // ==========================================================
 
     suspend fun ambilPengajuanSaya():
             Result<List<Map<String, Any>>> {
 
         return try {
-
-            // --------------------------------------------------
-            // CEK USER LOGIN
-            // --------------------------------------------------
 
             val currentUser =
                 auth.currentUser
@@ -141,10 +134,6 @@ class PengajuanRepository {
             val uid =
                 currentUser.uid
 
-
-            // --------------------------------------------------
-            // AMBIL DATA FIRESTORE
-            // --------------------------------------------------
 
             val snapshot =
                 firestore
@@ -157,22 +146,32 @@ class PengajuanRepository {
                     .await()
 
 
-            // --------------------------------------------------
-            // UBAH KE LIST MAP
-            // --------------------------------------------------
-
             val data =
                 snapshot.documents.map { document ->
 
                     val item =
                         HashMap<String, Any>()
 
-                    // Simpan document ID
+
+                    // ==================================================
+                    // DOCUMENT ID
+                    // ==================================================
+
                     item["documentId"] =
                         document.id
 
-                    // Ambil seluruh field
-                    document.data?.forEach { (key, value) ->
+
+                    // ==================================================
+                    // SEMUA FIELD
+                    // ==================================================
+
+                    document.data?.forEach { entry ->
+
+                        val key =
+                            entry.key
+
+                        val value =
+                            entry.value
 
                         if (value != null) {
 
@@ -196,17 +195,13 @@ class PengajuanRepository {
 
     // ==========================================================
     // AMBIL SEMUA PENGAJUAN
-    // UNTUK ADMIN
+    // KHUSUS ADMIN
     // ==========================================================
 
     suspend fun ambilSemuaPengajuan():
             Result<List<Map<String, Any>>> {
 
         return try {
-
-            // --------------------------------------------------
-            // AMBIL SEMUA DOKUMEN
-            // --------------------------------------------------
 
             val snapshot =
                 firestore
@@ -215,22 +210,24 @@ class PengajuanRepository {
                     .await()
 
 
-            // --------------------------------------------------
-            // UBAH KE LIST MAP
-            // --------------------------------------------------
-
             val data =
                 snapshot.documents.map { document ->
 
                     val item =
                         HashMap<String, Any>()
 
-                    // Simpan document ID
+
                     item["documentId"] =
                         document.id
 
-                    // Ambil seluruh field
-                    document.data?.forEach { (key, value) ->
+
+                    document.data?.forEach { entry ->
+
+                        val key =
+                            entry.key
+
+                        val value =
+                            entry.value
 
                         if (value != null) {
 
@@ -253,7 +250,8 @@ class PengajuanRepository {
 
 
     // ==========================================================
-    // UPDATE STATUS PENGAJUAN
+    // UPDATE STATUS
+    // KHUSUS ADMIN
     // ==========================================================
 
     suspend fun updateStatusPengajuan(
@@ -263,10 +261,6 @@ class PengajuanRepository {
 
         return try {
 
-            // --------------------------------------------------
-            // CEK ADMIN LOGIN
-            // --------------------------------------------------
-
             val currentUser =
                 auth.currentUser
                     ?: return Result.failure(
@@ -274,25 +268,18 @@ class PengajuanRepository {
                     )
 
 
-            // --------------------------------------------------
-            // DATA UPDATE
-            // --------------------------------------------------
-
             val data =
                 hashMapOf<String, Any>(
 
                     "status" to status,
 
-                    "approvedBy" to currentUser.uid,
+                    "approvedBy" to
+                            currentUser.uid,
 
                     "approvedAt" to
                             FieldValue.serverTimestamp()
                 )
 
-
-            // --------------------------------------------------
-            // UPDATE FIRESTORE
-            // --------------------------------------------------
 
             firestore
                 .collection("pengajuan")

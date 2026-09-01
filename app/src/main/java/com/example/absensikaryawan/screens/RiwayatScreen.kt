@@ -9,18 +9,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,12 +48,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.data.PengajuanRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 // ==========================================================
@@ -65,6 +68,23 @@ data class RiwayatAbsensi(
 )
 
 // ==========================================================
+// MODEL RIWAYAT PENGAJUAN STAFF
+// ==========================================================
+
+data class RiwayatPengajuan(
+    val documentId: String,
+    val jenis: String,
+    val jamPulang: String,
+    val jamKeluar: String,
+    val jamKembali: String,
+    val tanggalMulai: String,
+    val tanggalSelesai: String,
+    val alasan: String,
+    val status: String,
+    val catatanAdmin: String
+)
+
+// ==========================================================
 // FILTER RIWAYAT
 // ==========================================================
 
@@ -72,7 +92,6 @@ enum class FilterRiwayat(
     val label: String,
     val jumlahHari: Int?
 ) {
-
     TUJUH_HARI(
         label = "7 Hari Terakhir",
         jumlahHari = 7
@@ -94,9 +113,19 @@ enum class FilterRiwayat(
 // ==========================================================
 
 enum class TabRiwayat {
-
     ABSENSI,
     PENGAJUAN
+}
+
+// ==========================================================
+// FILTER STATUS PENGAJUAN
+// ==========================================================
+
+enum class FilterStatusPengajuan {
+    SEMUA,
+    MENUNGGU,
+    DISETUJUI,
+    DITOLAK
 }
 
 // ==========================================================
@@ -105,52 +134,108 @@ enum class TabRiwayat {
 
 @Composable
 fun RiwayatScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+
+    onDetailClick: (RiwayatPengajuan) -> Unit,
+
+    filterStatusAwal: FilterStatusPengajuan =
+        FilterStatusPengajuan.SEMUA
 ) {
 
     // ======================================================
     // FIREBASE
     // ======================================================
 
-    val auth = remember {
-        FirebaseAuth.getInstance()
-    }
+    val auth =
+        remember {
+            FirebaseAuth.getInstance()
+        }
 
-    val db = remember {
-        FirebaseFirestore.getInstance()
-    }
+    val db =
+        remember {
+            FirebaseFirestore.getInstance()
+        }
 
     // ======================================================
-    // STATE DATA
+    // REPOSITORY PENGAJUAN
+    // ======================================================
+
+    val pengajuanRepository =
+        remember {
+            PengajuanRepository()
+        }
+
+    // ======================================================
+    // DATA ABSENSI
     // ======================================================
 
     var semuaRiwayat by remember {
-        mutableStateOf<List<RiwayatAbsensi>>(emptyList())
+        mutableStateOf(
+            emptyList<RiwayatAbsensi>()
+        )
     }
+
+    // ======================================================
+    // DATA PENGAJUAN
+    // ======================================================
+
+    var semuaPengajuan by remember {
+        mutableStateOf(
+            emptyList<RiwayatPengajuan>()
+        )
+    }
+
+    // ======================================================
+    // LOADING
+    // ======================================================
 
     var loading by remember {
         mutableStateOf(true)
     }
+
+    // ======================================================
+    // ERROR
+    // ======================================================
 
     var errorMessage by remember {
         mutableStateOf("")
     }
 
     // ======================================================
-    // STATE TAB
+    // TAB
     // ======================================================
 
     var tabAktif by remember {
+
         mutableStateOf(
-            TabRiwayat.ABSENSI
+            if (
+                filterStatusAwal !=
+                FilterStatusPengajuan.SEMUA
+            ) {
+                TabRiwayat.PENGAJUAN
+            } else {
+                TabRiwayat.ABSENSI
+            }
         )
     }
 
     // ======================================================
-    // STATE FILTER
+    // FILTER STATUS PENGAJUAN
+    // ======================================================
+
+    var filterStatusPengajuan by remember {
+
+        mutableStateOf(
+            filterStatusAwal
+        )
+    }
+
+    // ======================================================
+    // FILTER ABSENSI
     // ======================================================
 
     var filterAktif by remember {
+
         mutableStateOf(
             FilterRiwayat.TUJUH_HARI
         )
@@ -161,100 +246,211 @@ fun RiwayatScreen(
     }
 
     // ======================================================
-    // FUNGSI LOAD DATA FIRESTORE
+    // LOAD ABSENSI
     // ======================================================
 
-    suspend fun loadRiwayat() {
+    suspend fun loadAbsensi() {
+
+        val currentUser =
+            auth.currentUser
+                ?: throw Exception(
+                    "User belum login"
+                )
+
+        val uid =
+            currentUser.uid
+
+        val snapshot =
+            db.collection("attendance")
+                .whereEqualTo(
+                    "uid",
+                    uid
+                )
+                .get()
+                .await()
+
+        semuaRiwayat =
+            snapshot.documents
+                .mapNotNull { document ->
+
+                    val tanggal =
+                        document.getString(
+                            "tanggal"
+                        )
+                            ?: return@mapNotNull null
+
+                    val jamMasuk =
+                        document.getString(
+                            "jamMasuk"
+                        )
+                            ?: "-"
+
+                    val jamPulang =
+                        document.getString(
+                            "jamPulang"
+                        )
+                            ?: "-"
+
+                    val catatan =
+                        document.getString(
+                            "catatan"
+                        )
+                            ?: ""
+
+                    RiwayatAbsensi(
+                        tanggal =
+                            tanggal,
+
+                        jamMasuk =
+                            jamMasuk,
+
+                        jamPulang =
+                            if (
+                                jamPulang.isBlank()
+                            ) {
+                                "-"
+                            } else {
+                                jamPulang
+                            },
+
+                        catatan =
+                            catatan
+                    )
+                }
+                .sortedByDescending {
+                    it.tanggal
+                }
+    }
+
+    // ======================================================
+    // LOAD PENGAJUAN STAFF
+    // ======================================================
+
+    suspend fun loadPengajuan() {
+
+        val result =
+            pengajuanRepository
+                .ambilPengajuanSaya()
+
+        result.fold(
+
+            onSuccess = { data ->
+
+                semuaPengajuan =
+                    data
+                        .map { item ->
+
+                            RiwayatPengajuan(
+
+                                documentId =
+                                    item["documentId"]
+                                        ?.toString()
+                                        ?: "",
+
+                                jenis =
+                                    item["jenis"]
+                                        ?.toString()
+                                        ?: "-",
+
+                                jamPulang =
+                                    item["jamPulang"]
+                                        ?.toString()
+                                        ?: "",
+
+                                jamKeluar =
+                                    item["jamKeluar"]
+                                        ?.toString()
+                                        ?: "",
+
+                                jamKembali =
+                                    item["jamKembali"]
+                                        ?.toString()
+                                        ?: "",
+
+                                tanggalMulai =
+                                    item["tanggalMulai"]
+                                        ?.toString()
+                                        ?: "",
+
+                                tanggalSelesai =
+                                    item["tanggalSelesai"]
+                                        ?.toString()
+                                        ?: "",
+
+                                alasan =
+                                    item["alasan"]
+                                        ?.toString()
+                                        ?: "",
+
+                                status =
+                                    item["status"]
+                                        ?.toString()
+                                        ?: "menunggu",
+
+                                catatanAdmin =
+                                    item["catatanAdmin"]
+                                        ?.toString()
+                                        ?: ""
+                            )
+                        }
+                        .sortedByDescending {
+                            it.tanggalMulai
+                        }
+            },
+
+            onFailure = { error ->
+                throw error
+            }
+        )
+    }
+
+    // ======================================================
+    // LOAD SEMUA DATA
+    // ======================================================
+
+    suspend fun loadSemuaData() {
 
         try {
 
-            loading = true
-            errorMessage = ""
+            loading =
+                true
+
+            errorMessage =
+                ""
 
             val currentUser =
                 auth.currentUser
 
-            if (currentUser == null) {
+            if (
+                currentUser == null
+            ) {
 
                 errorMessage =
                     "User belum login"
 
-                loading = false
+                loading =
+                    false
 
                 return
             }
 
-            val uid =
-                currentUser.uid
+            loadAbsensi()
 
-            // ==================================================
-            // AMBIL DATA ATTENDANCE
-            // ==================================================
+            loadPengajuan()
 
-            val snapshot =
-                db.collection("attendance")
-                    .whereEqualTo(
-                        "uid",
-                        uid
-                    )
-                    .get()
-                    .await()
+            loading =
+                false
 
-            semuaRiwayat =
-                snapshot.documents
-                    .mapNotNull { document ->
+        } catch (
+            e: Exception
+        ) {
 
-                        val tanggal =
-                            document.getString(
-                                "tanggal"
-                            )
-                                ?: return@mapNotNull null
-
-                        val jamMasuk =
-                            document.getString(
-                                "jamMasuk"
-                            )
-                                ?: "-"
-
-                        val jamPulang =
-                            document.getString(
-                                "jamPulang"
-                            )
-                                ?: "-"
-
-                        val catatan =
-                            document.getString(
-                                "catatan"
-                            )
-                                ?: ""
-
-                        RiwayatAbsensi(
-                            tanggal =
-                                tanggal,
-
-                            jamMasuk =
-                                jamMasuk,
-
-                            jamPulang =
-                                jamPulang,
-
-                            catatan =
-                                catatan
-                        )
-                    }
-                    .sortedByDescending {
-                        it.tanggal
-                    }
-
-            loading = false
-
-        } catch (e: Exception) {
-
-            loading = false
+            loading =
+                false
 
             errorMessage =
                 e.message
-                    ?: "Gagal mengambil riwayat"
+                    ?: "Gagal mengambil data"
 
             e.printStackTrace()
         }
@@ -265,12 +461,11 @@ fun RiwayatScreen(
     // ======================================================
 
     LaunchedEffect(Unit) {
-
-        loadRiwayat()
+        loadSemuaData()
     }
 
     // ======================================================
-    // FILTER DATA
+    // FILTER DATA ABSENSI
     // ======================================================
 
     val daftarRiwayat =
@@ -279,8 +474,11 @@ fun RiwayatScreen(
             filterAktif
         ) {
 
+            val jumlahHari =
+                filterAktif.jumlahHari
+
             if (
-                filterAktif.jumlahHari == null
+                jumlahHari == null
             ) {
 
                 semuaRiwayat
@@ -293,41 +491,46 @@ fun RiwayatScreen(
                         Locale.getDefault()
                     )
 
-                formatter.isLenient = false
+                formatter.isLenient =
+                    false
 
-                val calendar =
+                val hariIni =
                     Calendar.getInstance()
 
-                calendar.set(
+                hariIni.set(
                     Calendar.HOUR_OF_DAY,
                     0
                 )
 
-                calendar.set(
+                hariIni.set(
                     Calendar.MINUTE,
                     0
                 )
 
-                calendar.set(
+                hariIni.set(
                     Calendar.SECOND,
                     0
                 )
 
-                calendar.set(
+                hariIni.set(
                     Calendar.MILLISECOND,
                     0
                 )
 
-                val tanggalHariIni =
-                    calendar.time
+                val tanggalAwal =
+                    hariIni.clone()
+                            as Calendar
 
-                calendar.add(
+                tanggalAwal.add(
                     Calendar.DAY_OF_YEAR,
-                    -(filterAktif.jumlahHari!! - 1)
+                    -(jumlahHari - 1)
                 )
 
-                val tanggalAwal =
-                    calendar.time
+                val waktuAwal =
+                    tanggalAwal.time
+
+                val waktuAkhir =
+                    hariIni.time
 
                 semuaRiwayat.filter { riwayat ->
 
@@ -340,10 +543,10 @@ fun RiwayatScreen(
 
                         tanggalAbsensi != null &&
                                 !tanggalAbsensi.before(
-                                    tanggalAwal
+                                    waktuAwal
                                 ) &&
                                 !tanggalAbsensi.after(
-                                    tanggalHariIni
+                                    waktuAkhir
                                 )
 
                     } catch (
@@ -351,6 +554,56 @@ fun RiwayatScreen(
                     ) {
 
                         false
+                    }
+                }
+            }
+        }
+
+    // ======================================================
+    // FILTER DATA PENGAJUAN
+    // ======================================================
+
+    val daftarPengajuanTerfilter =
+        remember(
+            semuaPengajuan,
+            filterStatusPengajuan
+        ) {
+
+            if (
+                filterStatusPengajuan ==
+                FilterStatusPengajuan.SEMUA
+            ) {
+
+                semuaPengajuan
+
+            } else {
+
+                semuaPengajuan.filter { pengajuan ->
+
+                    when (
+                        filterStatusPengajuan
+                    ) {
+
+                        FilterStatusPengajuan.MENUNGGU ->
+                            pengajuan.status
+                                .trim()
+                                .lowercase() ==
+                                    "menunggu"
+
+                        FilterStatusPengajuan.DISETUJUI ->
+                            pengajuan.status
+                                .trim()
+                                .lowercase() ==
+                                    "disetujui"
+
+                        FilterStatusPengajuan.DITOLAK ->
+                            pengajuan.status
+                                .trim()
+                                .lowercase() ==
+                                    "ditolak"
+
+                        FilterStatusPengajuan.SEMUA ->
+                            true
                     }
                 }
             }
@@ -378,7 +631,10 @@ fun RiwayatScreen(
                     )
         ) {
 
+            // ==================================================
             // HEADER
+            // ==================================================
+
             Row(
                 modifier =
                     Modifier.fillMaxWidth(),
@@ -445,7 +701,10 @@ fun RiwayatScreen(
                     Modifier.height(14.dp)
             )
 
-            // TAB ABSENSI / PENGAJUAN
+            // ==================================================
+            // TAB
+            // ==================================================
+
             Row(
                 modifier =
                     Modifier
@@ -604,6 +863,10 @@ fun RiwayatScreen(
                     Modifier.height(14.dp)
             )
 
+            // ==================================================
+            // TAB ABSENSI
+            // ==================================================
+
             if (
                 tabAktif ==
                 TabRiwayat.ABSENSI
@@ -645,6 +908,7 @@ fun RiwayatScreen(
 
                     colors =
                         ButtonDefaults.buttonColors(
+
                             containerColor =
                                 Color.White,
 
@@ -690,7 +954,8 @@ fun RiwayatScreen(
                     }
                 ) {
 
-                    FilterRiwayat.values()
+                    FilterRiwayat
+                        .values()
                         .forEach { filter ->
 
                             DropdownMenuItem(
@@ -723,146 +988,32 @@ fun RiwayatScreen(
                         Modifier.height(14.dp)
                 )
 
+                // ==================================================
+                // ISI ABSENSI
+                // ==================================================
+
                 if (loading) {
 
-                    Column(
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally,
-
-                        verticalArrangement =
-                            Arrangement.Center
-                    ) {
-
-                        CircularProgressIndicator(
-                            color =
-                                PrimaryGreen
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Memuat riwayat...",
-
-                            color =
-                                TextGray,
-
-                            fontSize =
-                                13.sp
-                        )
-                    }
+                    LoadingRiwayat()
 
                 } else if (
                     errorMessage.isNotEmpty()
                 ) {
 
-                    Column(
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally,
-
-                        verticalArrangement =
-                            Arrangement.Center
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.History,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                Color.Red
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
-
-                        Text(
-                            text =
-                                errorMessage,
-
-                            color =
-                                Color.Red,
-
-                            fontSize =
-                                14.sp
-                        )
-                    }
+                    ErrorRiwayat(
+                        message =
+                            errorMessage
+                    )
 
                 } else if (
                     daftarRiwayat.isEmpty()
                 ) {
 
-                    Column(
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally,
-
-                        verticalArrangement =
-                            Arrangement.Center
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.History,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                TextGray
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Tidak ada riwayat",
-
-                            fontSize =
-                                15.sp,
-
-                            fontWeight =
-                                FontWeight.Medium,
-
-                            color =
-                                TextDark
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(5.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Tidak ada absensi dalam " +
-                                        filterAktif.label.lowercase(),
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray
-                        )
-                    }
+                    EmptyRiwayat(
+                        message =
+                            "Tidak ada absensi dalam " +
+                                    filterAktif.label.lowercase()
+                    )
 
                 } else {
 
@@ -878,7 +1029,11 @@ fun RiwayatScreen(
 
                         items(
                             items =
-                                daftarRiwayat
+                                daftarRiwayat,
+
+                            key = {
+                                "${it.tanggal}_${it.jamMasuk}_${it.jamPulang}"
+                            }
                         ) { riwayat ->
 
                             RiwayatCard(
@@ -891,71 +1046,324 @@ fun RiwayatScreen(
 
             } else {
 
-                Column(
-                    modifier =
-                        Modifier.fillMaxSize(),
+                // ==================================================
+                // TAB PENGAJUAN STAFF
+                // ==================================================
 
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally,
+                if (loading) {
 
-                    verticalArrangement =
-                        Arrangement.Center
+                    LoadingRiwayat()
+
+                } else if (
+                    errorMessage.isNotEmpty()
                 ) {
 
-                    Icon(
-                        imageVector =
-                            Icons.Default.Description,
+                    ErrorRiwayat(
+                        message =
+                            errorMessage
+                    )
 
-                        contentDescription =
-                            null,
+                } else if (
+                    daftarPengajuanTerfilter.isEmpty()
+                ) {
 
-                        tint =
-                            TextGray,
+                    EmptyPengajuanStaff()
 
+                } else {
+
+                    LazyColumn(
                         modifier =
-                            Modifier.size(42.dp)
-                    )
+                            Modifier.fillMaxSize(),
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                12.dp
+                            )
+                    ) {
 
-                    Text(
-                        text =
-                            "Belum ada pengajuan",
+                        items(
+                            items =
+                                daftarPengajuanTerfilter,
 
-                        fontSize =
-                            16.sp,
+                            key = {
+                                it.documentId
+                            }
+                        ) { pengajuan ->
 
-                        fontWeight =
-                            FontWeight.Bold,
+                            RiwayatPengajuanStaffCard(
 
-                        color =
-                            TextDark
-                    )
+                                pengajuan =
+                                    pengajuan,
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(5.dp)
-                    )
+                                onClick = {
 
-                    Text(
-                        text =
-                            "Riwayat pengajuan akan tampil di sini",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray,
-
-                        textAlign =
-                            TextAlign.Center
-                    )
+                                    onDetailClick(
+                                        pengajuan
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+// ==========================================================
+// LOADING
+// ==========================================================
+
+@Composable
+private fun LoadingRiwayat() {
+
+    Column(
+        modifier =
+            Modifier.fillMaxSize(),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
+    ) {
+
+        CircularProgressIndicator(
+            color =
+                PrimaryGreen
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(10.dp)
+        )
+
+        Text(
+            text =
+                "Memuat riwayat...",
+
+            color =
+                TextGray,
+
+            fontSize =
+                13.sp
+        )
+    }
+}
+
+// ==========================================================
+// ERROR
+// ==========================================================
+
+@Composable
+private fun ErrorRiwayat(
+    message: String
+) {
+
+    Column(
+        modifier =
+            Modifier.fillMaxSize(),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
+    ) {
+
+        Icon(
+            imageVector =
+                Icons.Default.Warning,
+
+            contentDescription =
+                null,
+
+            tint =
+                Color.Red,
+
+            modifier =
+                Modifier.size(40.dp)
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(10.dp)
+        )
+
+        Text(
+            text =
+                message,
+
+            color =
+                Color.Red,
+
+            fontSize =
+                14.sp,
+
+            textAlign =
+                TextAlign.Center
+        )
+    }
+}
+
+// ==========================================================
+// EMPTY ABSENSI
+// ==========================================================
+
+@Composable
+private fun EmptyRiwayat(
+    message: String
+) {
+
+    Column(
+        modifier =
+            Modifier.fillMaxSize(),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
+    ) {
+
+        Icon(
+            imageVector =
+                Icons.Default.History,
+
+            contentDescription =
+                null,
+
+            tint =
+                TextGray,
+
+            modifier =
+                Modifier.size(42.dp)
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(12.dp)
+        )
+
+        Text(
+            text =
+                "Tidak ada riwayat",
+
+            fontSize =
+                15.sp,
+
+            fontWeight =
+                FontWeight.Medium,
+
+            color =
+                TextDark
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(5.dp)
+        )
+
+        Text(
+            text =
+                message,
+
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray,
+
+            textAlign =
+                TextAlign.Center
+        )
+    }
+}
+
+// ==========================================================
+// EMPTY PENGAJUAN STAFF
+// ==========================================================
+
+@Composable
+private fun EmptyPengajuanStaff() {
+
+    Column(
+        modifier =
+            Modifier.fillMaxSize(),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally,
+
+        verticalArrangement =
+            Arrangement.Center
+    ) {
+
+        Surface(
+            modifier =
+                Modifier.size(64.dp),
+
+            shape =
+                CircleShape,
+
+            color =
+                Color(0xFFE8F5E9)
+        ) {
+
+            Icon(
+                imageVector =
+                    Icons.Default.Description,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier.padding(
+                        17.dp
+                    )
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(14.dp)
+        )
+
+        Text(
+            text =
+                "Belum Ada Pengajuan",
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextDark
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(5.dp)
+        )
+
+        Text(
+            text =
+                "Pengajuan yang kamu buat akan\n" +
+                        "tampil di halaman ini.",
+
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray,
+
+            textAlign =
+                TextAlign.Center
+        )
     }
 }
 
@@ -967,6 +1375,31 @@ fun RiwayatScreen(
 private fun RiwayatCard(
     riwayat: RiwayatAbsensi
 ) {
+
+    val sudahPulang =
+        riwayat.jamPulang.isNotBlank() &&
+                riwayat.jamPulang != "-"
+
+    val statusText =
+        if (sudahPulang) {
+            "HADIR"
+        } else {
+            "BELUM PULANG"
+        }
+
+    val statusColor =
+        if (sudahPulang) {
+            PrimaryGreen
+        } else {
+            Color(0xFFD97706)
+        }
+
+    val statusBackground =
+        if (sudahPulang) {
+            Color(0xFFE8F5E9)
+        } else {
+            Color(0xFFFFF3E0)
+        }
 
     Card(
         modifier =
@@ -1041,43 +1474,64 @@ private fun RiwayatCard(
                     )
                 }
 
-                Row(
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                Surface(
+                    shape =
+                        RoundedCornerShape(
+                            20.dp
+                        ),
+
+                    color =
+                        statusBackground
                 ) {
 
-                    Icon(
-                        imageVector =
-                            Icons.Default.CheckCircle,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            PrimaryGreen,
-
+                    Row(
                         modifier =
-                            Modifier.height(18.dp)
-                    )
+                            Modifier.padding(
+                                horizontal = 10.dp,
+                                vertical = 6.dp
+                            ),
 
-                    Spacer(
-                        modifier =
-                            Modifier.width(5.dp)
-                    )
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
 
-                    Text(
-                        text =
-                            "ABSENSI",
+                        Icon(
+                            imageVector =
+                                if (sudahPulang) {
+                                    Icons.Default.CheckCircle
+                                } else {
+                                    Icons.Default.Schedule
+                                },
 
-                        fontSize =
-                            11.sp,
+                            contentDescription =
+                                null,
 
-                        fontWeight =
-                            FontWeight.Bold,
+                            tint =
+                                statusColor,
 
-                        color =
-                            PrimaryGreen
-                    )
+                            modifier =
+                                Modifier.size(15.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(4.dp)
+                        )
+
+                        Text(
+                            text =
+                                statusText,
+
+                            fontSize =
+                                10.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                statusColor
+                        )
+                    }
                 }
             }
 
@@ -1180,14 +1634,7 @@ private fun RiwayatCard(
 
                         Text(
                             text =
-                                if (
-                                    riwayat.jamPulang
-                                        .isBlank()
-                                ) {
-                                    "-"
-                                } else {
-                                    riwayat.jamPulang
-                                },
+                                riwayat.jamPulang,
 
                             fontSize =
                                 15.sp,
@@ -1268,22 +1715,22 @@ private fun RiwayatCard(
                     Alignment.CenterVertically
             ) {
 
-                val lengkap =
-                    riwayat.jamPulang.isNotBlank() &&
-                            riwayat.jamPulang != "-"
-
                 Icon(
                     imageVector =
-                        Icons.Default.CheckCircle,
+                        if (sudahPulang) {
+                            Icons.Default.CheckCircle
+                        } else {
+                            Icons.Default.Schedule
+                        },
 
                     contentDescription =
                         null,
 
                     tint =
-                        if (lengkap) {
+                        if (sudahPulang) {
                             PrimaryGreen
                         } else {
-                            Color.Red
+                            Color(0xFFD97706)
                         },
 
                     modifier =
@@ -1297,7 +1744,7 @@ private fun RiwayatCard(
 
                 Text(
                     text =
-                        if (lengkap) {
+                        if (sudahPulang) {
                             "Absensi Lengkap"
                         } else {
                             "Belum Absen Pulang"
@@ -1310,15 +1757,498 @@ private fun RiwayatCard(
                         FontWeight.Medium,
 
                     color =
-                        if (lengkap) {
+                        if (sudahPulang) {
                             PrimaryGreen
                         } else {
-                            Color.Red
+                            Color(0xFFD97706)
                         }
                 )
             }
         }
     }
+}
+
+// ==========================================================
+// CARD PENGAJUAN STAFF
+// ==========================================================
+
+@Composable
+private fun RiwayatPengajuanStaffCard(
+
+    pengajuan: RiwayatPengajuan,
+
+    onClick: () -> Unit
+
+) {
+
+    val statusNormal =
+        pengajuan.status
+            .trim()
+            .lowercase()
+
+    val statusText =
+        when (statusNormal) {
+
+            "menunggu" ->
+                "MENUNGGU"
+
+            "disetujui" ->
+                "DISETUJUI"
+
+            "ditolak" ->
+                "DITOLAK"
+
+            else ->
+                pengajuan.status.uppercase()
+        }
+
+    val statusColor =
+        when (statusNormal) {
+
+            "disetujui" ->
+                PrimaryGreen
+
+            "ditolak" ->
+                Color(0xFFB91C1C)
+
+            else ->
+                Color(0xFFE67E22)
+        }
+
+    val statusBackground =
+        when (statusNormal) {
+
+            "disetujui" ->
+                Color(0xFFE8F5E9)
+
+            "ditolak" ->
+                Color(0xFFFFEBEE)
+
+            else ->
+                Color(0xFFFFF3E0)
+        }
+
+    Card(
+        onClick =
+            onClick,
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(18.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
+    ) {
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(17.dp)
+        ) {
+
+            // ==================================================
+            // HEADER
+            // ==================================================
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Surface(
+                    modifier =
+                        Modifier.size(44.dp),
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        ),
+
+                    color =
+                        Color(0xFFE8F5E9)
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Description,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.padding(
+                                10.dp
+                            )
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(12.dp)
+                )
+
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            pengajuan.jenis
+                                .ifBlank {
+                                    "Pengajuan"
+                                },
+
+                        fontSize =
+                            16.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(3.dp)
+                    )
+
+                    Text(
+                        text =
+                            if (
+                                pengajuan.tanggalSelesai
+                                    .isNotBlank() &&
+                                pengajuan.tanggalSelesai !=
+                                pengajuan.tanggalMulai
+                            ) {
+
+                                "${pengajuan.tanggalMulai} - " +
+                                        pengajuan.tanggalSelesai
+
+                            } else {
+
+                                pengajuan.tanggalMulai
+                            },
+
+                        fontSize =
+                            11.sp,
+
+                        color =
+                            TextGray
+                    )
+                }
+
+                Surface(
+                    shape =
+                        RoundedCornerShape(
+                            20.dp
+                        ),
+
+                    color =
+                        statusBackground
+                ) {
+
+                    Text(
+                        text =
+                            statusText,
+
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 10.dp,
+                                vertical = 6.dp
+                            ),
+
+                        fontSize =
+                            10.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            statusColor
+                    )
+                }
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(16.dp)
+            )
+
+            // ==================================================
+            // DETAIL WAKTU
+            // ==================================================
+
+            if (
+                pengajuan.jamPulang.isNotBlank() ||
+                pengajuan.jamKeluar.isNotBlank() ||
+                pengajuan.jamKembali.isNotBlank()
+            ) {
+
+                Surface(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        ),
+
+                    color =
+                        Background
+                ) {
+
+                    Column(
+                        modifier =
+                            Modifier.padding(
+                                12.dp
+                            )
+                    ) {
+
+                        Text(
+                            text =
+                                "Detail Waktu",
+
+                            fontSize =
+                                11.sp,
+
+                            fontWeight =
+                                FontWeight.SemiBold,
+
+                            color =
+                                TextGray
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(8.dp)
+                        )
+
+                        if (
+                            pengajuan.jamPulang.isNotBlank()
+                        ) {
+
+                            PengajuanDetailRow(
+                                label =
+                                    "Jam Pulang",
+
+                                value =
+                                    pengajuan.jamPulang
+                            )
+                        }
+
+                        if (
+                            pengajuan.jamKeluar.isNotBlank()
+                        ) {
+
+                            PengajuanDetailRow(
+                                label =
+                                    "Jam Keluar",
+
+                                value =
+                                    pengajuan.jamKeluar
+                            )
+                        }
+
+                        if (
+                            pengajuan.jamKembali.isNotBlank()
+                        ) {
+
+                            PengajuanDetailRow(
+                                label =
+                                    "Jam Kembali",
+
+                                value =
+                                    pengajuan.jamKembali
+                            )
+                        }
+                    }
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(14.dp)
+                )
+            }
+
+            // ==================================================
+            // ALASAN
+            // ==================================================
+
+            if (
+                pengajuan.alasan.isNotBlank()
+            ) {
+
+                Text(
+                    text =
+                        "Alasan",
+
+                    fontSize =
+                        11.sp,
+
+                    fontWeight =
+                        FontWeight.Medium,
+
+                    color =
+                        TextGray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(4.dp)
+                )
+
+                Text(
+                    text =
+                        pengajuan.alasan,
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextDark
+                )
+            }
+
+            // ==================================================
+            // CATATAN ADMIN
+            // ==================================================
+
+            if (
+                pengajuan.catatanAdmin.isNotBlank()
+            ) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(14.dp)
+                )
+
+                Surface(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        ),
+
+                    color =
+                        Color(0xFFF5F5F5)
+                ) {
+
+                    Column(
+                        modifier =
+                            Modifier.padding(
+                                12.dp
+                            )
+                    ) {
+
+                        Text(
+                            text =
+                                "Catatan Admin",
+
+                            fontSize =
+                                11.sp,
+
+                            fontWeight =
+                                FontWeight.SemiBold,
+
+                            color =
+                                TextGray
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(4.dp)
+                        )
+
+                        Text(
+                            text =
+                                pengajuan.catatanAdmin,
+
+                            fontSize =
+                                13.sp,
+
+                            color =
+                                TextDark
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==========================================================
+// DETAIL ROW PENGAJUAN
+// ==========================================================
+
+@Composable
+private fun PengajuanDetailRow(
+
+    label: String,
+
+    value: String
+
+) {
+
+    Row(
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        horizontalArrangement =
+            Arrangement.SpaceBetween
+    ) {
+
+        Text(
+            text =
+                label,
+
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray
+        )
+
+        Text(
+            text =
+                value,
+
+            fontSize =
+                12.sp,
+
+            fontWeight =
+                FontWeight.SemiBold,
+
+            color =
+                TextDark
+        )
+    }
+
+    Spacer(
+        modifier =
+            Modifier.height(5.dp)
+    )
 }
 
 // ==========================================================
@@ -1337,7 +2267,8 @@ private fun formatTanggal(
                 Locale.getDefault()
             )
 
-        input.isLenient = false
+        input.isLenient =
+            false
 
         val output =
             SimpleDateFormat(
@@ -1349,11 +2280,15 @@ private fun formatTanggal(
             )
 
         val date =
-            input.parse(tanggal)
+            input.parse(
+                tanggal
+            )
 
         if (date != null) {
 
-            output.format(date)
+            output.format(
+                date
+            )
 
         } else {
 

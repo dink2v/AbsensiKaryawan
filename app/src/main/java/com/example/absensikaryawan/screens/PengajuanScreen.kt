@@ -18,19 +18,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 
@@ -39,17 +40,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 import com.example.absensikaryawan.data.PengajuanRepository
+
+import kotlinx.coroutines.launch
 
 
 // ==========================================================
@@ -58,8 +62,13 @@ import com.example.absensikaryawan.data.PengajuanRepository
 
 @Composable
 fun PengajuanScreen(
+
     onBack: () -> Unit,
-    onPengajuanBaru: () -> Unit
+
+    onPengajuanBaru: () -> Unit,
+
+    onStatusClick: (Map<String, Any>) -> Unit = {}
+
 ) {
 
     // ==========================================================
@@ -77,14 +86,51 @@ fun PengajuanScreen(
     // ==========================================================
 
     var daftarPengajuan by remember {
+
         mutableStateOf(
             emptyList<Map<String, Any>>()
         )
     }
 
+
     var sedangMemuat by remember {
+
         mutableStateOf(true)
     }
+
+
+    // ==========================================================
+    // FILTER RIWAYAT
+    // ==========================================================
+
+    var filterRiwayat by remember {
+
+        mutableStateOf(
+            "semua"
+        )
+    }
+
+
+    // ==========================================================
+    // DROPDOWN
+    // ==========================================================
+
+    var dropdownTerbuka by remember {
+
+        mutableStateOf(false)
+    }
+
+
+    // ==========================================================
+    // SCROLL
+    // ==========================================================
+
+    val scrollState =
+        rememberScrollState()
+
+
+    val scope =
+        rememberCoroutineScope()
 
 
     // ==========================================================
@@ -144,6 +190,97 @@ fun PengajuanScreen(
 
 
     // ==========================================================
+    // DATA RIWAYAT TERFILTER
+    // ==========================================================
+
+    val daftarRiwayatFiltered =
+        when (filterRiwayat) {
+
+            "menunggu" -> {
+
+                daftarPengajuan.filter {
+
+                    it["status"]
+                        ?.toString()
+                        ?.trim()
+                        ?.lowercase() == "menunggu"
+                }
+            }
+
+            "disetujui" -> {
+
+                daftarPengajuan.filter {
+
+                    it["status"]
+                        ?.toString()
+                        ?.trim()
+                        ?.lowercase() == "disetujui"
+                }
+            }
+
+            "ditolak" -> {
+
+                daftarPengajuan.filter {
+
+                    it["status"]
+                        ?.toString()
+                        ?.trim()
+                        ?.lowercase() == "ditolak"
+                }
+            }
+
+            else -> {
+
+                daftarPengajuan
+            }
+        }
+
+
+    // ==========================================================
+    // JUDUL FILTER
+    // ==========================================================
+
+    val filterRiwayatText =
+        when (filterRiwayat) {
+
+            "menunggu" ->
+                "Menunggu Persetujuan"
+
+            "disetujui" ->
+                "Disetujui"
+
+            "ditolak" ->
+                "Ditolak"
+
+            else ->
+                "Semua Pengajuan"
+        }
+
+
+    // ==========================================================
+    // FUNGSI PILIH FILTER
+    // ==========================================================
+
+    fun pilihFilter(
+        filter: String
+    ) {
+
+        filterRiwayat =
+            filter
+
+        dropdownTerbuka =
+            false
+
+        scope.launch {
+
+            scrollState.animateScrollTo(
+                scrollState.maxValue
+            )
+        }
+    }
+
+
+    // ==========================================================
     // MAIN SCREEN
     // ==========================================================
 
@@ -182,27 +319,6 @@ fun PengajuanScreen(
                     Alignment.CenterVertically
 
             ) {
-
-                IconButton(
-
-                    onClick =
-                        onBack
-
-                ) {
-
-                    Icon(
-
-                        imageVector =
-                            Icons.Default.ArrowBack,
-
-                        contentDescription =
-                            "Kembali",
-
-                        tint =
-                            TextDark
-                    )
-                }
-
 
                 Column(
 
@@ -252,14 +368,14 @@ fun PengajuanScreen(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(
-                            rememberScrollState()
+                            scrollState
                         )
                         .imePadding()
                         .padding(
                             horizontal = 20.dp
                         )
 
-            )  {
+            ) {
 
                 Spacer(
                     modifier =
@@ -656,7 +772,14 @@ fun PengajuanScreen(
                             "Pengajuan yang sedang diperiksa admin.",
 
                         number =
-                            jumlahMenunggu.toString()
+                            jumlahMenunggu.toString(),
+
+                        onClick = {
+
+                            pilihFilter(
+                                "menunggu"
+                            )
+                        }
                     )
 
 
@@ -682,7 +805,14 @@ fun PengajuanScreen(
                             "Pengajuan yang telah disetujui admin.",
 
                         number =
-                            jumlahDisetujui.toString()
+                            jumlahDisetujui.toString(),
+
+                        onClick = {
+
+                            pilihFilter(
+                                "disetujui"
+                            )
+                        }
                     )
 
 
@@ -708,7 +838,14 @@ fun PengajuanScreen(
                             "Pengajuan yang ditolak admin.",
 
                         number =
-                            jumlahDitolak.toString()
+                            jumlahDitolak.toString(),
+
+                        onClick = {
+
+                            pilihFilter(
+                                "ditolak"
+                            )
+                        }
                     )
 
 
@@ -734,7 +871,14 @@ fun PengajuanScreen(
                             "Jumlah seluruh pengajuan kamu.",
 
                         number =
-                            jumlahTotal.toString()
+                            jumlahTotal.toString(),
+
+                        onClick = {
+
+                            pilihFilter(
+                                "semua"
+                            )
+                        }
                     )
                 }
 
@@ -771,45 +915,62 @@ fun PengajuanScreen(
                 )
 
 
+                // ==================================================
+                // DROPDOWN FILTER
+                // ==================================================
+
+                BoxDropdownFilter(
+
+                    selectedText =
+                        filterRiwayatText,
+
+                    expanded =
+                        dropdownTerbuka,
+
+                    onClick = {
+
+                        dropdownTerbuka =
+                            !dropdownTerbuka
+                    },
+
+                    onDismiss = {
+
+                        dropdownTerbuka =
+                            false
+                    },
+
+                    onSelected = { filter ->
+
+                        pilihFilter(
+                            filter
+                        )
+                    }
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(14.dp)
+                )
+
+
+                // ==================================================
+                // LIST RIWAYAT
+                // ==================================================
+
                 if (!sedangMemuat) {
 
-                    if (daftarPengajuan.isEmpty()) {
+                    if (daftarRiwayatFiltered.isEmpty()) {
 
-                        Card(
+                        DataKosongPengajuan(
 
-                            modifier =
-                                Modifier.fillMaxWidth(),
-
-                            shape =
-                                RoundedCornerShape(16.dp),
-
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        Color.White
-                                )
-
-                        ) {
-
-                            Text(
-
-                                text =
-                                    "Belum ada pengajuan.",
-
-                                modifier =
-                                    Modifier.padding(18.dp),
-
-                                fontSize =
-                                    13.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
+                            filter =
+                                filterRiwayat
+                        )
 
                     } else {
 
-                        daftarPengajuan
+                        daftarRiwayatFiltered
                             .reversed()
                             .forEach { pengajuan ->
 
@@ -823,12 +984,21 @@ fun PengajuanScreen(
                                     tanggal =
                                         pengajuan["tanggalMulai"]
                                             ?.toString()
+                                            ?: pengajuan["tanggal"]
+                                                ?.toString()
                                             ?: "",
 
                                     status =
                                         pengajuan["status"]
                                             ?.toString()
-                                            ?: "menunggu"
+                                            ?: "menunggu",
+
+                                    onClick = {
+
+                                        onStatusClick(
+                                            pengajuan
+                                        )
+                                    }
                                 )
 
 
@@ -852,6 +1022,219 @@ fun PengajuanScreen(
 
 
 // ==========================================================
+// DROPDOWN FILTER
+// ==========================================================
+
+@Composable
+private fun BoxDropdownFilter(
+
+    selectedText: String,
+
+    expanded: Boolean,
+
+    onClick: () -> Unit,
+
+    onDismiss: () -> Unit,
+
+    onSelected: (String) -> Unit
+
+) {
+
+    Column {
+
+        Card(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable {
+
+                        onClick()
+                    },
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        Color.White
+                ),
+
+            elevation =
+                CardDefaults.cardElevation(
+                    defaultElevation =
+                        2.dp
+                )
+
+        ) {
+
+            Row(
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 16.dp,
+                            vertical = 14.dp
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+
+            ) {
+
+                Column(
+
+                    modifier =
+                        Modifier.weight(1f)
+
+                ) {
+
+                    Text(
+
+                        text =
+                            "Filter Riwayat",
+
+                        fontSize =
+                            10.sp,
+
+                        color =
+                            TextGray
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(2.dp)
+                    )
+
+
+                    Text(
+
+                        text =
+                            selectedText,
+
+                        fontSize =
+                            14.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
+                }
+
+
+                Icon(
+
+                    imageVector =
+                        Icons.Default.KeyboardArrowDown,
+
+                    contentDescription =
+                        "Pilih filter",
+
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(24.dp)
+                )
+            }
+        }
+
+
+        DropdownMenu(
+
+            expanded =
+                expanded,
+
+            onDismissRequest =
+                onDismiss
+
+        ) {
+
+            DropdownMenuItem(
+
+                text = {
+
+                    Text(
+                        text =
+                            "Semua Pengajuan"
+                    )
+                },
+
+                onClick = {
+
+                    onSelected(
+                        "semua"
+                    )
+                }
+            )
+
+
+            DropdownMenuItem(
+
+                text = {
+
+                    Text(
+                        text =
+                            "Menunggu Persetujuan"
+                    )
+                },
+
+                onClick = {
+
+                    onSelected(
+                        "menunggu"
+                    )
+                }
+            )
+
+
+            DropdownMenuItem(
+
+                text = {
+
+                    Text(
+                        text =
+                            "Disetujui"
+                    )
+                },
+
+                onClick = {
+
+                    onSelected(
+                        "disetujui"
+                    )
+                }
+            )
+
+
+            DropdownMenuItem(
+
+                text = {
+
+                    Text(
+                        text =
+                            "Ditolak"
+                    )
+                },
+
+                onClick = {
+
+                    onSelected(
+                        "ditolak"
+                    )
+                }
+            )
+        }
+    }
+}
+
+
+// ==========================================================
 // STATUS CARD
 // ==========================================================
 
@@ -864,14 +1247,21 @@ private fun StatusCard(
 
     description: String,
 
-    number: String
+    number: String,
+
+    onClick: () -> Unit
 
 ) {
 
     Card(
 
         modifier =
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+
+                    onClick()
+                },
 
         shape =
             RoundedCornerShape(16.dp),
@@ -1010,6 +1400,106 @@ private fun StatusCard(
 
 
 // ==========================================================
+// DATA KOSONG
+// ==========================================================
+
+@Composable
+private fun DataKosongPengajuan(
+
+    filter: String
+
+) {
+
+    val pesan =
+        when (filter) {
+
+            "menunggu" ->
+                "Belum ada pengajuan yang menunggu."
+
+            "disetujui" ->
+                "Belum ada pengajuan yang disetujui."
+
+            "ditolak" ->
+                "Belum ada pengajuan yang ditolak."
+
+            else ->
+                "Belum ada riwayat pengajuan."
+        }
+
+
+    Card(
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(16.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
+
+    ) {
+
+        Column(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+
+        ) {
+
+            Icon(
+
+                imageVector =
+                    Icons.Default.Description,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    TextGray,
+
+                modifier =
+                    Modifier.size(40.dp)
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            Text(
+
+                text =
+                    pesan,
+
+                fontSize =
+                    13.sp,
+
+                color =
+                    TextGray
+            )
+        }
+    }
+}
+
+
+// ==========================================================
 // RIWAYAT PENGAJUAN CARD
 // ==========================================================
 
@@ -1020,12 +1510,16 @@ private fun RiwayatPengajuanCard(
 
     tanggal: String,
 
-    status: String
+    status: String,
+
+    onClick: () -> Unit
 
 ) {
 
     val statusNormal =
-        status.lowercase()
+        status
+            .trim()
+            .lowercase()
 
 
     val statusText =
@@ -1073,7 +1567,12 @@ private fun RiwayatPengajuanCard(
     Card(
 
         modifier =
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+
+                    onClick()
+                },
 
         shape =
             RoundedCornerShape(16.dp),

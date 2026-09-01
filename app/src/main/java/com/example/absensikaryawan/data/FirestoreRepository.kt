@@ -291,6 +291,90 @@ class FirestoreRepository {
         }
     }
 
+    suspend fun getPengajuanSaya(
+        uid: String
+    ): Result<List<PengajuanData>> {
+
+        return try {
+
+            val snapshot =
+                db.collection("pengajuan")
+                    .whereEqualTo(
+                        "uid",
+                        uid
+                    )
+                    .get()
+                    .await()
+
+            val daftar =
+                snapshot.documents.map { document ->
+
+                    PengajuanData(
+
+                        id =
+                            document.id,
+
+                        nama =
+                            document.getString(
+                                "nama"
+                            ) ?: "",
+
+                        jenis =
+                            document.getString(
+                                "jenis"
+                            ) ?: "",
+
+                        tanggal =
+                            document.getString(
+                                "tanggal"
+                            ) ?: "",
+
+                        jamPulang =
+                            document.getString(
+                                "jamPulang"
+                            ) ?: "",
+
+                        jamKeluar =
+                            document.getString(
+                                "jamKeluar"
+                            ) ?: "",
+
+                        jamKembali =
+                            document.getString(
+                                "jamKembali"
+                            ) ?: "",
+
+                        tanggalMulai =
+                            document.getString(
+                                "tanggalMulai"
+                            ) ?: "",
+
+                        tanggalSelesai =
+                            document.getString(
+                                "tanggalSelesai"
+                            ) ?: "",
+
+                        alasan =
+                            document.getString(
+                                "alasan"
+                            ) ?: "",
+
+                        status =
+                            document.getString(
+                                "status"
+                            ) ?: "menunggu"
+                    )
+                }
+
+            Result.success(
+                daftar
+            )
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
 
     // ==========================================================
     // UPDATE STATUS PENGAJUAN

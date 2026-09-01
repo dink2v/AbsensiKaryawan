@@ -41,25 +41,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.absensikaryawan.data.PengajuanRepository
 import kotlinx.coroutines.launch
 
 
+// ==========================================================
+// APPROVAL SCREEN
+// ==========================================================
+
 @Composable
-fun ApprovalScreen() {
+fun ApprovalScreen(
+    onDetailClick: (Map<String, Any>) -> Unit
+) {
 
     // ==========================================================
     // REPOSITORY
     // ==========================================================
 
-    val repository = remember {
-        PengajuanRepository()
-    }
+    val repository =
+        remember {
+            PengajuanRepository()
+        }
 
-    val scope = rememberCoroutineScope()
+    val scope =
+        rememberCoroutineScope()
 
 
     // ==========================================================
@@ -101,7 +109,32 @@ fun ApprovalScreen() {
 
             result.onSuccess { data ->
 
-                daftarPengajuan = data
+                daftarPengajuan =
+                    data.sortedWith(
+
+                        compareBy<Map<String, Any>> {
+
+                            val status =
+                                it["status"]
+                                    ?.toString()
+                                    ?.lowercase()
+                                    ?: "menunggu"
+
+                            if (status == "menunggu") {
+                                0
+                            } else {
+                                1
+                            }
+
+                        }.thenByDescending {
+
+                            it["createdAt"]
+                                ?.toString()
+                                ?: it["timestamp"]
+                                    ?.toString()
+                                ?: ""
+                        }
+                    )
             }
 
             result.onFailure { error ->
@@ -121,7 +154,6 @@ fun ApprovalScreen() {
     // ==========================================================
 
     LaunchedEffect(Unit) {
-
         muatData()
     }
 
@@ -144,17 +176,21 @@ fun ApprovalScreen() {
             // ==================================================
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 20.dp,
-                        vertical = 12.dp
-                    ),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp,
+                            vertical = 12.dp
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
@@ -172,6 +208,10 @@ fun ApprovalScreen() {
                 }
 
 
+                // ==================================================
+                // REFRESH
+                // ==================================================
+
                 IconButton(
                     onClick = {
 
@@ -179,17 +219,23 @@ fun ApprovalScreen() {
                             !sedangMemuat &&
                             sedangDiproses.isEmpty()
                         ) {
-
                             muatData()
                         }
                     }
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = PrimaryGreen,
-                        modifier = Modifier.size(25.dp)
+                        imageVector =
+                            Icons.Default.Refresh,
+
+                        contentDescription =
+                            "Refresh",
+
+                        tint =
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.size(25.dp)
                     )
                 }
             }
@@ -200,18 +246,20 @@ fun ApprovalScreen() {
             // ==================================================
 
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(
-                        rememberScrollState()
-                    )
-                    .padding(
-                        horizontal = 20.dp
-                    )
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(
+                            rememberScrollState()
+                        )
+                        .padding(
+                            horizontal = 20.dp
+                        )
             ) {
 
                 Spacer(
-                    modifier = Modifier.height(8.dp)
+                    modifier =
+                        Modifier.height(8.dp)
                 )
 
 
@@ -220,54 +268,81 @@ fun ApprovalScreen() {
                 // ==================================================
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = SoftGreen
-                    )
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                SoftGreen
+                        )
                 ) {
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            tint = PrimaryGreen,
-                            modifier = Modifier.size(30.dp)
-                        )
+                            imageVector =
+                                Icons.Default.Description,
 
+                            contentDescription =
+                                null,
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(30.dp)
+                        )
 
                         Spacer(
-                            modifier = Modifier.width(12.dp)
+                            modifier =
+                                Modifier.width(12.dp)
                         )
 
-
                         Column(
-                            modifier = Modifier.weight(1f)
+                            modifier =
+                                Modifier.weight(1f)
                         ) {
 
                             Text(
-                                text = "Pengajuan Menunggu",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
+                                text =
+                                    "Pengajuan Menunggu",
 
+                                fontSize =
+                                    16.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
+                            )
 
                             Spacer(
-                                modifier = Modifier.height(4.dp)
+                                modifier =
+                                    Modifier.height(4.dp)
                             )
 
-
                             Text(
-                                text = "Periksa dan tentukan persetujuan pengajuan karyawan.",
-                                fontSize = 12.sp,
-                                color = TextGray
+                                text =
+                                    "Periksa dan tentukan persetujuan pengajuan karyawan.",
+
+                                fontSize =
+                                    12.sp,
+
+                                color =
+                                    TextGray
                             )
                         }
                     }
@@ -275,7 +350,8 @@ fun ApprovalScreen() {
 
 
                 Spacer(
-                    modifier = Modifier.height(22.dp)
+                    modifier =
+                        Modifier.height(22.dp)
                 )
 
 
@@ -284,15 +360,22 @@ fun ApprovalScreen() {
                 // ==================================================
 
                 Text(
-                    text = "Daftar Pengajuan",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
+                    text =
+                        "Daftar Pengajuan",
+
+                    fontSize =
+                        18.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
                 )
 
-
                 Spacer(
-                    modifier = Modifier.height(12.dp)
+                    modifier =
+                        Modifier.height(12.dp)
                 )
 
 
@@ -303,74 +386,101 @@ fun ApprovalScreen() {
                 if (pesanError.isNotEmpty()) {
 
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFFFE7E7)
-                        )
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        shape =
+                            RoundedCornerShape(14.dp),
+
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Color(0xFFFFE7E7)
+                            )
                     ) {
 
                         Column(
-                            modifier = Modifier.padding(16.dp)
+                            modifier =
+                                Modifier.padding(16.dp)
                         ) {
 
                             Text(
-                                text = "Gagal memuat data",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFB91C1C)
-                            )
+                                text =
+                                    "Gagal memuat data",
 
+                                fontSize =
+                                    14.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color(0xFFB91C1C)
+                            )
 
                             Spacer(
-                                modifier = Modifier.height(5.dp)
+                                modifier =
+                                    Modifier.height(5.dp)
                             )
-
 
                             Text(
-                                text = pesanError,
-                                fontSize = 12.sp,
-                                color = Color(0xFF7F1D1D)
-                            )
+                                text =
+                                    pesanError,
 
+                                fontSize =
+                                    12.sp,
+
+                                color =
+                                    Color(0xFF7F1D1D)
+                            )
 
                             Spacer(
-                                modifier = Modifier.height(10.dp)
+                                modifier =
+                                    Modifier.height(10.dp)
                             )
-
 
                             Button(
                                 onClick = {
                                     muatData()
                                 },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryGreen
-                                ),
-                                shape = RoundedCornerShape(10.dp)
+
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor =
+                                            PrimaryGreen
+                                    ),
+
+                                shape =
+                                    RoundedCornerShape(10.dp)
                             ) {
 
                                 Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(17.dp)
-                                )
+                                    imageVector =
+                                        Icons.Default.Refresh,
 
+                                    contentDescription =
+                                        null,
+
+                                    modifier =
+                                        Modifier.size(17.dp)
+                                )
 
                                 Spacer(
-                                    modifier = Modifier.width(6.dp)
+                                    modifier =
+                                        Modifier.width(6.dp)
                                 )
 
-
                                 Text(
-                                    text = "Coba Lagi"
+                                    text =
+                                        "Coba Lagi"
                                 )
                             }
                         }
                     }
 
-
                     Spacer(
-                        modifier = Modifier.height(12.dp)
+                        modifier =
+                            Modifier.height(12.dp)
                     )
                 }
 
@@ -382,28 +492,36 @@ fun ApprovalScreen() {
                 if (sedangMemuat) {
 
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                vertical = 30.dp
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    vertical = 30.dp
+                                ),
+
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
                     ) {
 
                         CircularProgressIndicator(
-                            color = PrimaryGreen
+                            color =
+                                PrimaryGreen
                         )
-
 
                         Spacer(
-                            modifier = Modifier.height(10.dp)
+                            modifier =
+                                Modifier.height(10.dp)
                         )
 
-
                         Text(
-                            text = "Memuat pengajuan...",
-                            fontSize = 12.sp,
-                            color = TextGray
+                            text =
+                                "Memuat pengajuan...",
+
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                TextGray
                         )
                     }
                 }
@@ -420,38 +538,60 @@ fun ApprovalScreen() {
                 ) {
 
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
-                        )
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        shape =
+                            RoundedCornerShape(16.dp),
+
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Color.White
+                            )
                     ) {
 
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally
                         ) {
 
                             Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                tint = TextGray,
-                                modifier = Modifier.size(40.dp)
-                            )
+                                imageVector =
+                                    Icons.Default.Description,
 
+                                contentDescription =
+                                    null,
+
+                                tint =
+                                    TextGray,
+
+                                modifier =
+                                    Modifier.size(40.dp)
+                            )
 
                             Spacer(
-                                modifier = Modifier.height(10.dp)
+                                modifier =
+                                    Modifier.height(10.dp)
                             )
 
-
                             Text(
-                                text = "Belum ada pengajuan.",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
+                                text =
+                                    "Belum ada pengajuan.",
+
+                                fontSize =
+                                    14.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
                             )
                         }
                     }
@@ -484,10 +624,15 @@ fun ApprovalScreen() {
                                 ?.toString()
                                 ?: "Pengajuan"
 
+                        val tanggal =
+                            pengajuan["tanggal"]
+                                ?.toString()
+                                ?: ""
+
                         val tanggalMulai =
                             pengajuan["tanggalMulai"]
                                 ?.toString()
-                                ?: ""
+                                ?: tanggal
 
                         val tanggalSelesai =
                             pengajuan["tanggalSelesai"]
@@ -521,18 +666,58 @@ fun ApprovalScreen() {
                                 ?: "menunggu"
 
 
+                        // ==================================================
+                        // CARD
+                        // ==================================================
+
                         ApprovalRequestCard(
-                            nama = nama,
-                            jenis = jenis,
-                            tanggalMulai = tanggalMulai,
-                            tanggalSelesai = tanggalSelesai,
-                            jamPulang = jamPulang,
-                            jamKeluar = jamKeluar,
-                            jamKembali = jamKembali,
-                            alasan = alasan,
-                            status = status,
+
+                            nama =
+                                nama,
+
+                            jenis =
+                                jenis,
+
+                            tanggalMulai =
+                                tanggalMulai,
+
+                            tanggalSelesai =
+                                tanggalSelesai,
+
+                            jamPulang =
+                                jamPulang,
+
+                            jamKeluar =
+                                jamKeluar,
+
+                            jamKembali =
+                                jamKembali,
+
+                            alasan =
+                                alasan,
+
+                            status =
+                                status,
+
                             sedangDiproses =
                                 sedangDiproses == documentId,
+
+
+                            // ==================================================
+                            // DETAIL
+                            // ==================================================
+
+                            onDetailClick = {
+
+                                onDetailClick(
+                                    pengajuan
+                                )
+                            },
+
+
+                            // ==================================================
+                            // SETUJUI
+                            // ==================================================
 
                             onSetujui = {
 
@@ -547,18 +732,23 @@ fun ApprovalScreen() {
                                     scope.launch {
 
                                         val result =
-                                            repository.updateStatusPengajuan(
-                                                documentId = documentId,
-                                                status = "disetujui"
-                                            )
+                                            repository
+                                                .updateStatusPengajuan(
+
+                                                    documentId =
+                                                        documentId,
+
+                                                    status =
+                                                        "disetujui"
+                                                )
 
                                         result.onSuccess {
 
-                                            sedangDiproses = ""
+                                            sedangDiproses =
+                                                ""
 
                                             muatData()
                                         }
-
 
                                         result.onFailure { error ->
 
@@ -566,11 +756,17 @@ fun ApprovalScreen() {
                                                 error.message
                                                     ?: "Gagal menyetujui pengajuan."
 
-                                            sedangDiproses = ""
+                                            sedangDiproses =
+                                                ""
                                         }
                                     }
                                 }
                             },
+
+
+                            // ==================================================
+                            // TOLAK
+                            // ==================================================
 
                             onTolak = {
 
@@ -585,18 +781,23 @@ fun ApprovalScreen() {
                                     scope.launch {
 
                                         val result =
-                                            repository.updateStatusPengajuan(
-                                                documentId = documentId,
-                                                status = "ditolak"
-                                            )
+                                            repository
+                                                .updateStatusPengajuan(
+
+                                                    documentId =
+                                                        documentId,
+
+                                                    status =
+                                                        "ditolak"
+                                                )
 
                                         result.onSuccess {
 
-                                            sedangDiproses = ""
+                                            sedangDiproses =
+                                                ""
 
                                             muatData()
                                         }
-
 
                                         result.onFailure { error ->
 
@@ -604,23 +805,25 @@ fun ApprovalScreen() {
                                                 error.message
                                                     ?: "Gagal menolak pengajuan."
 
-                                            sedangDiproses = ""
+                                            sedangDiproses =
+                                                ""
                                         }
                                     }
                                 }
                             }
                         )
 
-
                         Spacer(
-                            modifier = Modifier.height(12.dp)
+                            modifier =
+                                Modifier.height(12.dp)
                         )
                     }
                 }
 
 
                 Spacer(
-                    modifier = Modifier.height(30.dp)
+                    modifier =
+                        Modifier.height(30.dp)
                 )
             }
         }
@@ -634,19 +837,37 @@ fun ApprovalScreen() {
 
 @Composable
 private fun ApprovalRequestCard(
+
     nama: String,
+
     jenis: String,
+
     tanggalMulai: String,
+
     tanggalSelesai: String,
+
     jamPulang: String,
+
     jamKeluar: String,
+
     jamKembali: String,
+
     alasan: String,
+
     status: String,
+
     sedangDiproses: Boolean,
+
+    onDetailClick: () -> Unit,
+
     onSetujui: () -> Unit,
+
     onTolak: () -> Unit
 ) {
+
+    // ==========================================================
+    // STATUS
+    // ==========================================================
 
     val statusText: String
 
@@ -654,30 +875,43 @@ private fun ApprovalRequestCard(
 
     val statusColor: Color
 
+    when (status) {
 
-    if (status == "disetujui") {
+        "disetujui" -> {
 
-        statusText = "Disetujui"
+            statusText =
+                "Disetujui"
 
-        statusIcon = Icons.Default.CheckCircle
+            statusIcon =
+                Icons.Default.CheckCircle
 
-        statusColor = PrimaryGreen
+            statusColor =
+                PrimaryGreen
+        }
 
-    } else if (status == "ditolak") {
+        "ditolak" -> {
 
-        statusText = "Ditolak"
+            statusText =
+                "Ditolak"
 
-        statusIcon = Icons.Default.Cancel
+            statusIcon =
+                Icons.Default.Cancel
 
-        statusColor = Color(0xFFB91C1C)
+            statusColor =
+                Color(0xFFB91C1C)
+        }
 
-    } else {
+        else -> {
 
-        statusText = "Menunggu"
+            statusText =
+                "Menunggu"
 
-        statusIcon = Icons.Default.Pending
+            statusIcon =
+                Icons.Default.Pending
 
-        statusColor = Color(0xFFD97706)
+            statusColor =
+                Color(0xFFD97706)
+        }
     }
 
 
@@ -689,7 +923,11 @@ private fun ApprovalRequestCard(
         nama.trim()
 
     val daftarNama =
-        namaBersih.split(" ")
+        namaBersih
+            .split(" ")
+            .filter {
+                it.isNotBlank()
+            }
 
     var initials =
         ""
@@ -704,15 +942,13 @@ private fun ApprovalRequestCard(
 
     if (daftarNama.size > 1) {
 
-        initials =
-            initials +
-                    daftarNama[1]
-                        .take(1)
-                        .uppercase()
+        initials +=
+            daftarNama[1]
+                .take(1)
+                .uppercase()
     }
 
     if (initials.isEmpty()) {
-
         initials = "K"
     }
 
@@ -722,20 +958,33 @@ private fun ApprovalRequestCard(
     // ==========================================================
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(18.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            ),
+
+        onClick =
+            onDetailClick
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
         ) {
 
             // ==================================================
@@ -743,71 +992,137 @@ private fun ApprovalRequestCard(
             // ==================================================
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Row(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            color = SoftGreen,
-                            shape = RoundedCornerShape(50.dp)
-                        ),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .size(48.dp)
+                            .background(
+                                color =
+                                    SoftGreen,
+
+                                shape =
+                                    RoundedCornerShape(
+                                        50.dp
+                                    )
+                            ),
+
+                    horizontalArrangement =
+                        Arrangement.Center,
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Text(
-                        text = initials,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryGreen
+                        text =
+                            initials,
+
+                        fontSize =
+                            14.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            PrimaryGreen
                     )
                 }
 
 
                 Spacer(
-                    modifier = Modifier.width(12.dp)
+                    modifier =
+                        Modifier.width(12.dp)
                 )
 
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text = nama,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
+                        text =
+                            nama,
 
+                        fontSize =
+                            15.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
 
                     Spacer(
-                        modifier = Modifier.height(3.dp)
+                        modifier =
+                            Modifier.height(3.dp)
                     )
 
-
                     Text(
-                        text = jenis,
-                        fontSize = 13.sp,
-                        color = TextGray
+                        text =
+                            jenis,
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            TextGray
                     )
                 }
 
 
-                Text(
-                    text = statusText,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = statusColor
-                )
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            statusIcon,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            statusColor,
+
+                        modifier =
+                            Modifier.size(17.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(4.dp)
+                    )
+
+                    Text(
+                        text =
+                            statusText,
+
+                        fontSize =
+                            12.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            statusColor
+                    )
+                }
             }
 
 
             Spacer(
-                modifier = Modifier.height(14.dp)
+                modifier =
+                    Modifier.height(14.dp)
             )
 
 
@@ -818,16 +1133,20 @@ private fun ApprovalRequestCard(
             if (tanggalMulai.isNotEmpty()) {
 
                 Text(
-                    text = "Tanggal",
-                    fontSize = 11.sp,
-                    color = TextGray
-                )
+                    text =
+                        "Tanggal",
 
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
 
                 Spacer(
-                    modifier = Modifier.height(3.dp)
+                    modifier =
+                        Modifier.height(3.dp)
                 )
-
 
                 if (
                     tanggalSelesai.isNotEmpty() &&
@@ -837,18 +1156,31 @@ private fun ApprovalRequestCard(
                     Text(
                         text =
                             "$tanggalMulai - $tanggalSelesai",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextDark
+
+                        fontSize =
+                            13.sp,
+
+                        fontWeight =
+                            FontWeight.Medium,
+
+                        color =
+                            TextDark
                     )
 
                 } else {
 
                     Text(
-                        text = tanggalMulai,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextDark
+                        text =
+                            tanggalMulai,
+
+                        fontSize =
+                            13.sp,
+
+                        fontWeight =
+                            FontWeight.Medium,
+
+                        color =
+                            TextDark
                     )
                 }
             }
@@ -865,36 +1197,49 @@ private fun ApprovalRequestCard(
             ) {
 
                 Spacer(
-                    modifier = Modifier.height(12.dp)
+                    modifier =
+                        Modifier.height(12.dp)
                 )
-
 
                 if (jamPulang.isNotEmpty()) {
 
                     Text(
-                        text = "Jam Pulang: $jamPulang",
-                        fontSize = 12.sp,
-                        color = TextGray
+                        text =
+                            "Jam Pulang: $jamPulang",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 }
-
 
                 if (jamKeluar.isNotEmpty()) {
 
                     Text(
-                        text = "Jam Keluar: $jamKeluar",
-                        fontSize = 12.sp,
-                        color = TextGray
+                        text =
+                            "Jam Keluar: $jamKeluar",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 }
-
 
                 if (jamKembali.isNotEmpty()) {
 
                     Text(
-                        text = "Jam Kembali: $jamKembali",
-                        fontSize = 12.sp,
-                        color = TextGray
+                        text =
+                            "Jam Kembali: $jamKembali",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 }
             }
@@ -907,26 +1252,35 @@ private fun ApprovalRequestCard(
             if (alasan.isNotEmpty()) {
 
                 Spacer(
-                    modifier = Modifier.height(12.dp)
+                    modifier =
+                        Modifier.height(12.dp)
                 )
-
 
                 Text(
-                    text = "Alasan",
-                    fontSize = 11.sp,
-                    color = TextGray
-                )
+                    text =
+                        "Alasan",
 
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
 
                 Spacer(
-                    modifier = Modifier.height(3.dp)
+                    modifier =
+                        Modifier.height(3.dp)
                 )
 
-
                 Text(
-                    text = alasan,
-                    fontSize = 13.sp,
-                    color = TextDark
+                    text =
+                        alasan,
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextDark
                 )
             }
 
@@ -938,24 +1292,40 @@ private fun ApprovalRequestCard(
             if (status == "menunggu") {
 
                 Spacer(
-                    modifier = Modifier.height(16.dp)
+                    modifier =
+                        Modifier.height(16.dp)
                 )
 
-
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
                     horizontalArrangement =
                         Arrangement.spacedBy(10.dp)
                 ) {
 
+                    // ==================================================
+                    // SETUJUI
+                    // ==================================================
+
                     Button(
-                        onClick = onSetujui,
-                        enabled = !sedangDiproses,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryGreen
-                        )
+                        onClick =
+                            onSetujui,
+
+                        enabled =
+                            !sedangDiproses,
+
+                        modifier =
+                            Modifier.weight(1f),
+
+                        shape =
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    PrimaryGreen
+                            )
                     ) {
 
                         if (sedangDiproses) {
@@ -963,40 +1333,65 @@ private fun ApprovalRequestCard(
                             CircularProgressIndicator(
                                 modifier =
                                     Modifier.size(18.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
+
+                                color =
+                                    Color.White,
+
+                                strokeWidth =
+                                    2.dp
                             )
 
                         } else {
 
                             Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
+                                imageVector =
+                                    Icons.Default.Check,
 
+                                contentDescription =
+                                    null,
+
+                                modifier =
+                                    Modifier.size(18.dp)
+                            )
 
                             Spacer(
-                                modifier = Modifier.width(6.dp)
+                                modifier =
+                                    Modifier.width(6.dp)
                             )
 
-
                             Text(
-                                text = "Setujui",
-                                fontWeight = FontWeight.Bold
+                                text =
+                                    "Setujui",
+
+                                fontWeight =
+                                    FontWeight.Bold
                             )
                         }
                     }
 
 
+                    // ==================================================
+                    // TOLAK
+                    // ==================================================
+
                     Button(
-                        onClick = onTolak,
-                        enabled = !sedangDiproses,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB91C1C)
-                        )
+                        onClick =
+                            onTolak,
+
+                        enabled =
+                            !sedangDiproses,
+
+                        modifier =
+                            Modifier.weight(1f),
+
+                        shape =
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Color(0xFFB91C1C)
+                            )
                     ) {
 
                         if (sedangDiproses) {
@@ -1004,27 +1399,38 @@ private fun ApprovalRequestCard(
                             CircularProgressIndicator(
                                 modifier =
                                     Modifier.size(18.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
+
+                                color =
+                                    Color.White,
+
+                                strokeWidth =
+                                    2.dp
                             )
 
                         } else {
 
                             Icon(
-                                imageVector = Icons.Default.Cancel,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
+                                imageVector =
+                                    Icons.Default.Cancel,
 
+                                contentDescription =
+                                    null,
+
+                                modifier =
+                                    Modifier.size(18.dp)
+                            )
 
                             Spacer(
-                                modifier = Modifier.width(6.dp)
+                                modifier =
+                                    Modifier.width(6.dp)
                             )
 
-
                             Text(
-                                text = "Tolak",
-                                fontWeight = FontWeight.Bold
+                                text =
+                                    "Tolak",
+
+                                fontWeight =
+                                    FontWeight.Bold
                             )
                         }
                     }
