@@ -49,6 +49,8 @@ import com.example.absensikaryawan.screens.AdminDashboardScreen
 import com.example.absensikaryawan.screens.AdminSettingsScreen
 import com.example.absensikaryawan.screens.ApprovalScreen
 import com.example.absensikaryawan.screens.BantuanScreen
+import com.example.absensikaryawan.screens.DetailPengajuanScreen
+import com.example.absensikaryawan.screens.ForgotPasswordScreen
 import com.example.absensikaryawan.screens.KaryawanScreen
 import com.example.absensikaryawan.screens.LoginScreen
 import com.example.absensikaryawan.screens.NotifikasiScreen
@@ -88,6 +90,7 @@ private val BottomNavGreen =
 private enum class AppScreen {
 
     Login,
+    ForgotPassword,
 
     // ======================================================
     // ADMIN
@@ -111,6 +114,8 @@ private enum class AppScreen {
     Profile,
     Pengajuan,
     PengajuanBaru,
+    RiwayatPengajuan,
+    DetailPengajuan,
     Scan,
     Riwayat,
     Settings,
@@ -249,6 +254,40 @@ fun AppNavigation() {
 
 
     // ======================================================
+    // PENGAJUAN TERPILIH
+    // ======================================================
+
+    var pengajuanTerpilih by remember {
+
+        mutableStateOf(
+            emptyMap<String, Any>()
+        )
+    }
+
+
+    // ======================================================
+    // FILTER STATUS PENGAJUAN
+    // ======================================================
+
+    var filterStatusPengajuan by remember {
+
+        mutableStateOf(
+            "semua"
+        )
+    }
+
+
+    // ======================================================
+    // DETAIL DIBUKA DARI RIWAYAT PENGAJUAN
+    // ======================================================
+
+    var detailDariRiwayatPengajuan by remember {
+
+        mutableStateOf(false)
+    }
+
+
+    // ======================================================
     // REFRESH DASHBOARD
     // ======================================================
 
@@ -343,6 +382,10 @@ fun AppNavigation() {
                 currentScreen.value == AppScreen.Pengajuan ||
 
                 currentScreen.value == AppScreen.PengajuanBaru ||
+
+                currentScreen.value == AppScreen.RiwayatPengajuan ||
+
+                currentScreen.value == AppScreen.DetailPengajuan ||
 
                 currentScreen.value == AppScreen.Scan ||
 
@@ -652,7 +695,6 @@ fun AppNavigation() {
 
             when (currentScreen.value) {
 
-
                 // ==================================================
                 // LOGIN
                 // ==================================================
@@ -673,6 +715,29 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.Admin
+                        },
+
+                        onForgotPassword = {
+
+                            currentScreen.value =
+                                AppScreen.ForgotPassword
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // LUPA SANDI
+                // ==================================================
+
+                AppScreen.ForgotPassword -> {
+
+                    ForgotPasswordScreen(
+
+                        onBack = {
+
+                            currentScreen.value =
+                                AppScreen.Login
                         }
                     )
                 }
@@ -719,7 +784,20 @@ fun AppNavigation() {
 
                 AppScreen.Approval -> {
 
-                    ApprovalScreen()
+                    ApprovalScreen(
+
+                        onDetailClick = { pengajuan ->
+
+                            pengajuanTerpilih =
+                                pengajuan
+
+                            detailDariRiwayatPengajuan =
+                                true
+
+                            currentScreen.value =
+                                AppScreen.DetailPengajuan
+                        }
+                    )
                 }
 
 
@@ -983,6 +1061,74 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.PengajuanBaru
+                        },
+
+                        onStatusClick = { pengajuan ->
+
+                            val filter =
+                                pengajuan["filterStatus"]
+                                    ?.toString()
+
+                            if (
+                                filter != null
+                            ) {
+
+                                filterStatusPengajuan =
+                                    filter
+
+                                currentScreen.value =
+                                    AppScreen.RiwayatPengajuan
+
+                            } else {
+
+                                pengajuanTerpilih =
+                                    pengajuan
+
+                                currentScreen.value =
+                                    AppScreen.DetailPengajuan
+                            }
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // STAFF RIWAYAT PENGAJUAN
+                // ==================================================
+
+                AppScreen.RiwayatPengajuan -> {
+
+                    DetailPengajuanScreen(
+
+                        filterStatus =
+                            filterStatusPengajuan,
+
+                        onBack = {
+
+                            if (
+                                detailDariRiwayatPengajuan
+                            ) {
+
+                                detailDariRiwayatPengajuan =
+                                    false
+
+                                currentScreen.value =
+                                    AppScreen.RiwayatPengajuan
+
+                            } else {
+
+                                currentScreen.value =
+                                    AppScreen.Pengajuan
+                            }
+                        },
+
+                        onDetailClick = { pengajuan ->
+
+                            pengajuanTerpilih =
+                                pengajuan
+
+                            currentScreen.value =
+                                AppScreen.DetailPengajuan
                         }
                     )
                 }
@@ -1012,155 +1158,93 @@ fun AppNavigation() {
                                 tanggalSelesai,
                                 alasan ->
 
-                            scope.launch {
+                            // ==================================================
+                            // PENGAJUAN SUDAH DISIMPAN DI PengajuanBaruScreen
+                            // ==================================================
+                            // Jangan simpan ke Firestore lagi di sini.
+                            // PengajuanBaruScreen sudah melakukan penyimpanan.
+                            //
+                            // Callback ini hanya digunakan untuk navigasi.
+                            // ==================================================
 
-                                try {
+                            Log.d(
+                                "PENGAJUAN_DEBUG",
+                                "CALLBACK PENGAJUAN BERHASIL: $jenis"
+                            )
 
-                                    // ==================================
-                                    // USER LOGIN
-                                    // ==================================
-
-                                    val currentUser =
-                                        FirebaseAuth
-                                            .getInstance()
-                                            .currentUser
-
-
-                                    if (
-                                        currentUser == null
-                                    ) {
-
-                                        Log.e(
-                                            "PENGAJUAN_DEBUG",
-                                            "USER BELUM LOGIN"
-                                        )
-
-                                        return@launch
-                                    }
+                            currentScreen.value =
+                                AppScreen.Pengajuan
+                        }
+                    )
+                }
 
 
-                                    // ==================================
-                                    // UID USER
-                                    // ==================================
+                // ==================================================
+                // DETAIL PENGAJUAN
+                // ==================================================
 
-                                    val uid =
-                                        currentUser.uid
+                AppScreen.DetailPengajuan -> {
 
+                    DetailPengajuanScreen(
 
-                                    // ==================================
-                                    // NAMA USER
-                                    // ==================================
+                        jenis =
+                            pengajuanTerpilih["jenis"]
+                                ?.toString()
+                                ?: "Pengajuan",
 
-                                    val hasilNama =
-                                        userRepository
-                                            .getCurrentUserName()
+                        tanggal =
+                            pengajuanTerpilih["tanggal"]
+                                ?.toString()
+                                ?: "",
 
+                        status =
+                            pengajuanTerpilih["status"]
+                                ?.toString()
+                                ?: "menunggu",
 
-                                    val nama =
-                                        hasilNama
-                                            .getOrNull()
-                                            ?: ""
+                        jamPulang =
+                            pengajuanTerpilih["jamPulang"]
+                                ?.toString()
+                                ?: "",
 
+                        jamKeluar =
+                            pengajuanTerpilih["jamKeluar"]
+                                ?.toString()
+                                ?: "",
 
-                                    if (
-                                        nama.isEmpty()
-                                    ) {
+                        jamKembali =
+                            pengajuanTerpilih["jamKembali"]
+                                ?.toString()
+                                ?: "",
 
-                                        Log.e(
-                                            "PENGAJUAN_DEBUG",
-                                            "NAMA USER TIDAK DITEMUKAN"
-                                        )
+                        tanggalMulai =
+                            pengajuanTerpilih["tanggalMulai"]
+                                ?.toString()
+                                ?: "",
 
-                                        return@launch
-                                    }
+                        tanggalSelesai =
+                            pengajuanTerpilih["tanggalSelesai"]
+                                ?.toString()
+                                ?: "",
 
+                        alasan =
+                            pengajuanTerpilih["alasan"]
+                                ?.toString()
+                                ?: "",
 
-                                    // ==================================
-                                    // TANGGAL PENGAJUAN
-                                    // ==================================
+                        onBack = {
 
-                                    val tanggal =
-                                        SimpleDateFormat(
-                                            "yyyy-MM-dd",
-                                            Locale.getDefault()
-                                        ).format(
-                                            Date()
-                                        )
+                            currentScreen.value =
+                                AppScreen.Pengajuan
+                        },
 
+                        onDetailClick = { detail ->
 
-                                    // ==================================
-                                    // SIMPAN PENGAJUAN
-                                    // ==================================
+                            pengajuanTerpilih =
+                                detail
 
-                                    val hasilSimpan =
-                                        firestoreRepository
-                                            .simpanPengajuan(
-
-                                                uid =
-                                                    uid,
-
-                                                nama =
-                                                    nama,
-
-                                                jenis =
-                                                    jenis,
-
-                                                tanggal =
-                                                    tanggal,
-
-                                                jamPulang =
-                                                    jamPulang,
-
-                                                jamKeluar =
-                                                    jamKeluar,
-
-                                                jamKembali =
-                                                    jamKembali,
-
-                                                tanggalMulai =
-                                                    tanggalMulai,
-
-                                                tanggalSelesai =
-                                                    tanggalSelesai,
-
-                                                alasan =
-                                                    alasan
-                                            )
-
-
-                                    if (
-                                        hasilSimpan.isSuccess
-                                    ) {
-
-                                        Log.d(
-                                            "PENGAJUAN_DEBUG",
-                                            "PENGAJUAN BERHASIL DISIMPAN"
-                                        )
-
-                                        currentScreen.value =
-                                            AppScreen.Pengajuan
-
-                                    } else {
-
-                                        Log.e(
-                                            "PENGAJUAN_DEBUG",
-                                            "GAGAL SIMPAN PENGAJUAN",
-                                            hasilSimpan
-                                                .exceptionOrNull()
-                                        )
-                                    }
-
-                                } catch (
-                                    e: Exception
-                                ) {
-
-                                    Log.e(
-                                        "PENGAJUAN_DEBUG",
-                                        "ERROR PENGAJUAN",
-                                        e
-                                    )
-                                }
-                            }
+                            currentScreen.value =
+                                AppScreen.DetailPengajuan
                         }
                     )
                 }
@@ -1245,10 +1329,6 @@ fun AppNavigation() {
                                     }
 
 
-                                    // ==================================
-                                    // UID
-                                    // ==================================
-
                                     val uid =
                                         currentUser.uid
 
@@ -1295,7 +1375,7 @@ fun AppNavigation() {
 
 
                                     // ==================================
-                                    // JAM SEKARANG
+                                    // JAM
                                     // ==================================
 
                                     val jam =
@@ -1389,6 +1469,7 @@ fun AppNavigation() {
 
                                         refreshKey++
 
+
                                         currentScreen.value =
                                             AppScreen.Staff
 
@@ -1397,7 +1478,7 @@ fun AppNavigation() {
 
 
                                     // ==================================
-                                    // DATA ABSEN
+                                    // DATA ABSEN LAMA
                                     // ==================================
 
                                     val documentId =
@@ -1453,6 +1534,7 @@ fun AppNavigation() {
 
                                         refreshKey++
 
+
                                         Log.d(
                                             "ABSEN_DEBUG",
                                             "ABSEN PULANG BERHASIL"
@@ -1477,7 +1559,7 @@ fun AppNavigation() {
 
 
                                     // ==================================
-                                    // SUDAH LENGKAP
+                                    // ABSEN SUDAH LENGKAP
                                     // ==================================
 
                                     Log.d(
@@ -1519,6 +1601,43 @@ fun AppNavigation() {
 
                             currentScreen.value =
                                 AppScreen.Staff
+                        },
+
+                        onDetailClick = { riwayat ->
+
+                            pengajuanTerpilih =
+                                mapOf(
+
+                                    "jenis" to
+                                            riwayat.jenis,
+
+                                    "jamPulang" to
+                                            riwayat.jamPulang,
+
+                                    "jamKeluar" to
+                                            riwayat.jamKeluar,
+
+                                    "jamKembali" to
+                                            riwayat.jamKembali,
+
+                                    "tanggalMulai" to
+                                            riwayat.tanggalMulai,
+
+                                    "tanggalSelesai" to
+                                            riwayat.tanggalSelesai,
+
+                                    "alasan" to
+                                            riwayat.alasan,
+
+                                    "status" to
+                                            riwayat.status,
+
+                                    "catatanAdmin" to
+                                            riwayat.catatanAdmin
+                                )
+
+                            currentScreen.value =
+                                AppScreen.DetailPengajuan
                         }
                     )
                 }

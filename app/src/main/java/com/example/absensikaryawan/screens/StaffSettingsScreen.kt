@@ -12,18 +12,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,18 +37,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+
 // ==========================================================
-// STAFF SETTINGS SCREEN
+// STAFF SETTINGS
 // ==========================================================
 
 @Composable
 fun StaffSettingsScreen(
 
-    onBack: () -> Unit,
+    onProfile: () -> Unit,
 
-    onProfile: () -> Unit = {},
+    onNotification: () -> Unit,
 
-    onLogout: () -> Unit = {}
+    onTampilan: () -> Unit,
+
+    onBantuan: () -> Unit,
+
+    onTentangAplikasi: () -> Unit,
+
+    onLogout: () -> Unit
 
 ) {
 
@@ -57,271 +66,341 @@ fun StaffSettingsScreen(
 
         color =
             Background
+
     ) {
 
         Column(
 
             modifier =
-                Modifier.fillMaxSize()
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(
+                        horizontal = 20.dp,
+                        vertical = 20.dp
+                    )
+
         ) {
 
             // ==================================================
             // HEADER
             // ==================================================
 
-            Row(
+            Text(
+
+                text =
+                    "Setting",
+
+                fontSize =
+                    26.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(6.dp)
+            )
+
+
+            Text(
+
+                text =
+                    "Pengaturan akun dan aplikasi",
+
+                fontSize =
+                    14.sp,
+
+                color =
+                    TextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // AKUN
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Akun",
+
+                fontSize =
+                    16.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // PROFIL
+            // ==================================================
+
+            StaffSettingMenuCard(
+
+                icon =
+                    Icons.Default.Person,
+
+                title =
+                    "Profil",
+
+                subtitle =
+                    "Lihat dan kelola data pribadi",
+
+                onClick =
+                    onProfile
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // NOTIFIKASI
+            // ==================================================
+
+            StaffSettingMenuCard(
+
+                icon =
+                    Icons.Default.NotificationsNone,
+
+                title =
+                    "Notifikasi",
+
+                subtitle =
+                    "Atur pemberitahuan aplikasi",
+
+                onClick =
+                    onNotification
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // PREFERENSI
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Preferensi",
+
+                fontSize =
+                    16.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // TAMPILAN
+            // ==================================================
+
+            StaffSettingMenuCard(
+
+                icon =
+                    Icons.Default.Palette,
+
+                title =
+                    "Tampilan",
+
+                subtitle =
+                    "Atur mode tampilan aplikasi",
+
+                onClick =
+                    onTampilan
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // BANTUAN
+            // ==================================================
+
+            Text(
+
+                text =
+                    "Bantuan",
+
+                fontSize =
+                    16.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            StaffSettingMenuCard(
+
+                icon =
+                    Icons.Default.HelpOutline,
+
+                title =
+                    "Bantuan",
+
+                subtitle =
+                    "Panduan penggunaan aplikasi",
+
+                onClick =
+                    onBantuan
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // TENTANG APLIKASI
+            // ==================================================
+
+            StaffSettingMenuCard(
+
+                icon =
+                    Icons.Default.Info,
+
+                title =
+                    "Tentang Aplikasi",
+
+                subtitle =
+                    "Informasi aplikasi",
+
+                onClick =
+                    onTentangAplikasi
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // LOGOUT
+            // ==========================================================
+
+            Card(
 
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(
-                            start = 12.dp,
-                            end = 20.dp,
-                            top = 18.dp,
-                            bottom = 12.dp
-                        ),
+                        .clickable {
 
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
+                            onLogout()
+                        },
 
-                IconButton(
+                shape =
+                    RoundedCornerShape(
+                        16.dp
+                    ),
 
-                    onClick =
-                        onBack
-                ) {
+                colors =
+                    CardDefaults.cardColors(
 
-                    Icon(
+                        containerColor =
+                            Color.White
 
-                        imageVector =
-                            Icons.Default.ArrowBack,
+                    ),
 
-                        contentDescription =
-                            "Kembali",
+                elevation =
+                    CardDefaults.cardElevation(
 
-                        tint =
-                            TextDark
+                        defaultElevation =
+                            2.dp
+
                     )
-                }
 
-                Spacer(
-                    modifier =
-                        Modifier.width(4.dp)
-                )
-
-                Icon(
-
-                    imageVector =
-                        Icons.Default.Settings,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        PrimaryGreen,
-
-                    modifier =
-                        Modifier.size(24.dp)
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(8.dp)
-                )
-
-                Text(
-
-                    text =
-                        "Setting",
-
-                    fontSize =
-                        23.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
-                )
-            }
-
-
-            // ==================================================
-            // CONTENT
-            // ==================================================
-
-            Column(
-
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(
-                            horizontal = 20.dp
-                        )
             ) {
 
-                Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
-                )
-
-
-                // ==================================================
-                // PROFILE
-                // ==================================================
-
-                Text(
-
-                    text =
-                        "Akun",
-
-                    fontSize =
-                        13.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-
-                StaffSettingItem(
-
-                    icon =
-                        Icons.Default.Person,
-
-                    title =
-                        "Profile",
-
-                    subtitle =
-                        "Lihat informasi profile Anda",
-
-                    onClick =
-                        onProfile
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
-                )
-
-
-                // ==================================================
-                // KEAMANAN
-                // ==================================================
-
-                StaffSettingItem(
-
-                    icon =
-                        Icons.Default.Security,
-
-                    title =
-                        "Keamanan",
-
-                    subtitle =
-                        "Informasi keamanan akun",
-
-                    onClick = {}
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(24.dp)
-                )
-
-
-                // ==================================================
-                // TENTANG
-                // ==================================================
-
-                Text(
-
-                    text =
-                        "Tentang",
-
-                    fontSize =
-                        13.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-
-                StaffSettingItem(
-
-                    icon =
-                        Icons.Default.Info,
-
-                    title =
-                        "Tentang Aplikasi",
-
-                    subtitle =
-                        "Informasi aplikasi Absensi Karyawan",
-
-                    onClick = {}
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(24.dp)
-                )
-
-
-                // ==================================================
-                // LOGOUT
-                // ==================================================
-
-                Card(
+                Row(
 
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                onLogout()
-                            },
+                            .padding(
+                                16.dp
+                            ),
 
-                    shape =
-                        RoundedCornerShape(16.dp),
+                    verticalAlignment =
+                        Alignment.CenterVertically
 
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color.White
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation =
-                                2.dp
-                        )
                 ) {
 
-                    Row(
+                    // ==================================================
+                    // LOGOUT ICON
+                    // ==================================================
+
+                    Surface(
 
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            Modifier.size(46.dp),
 
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                        shape =
+                            RoundedCornerShape(
+                                12.dp
+                            ),
+
+                        color =
+                            Color(0xFFFDECEC)
+
                     ) {
 
                         Icon(
@@ -336,125 +415,107 @@ fun StaffSettingsScreen(
                                 Color(0xFFB91C1C),
 
                             modifier =
-                                Modifier.size(23.dp)
+                                Modifier
+                                    .padding(11.dp)
+                                    .size(24.dp)
+                        )
+                    }
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(14.dp)
+                    )
+
+
+                    // ==================================================
+                    // TEXT
+                    // ==================================================
+
+                    Column(
+
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+
+                    ) {
+
+                        Text(
+
+                            text =
+                                "Keluar",
+
+                            fontSize =
+                                15.sp,
+
+                            fontWeight =
+                                FontWeight.SemiBold,
+
+                            color =
+                                Color(0xFFB91C1C)
                         )
 
 
                         Spacer(
                             modifier =
-                                Modifier.width(14.dp)
+                                Modifier.height(2.dp)
                         )
 
 
-                        Column(
+                        Text(
 
-                            modifier =
-                                Modifier.weight(1f)
-                        ) {
+                            text =
+                                "Keluar dari akun Staff",
 
-                            Text(
+                            fontSize =
+                                12.sp,
 
-                                text =
-                                    "Keluar",
-
-                                fontSize =
-                                    15.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    Color(0xFFB91C1C)
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(3.dp)
-                            )
-
-
-                            Text(
-
-                                text =
-                                    "Keluar dari akun Anda",
-
-                                fontSize =
-                                    12.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
+                            color =
+                                TextGray
+                        )
                     }
-                }
 
 
-                Spacer(
-                    modifier =
-                        Modifier.height(24.dp)
-                )
+                    // ==================================================
+                    // CHEVRON
+                    // ==================================================
 
+                    Icon(
 
-                // ==================================================
-                // VERSI
-                // ==================================================
+                        imageVector =
+                            Icons.Default.ChevronRight,
 
-                Column(
+                        contentDescription =
+                            "Keluar",
 
-                    modifier =
-                        Modifier.fillMaxWidth(),
+                        tint =
+                            TextGray,
 
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
-
-                    Text(
-
-                        text =
-                            "Absensi Karyawan",
-
-                        fontSize =
-                            13.sp,
-
-                        fontWeight =
-                            FontWeight.SemiBold,
-
-                        color =
-                            TextGray
-                    )
-
-
-                    Spacer(
                         modifier =
-                            Modifier.height(3.dp)
-                    )
-
-
-                    Text(
-
-                        text =
-                            "Versi 1.0",
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
+                            Modifier.size(
+                                22.dp
+                            )
                     )
                 }
             }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(24.dp)
+            )
         }
     }
 }
 
 
 // ==========================================================
-// SETTING ITEM
+// STAFF SETTING MENU CARD
 // ==========================================================
 
 @Composable
-private fun StaffSettingItem(
+private fun StaffSettingMenuCard(
 
     icon: ImageVector,
 
@@ -472,23 +533,31 @@ private fun StaffSettingItem(
             Modifier
                 .fillMaxWidth()
                 .clickable {
+
                     onClick()
                 },
 
         shape =
-            RoundedCornerShape(16.dp),
+            RoundedCornerShape(
+                16.dp
+            ),
 
         colors =
             CardDefaults.cardColors(
+
                 containerColor =
                     Color.White
+
             ),
 
         elevation =
             CardDefaults.cardElevation(
+
                 defaultElevation =
                     2.dp
+
             )
+
     ) {
 
         Row(
@@ -496,26 +565,42 @@ private fun StaffSettingItem(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 15.dp
+                    ),
 
             verticalAlignment =
                 Alignment.CenterVertically
+
         ) {
 
             // ==================================================
-            // ICON
+            // ICON BACKGROUND
             // ==================================================
 
-            Card(
+            Row(
 
-                shape =
-                    RoundedCornerShape(12.dp),
+                modifier =
+                    Modifier
+                        .size(46.dp)
+                        .background(
 
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            SoftGreen
-                    )
+                            color =
+                                Color(0xFFE6EEE9),
+
+                            shape =
+                                RoundedCornerShape(
+                                    12.dp
+                                )
+                        ),
+
+                horizontalArrangement =
+                    Arrangement.Center,
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+
             ) {
 
                 Icon(
@@ -530,9 +615,9 @@ private fun StaffSettingItem(
                         PrimaryGreen,
 
                     modifier =
-                        Modifier
-                            .padding(11.dp)
-                            .size(22.dp)
+                        Modifier.size(
+                            23.dp
+                        )
                 )
             }
 
@@ -550,7 +635,10 @@ private fun StaffSettingItem(
             Column(
 
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
+
             ) {
 
                 Text(
@@ -562,7 +650,7 @@ private fun StaffSettingItem(
                         15.sp,
 
                     fontWeight =
-                        FontWeight.Bold,
+                        FontWeight.SemiBold,
 
                     color =
                         TextDark
@@ -587,6 +675,28 @@ private fun StaffSettingItem(
                         TextGray
                 )
             }
+
+
+            // ==================================================
+            // CHEVRON
+            // ==================================================
+
+            Icon(
+
+                imageVector =
+                    Icons.Default.ChevronRight,
+
+                contentDescription =
+                    "Buka $title",
+
+                tint =
+                    TextGray,
+
+                modifier =
+                    Modifier.size(
+                        22.dp
+                    )
+            )
         }
     }
 }
