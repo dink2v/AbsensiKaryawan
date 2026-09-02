@@ -8,6 +8,8 @@ object SessionManager {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
         return hour in 5..20
+        //return false
+
     }
 
     fun shouldRequireLogin(): Boolean {
