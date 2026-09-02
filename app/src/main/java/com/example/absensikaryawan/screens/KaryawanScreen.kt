@@ -1,7 +1,5 @@
 package com.example.absensikaryawan.screens
 
-import android.content.Context
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,11 +10,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -55,25 +55,32 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.window.DialogProperties
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 
 // ==========================================================
@@ -103,6 +110,8 @@ fun KaryawanScreen(
     val db = remember {
         FirebaseFirestore.getInstance()
     }
+
+    val scope = rememberCoroutineScope()
 
     var daftarKaryawan by remember {
         mutableStateOf(emptyList<DataKaryawan>())
@@ -155,25 +164,29 @@ fun KaryawanScreen(
                     DataKaryawan(
                         id = document.id,
 
-                        nama = document.getString("nama")
-                            ?: "",
+                        nama =
+                            document.getString("nama")
+                                ?: "",
 
-                        email = document.getString("email")
-                            ?: "",
+                        email =
+                            document.getString("email")
+                                ?: "",
 
-                        jabatan = document.getString("jabatan")
-                            ?: "",
+                        jabatan =
+                            document.getString("jabatan")
+                                ?: "",
 
-                        divisi = document.getString("divisi")
-                            ?: "",
+                        divisi =
+                            document.getString("divisi")
+                                ?: "",
 
-                        usernameTele = document
-                            .getString("usernameTele")
-                            ?: "",
+                        usernameTele =
+                            document.getString("usernameTele")
+                                ?: "",
 
-                        isAdmin = document
-                            .getBoolean("isAdmin")
-                            ?: false
+                        isAdmin =
+                            document.getBoolean("isAdmin")
+                                ?: false
                     )
                 }
                 .sortedBy {
@@ -244,9 +257,7 @@ fun KaryawanScreen(
         }
 
     val totalStaff =
-        daftarKaryawan.count {
-            !it.isAdmin
-        }
+        totalKaryawan - totalAdmin
 
 
     // ======================================================
@@ -298,12 +309,16 @@ fun KaryawanScreen(
     // ======================================================
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Background
+        modifier =
+            Modifier.fillMaxSize(),
+
+        color =
+            Background
     ) {
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier =
+                Modifier.fillMaxSize()
         ) {
 
             // ==================================================
@@ -311,19 +326,21 @@ fun KaryawanScreen(
             // ==================================================
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 16.dp,
-                        vertical = 12.dp
-                    ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 16.dp,
+                            vertical = 12.dp
+                        ),
 
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
                 IconButton(
-                    onClick = onBack
+                    onClick =
+                        onBack
                 ) {
 
                     Icon(
@@ -413,7 +430,10 @@ fun KaryawanScreen(
 
                 IconButton(
                     onClick = {
-                        refreshKey++
+
+                        if (!loading) {
+                            refreshKey++
+                        }
                     }
                 ) {
 
@@ -632,6 +652,7 @@ fun KaryawanScreen(
 
                 colors =
                     OutlinedTextFieldDefaults.colors(
+
                         focusedBorderColor =
                             PrimaryGreen,
 
@@ -773,7 +794,9 @@ fun KaryawanScreen(
 
                         OutlinedButton(
                             onClick = {
-                                refreshKey++
+                                if (!loading) {
+                                    refreshKey++
+                                }
                             }
                         ) {
 
@@ -1793,21 +1816,34 @@ private fun SectionTitle(
 private fun DetailCard(
     content: @Composable () -> Unit
 ) {
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(18.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    1.dp
+            )
     ) {
+
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp)
         ) {
+
             content()
         }
     }
@@ -1921,6 +1957,60 @@ private fun TambahKaryawanDialog(
             FirebaseFirestore.getInstance()
         }
 
+    val scope =
+        rememberCoroutineScope()
+
+    val focusManager =
+        LocalFocusManager.current
+
+
+    // ======================================================
+    // FOCUS REQUESTER
+    // ======================================================
+
+    val namaFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+    val emailFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+    val passwordFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+    val jabatanFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+    val divisiFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+    val telegramFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+
+    // ======================================================
+    // FORM LIST STATE
+    // ======================================================
+
+    val formListState =
+        rememberLazyListState()
+
+
+    // ======================================================
+    // DATA FORM
+    // ======================================================
+
     var nama by remember {
         mutableStateOf("")
     }
@@ -1962,14 +2052,64 @@ private fun TambahKaryawanDialog(
     }
 
 
+    // ======================================================
+    // FIELD YANG SEDANG FOCUS
+    // ======================================================
+
+    var focusedField by remember {
+        mutableStateOf<String?>(null)
+    }
+
+
+    // ======================================================
+    // AUTO SCROLL
+    // ======================================================
+
+    LaunchedEffect(focusedField) {
+
+        when (focusedField) {
+
+            "nama" -> {
+                formListState.scrollToItem(1)
+            }
+
+            "email" -> {
+                formListState.scrollToItem(2)
+            }
+
+            "password" -> {
+                formListState.scrollToItem(3)
+            }
+
+            "jabatan" -> {
+                formListState.scrollToItem(5)
+            }
+
+            "divisi" -> {
+                formListState.scrollToItem(6)
+            }
+
+            "telegram" -> {
+                formListState.scrollToItem(7)
+            }
+        }
+    }
+
+
+    // ======================================================
+    // ALERT DIALOG
+    // ======================================================
+
     AlertDialog(
 
-        onDismissRequest = {
+        onDismissRequest =
+            onDismiss,
 
-            if (!isSaving) {
-                onDismiss()
-            }
-        },
+        properties =
+            DialogProperties(
+                dismissOnClickOutside = false,
+                dismissOnBackPress = true
+            ),
 
         title = {
 
@@ -2043,14 +2183,23 @@ private fun TambahKaryawanDialog(
 
             LazyColumn(
 
+                state =
+                    formListState,
+
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(470.dp),
+                        .heightIn(
+                            max = 450.dp
+                        ),
 
                 verticalArrangement =
                     Arrangement.spacedBy(10.dp)
             ) {
+
+                // ==================================================
+                // DATA AKUN
+                // ==================================================
 
                 item {
 
@@ -2060,6 +2209,10 @@ private fun TambahKaryawanDialog(
                     )
                 }
 
+
+                // ==================================================
+                // NAMA
+                // ==================================================
 
                 item {
 
@@ -2073,13 +2226,26 @@ private fun TambahKaryawanDialog(
                         },
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(
+                                    namaFocusRequester
+                                )
+                                .onFocusChanged {
+
+                                    if (it.isFocused) {
+                                        focusedField = "nama"
+                                    }
+                                },
 
                         singleLine =
                             true,
 
                         label = {
-                            Text("Nama Lengkap")
+
+                            Text(
+                                "Nama Lengkap"
+                            )
                         },
 
                         leadingIcon = {
@@ -2093,11 +2259,33 @@ private fun TambahKaryawanDialog(
                             )
                         },
 
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+
+                                keyboardType =
+                                    KeyboardType.Text,
+
+                                imeAction =
+                                    ImeAction.Next
+                            ),
+
+                        keyboardActions =
+                            androidx.compose.foundation.text.KeyboardActions(
+
+                                onNext = {
+                                    emailFocusRequester.requestFocus()
+                                }
+                            ),
+
                         shape =
                             RoundedCornerShape(12.dp)
                     )
                 }
 
+
+                // ==================================================
+                // EMAIL
+                // ==================================================
 
                 item {
 
@@ -2111,13 +2299,26 @@ private fun TambahKaryawanDialog(
                         },
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(
+                                    emailFocusRequester
+                                )
+                                .onFocusChanged {
+
+                                    if (it.isFocused) {
+                                        focusedField = "email"
+                                    }
+                                },
 
                         singleLine =
                             true,
 
                         label = {
-                            Text("Email")
+
+                            Text(
+                                "Email"
+                            )
                         },
 
                         leadingIcon = {
@@ -2131,11 +2332,33 @@ private fun TambahKaryawanDialog(
                             )
                         },
 
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+
+                                keyboardType =
+                                    KeyboardType.Email,
+
+                                imeAction =
+                                    ImeAction.Next
+                            ),
+
+                        keyboardActions =
+                            androidx.compose.foundation.text.KeyboardActions(
+
+                                onNext = {
+                                    passwordFocusRequester.requestFocus()
+                                }
+                            ),
+
                         shape =
                             RoundedCornerShape(12.dp)
                     )
                 }
 
+
+                // ==================================================
+                // PASSWORD
+                // ==================================================
 
                 item {
 
@@ -2149,13 +2372,26 @@ private fun TambahKaryawanDialog(
                         },
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(
+                                    passwordFocusRequester
+                                )
+                                .onFocusChanged {
+
+                                    if (it.isFocused) {
+                                        focusedField = "password"
+                                    }
+                                },
 
                         singleLine =
                             true,
 
                         label = {
-                            Text("Password")
+
+                            Text(
+                                "Password"
+                            )
                         },
 
                         leadingIcon = {
@@ -2173,8 +2409,7 @@ private fun TambahKaryawanDialog(
 
                             IconButton(
                                 onClick = {
-                                    showPassword =
-                                        !showPassword
+                                    showPassword = !showPassword
                                 }
                             ) {
 
@@ -2199,11 +2434,33 @@ private fun TambahKaryawanDialog(
                                 PasswordVisualTransformation()
                             },
 
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+
+                                keyboardType =
+                                    KeyboardType.Password,
+
+                                imeAction =
+                                    ImeAction.Next
+                            ),
+
+                        keyboardActions =
+                            androidx.compose.foundation.text.KeyboardActions(
+
+                                onNext = {
+                                    jabatanFocusRequester.requestFocus()
+                                }
+                            ),
+
                         shape =
                             RoundedCornerShape(12.dp)
                     )
                 }
 
+
+                // ==================================================
+                // DATA PEKERJAAN
+                // ==================================================
 
                 item {
 
@@ -2219,6 +2476,10 @@ private fun TambahKaryawanDialog(
                 }
 
 
+                // ==================================================
+                // JABATAN
+                // ==================================================
+
                 item {
 
                     OutlinedTextField(
@@ -2231,13 +2492,26 @@ private fun TambahKaryawanDialog(
                         },
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(
+                                    jabatanFocusRequester
+                                )
+                                .onFocusChanged {
+
+                                    if (it.isFocused) {
+                                        focusedField = "jabatan"
+                                    }
+                                },
 
                         singleLine =
                             true,
 
                         label = {
-                            Text("Jabatan")
+
+                            Text(
+                                "Jabatan"
+                            )
                         },
 
                         leadingIcon = {
@@ -2251,11 +2525,33 @@ private fun TambahKaryawanDialog(
                             )
                         },
 
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+
+                                keyboardType =
+                                    KeyboardType.Text,
+
+                                imeAction =
+                                    ImeAction.Next
+                            ),
+
+                        keyboardActions =
+                            androidx.compose.foundation.text.KeyboardActions(
+
+                                onNext = {
+                                    divisiFocusRequester.requestFocus()
+                                }
+                            ),
+
                         shape =
                             RoundedCornerShape(12.dp)
                     )
                 }
 
+
+                // ==================================================
+                // DIVISI
+                // ==================================================
 
                 item {
 
@@ -2269,13 +2565,26 @@ private fun TambahKaryawanDialog(
                         },
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(
+                                    divisiFocusRequester
+                                )
+                                .onFocusChanged {
+
+                                    if (it.isFocused) {
+                                        focusedField = "divisi"
+                                    }
+                                },
 
                         singleLine =
                             true,
 
                         label = {
-                            Text("Divisi")
+
+                            Text(
+                                "Divisi"
+                            )
                         },
 
                         leadingIcon = {
@@ -2289,11 +2598,33 @@ private fun TambahKaryawanDialog(
                             )
                         },
 
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+
+                                keyboardType =
+                                    KeyboardType.Text,
+
+                                imeAction =
+                                    ImeAction.Next
+                            ),
+
+                        keyboardActions =
+                            androidx.compose.foundation.text.KeyboardActions(
+
+                                onNext = {
+                                    telegramFocusRequester.requestFocus()
+                                }
+                            ),
+
                         shape =
                             RoundedCornerShape(12.dp)
                     )
                 }
 
+
+                // ==================================================
+                // TELEGRAM
+                // ==================================================
 
                 item {
 
@@ -2307,13 +2638,26 @@ private fun TambahKaryawanDialog(
                         },
 
                         modifier =
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(
+                                    telegramFocusRequester
+                                )
+                                .onFocusChanged {
+
+                                    if (it.isFocused) {
+                                        focusedField = "telegram"
+                                    }
+                                },
 
                         singleLine =
                             true,
 
                         label = {
-                            Text("Username Telegram")
+
+                            Text(
+                                "Username Telegram"
+                            )
                         },
 
                         leadingIcon = {
@@ -2327,11 +2671,33 @@ private fun TambahKaryawanDialog(
                             )
                         },
 
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+
+                                keyboardType =
+                                    KeyboardType.Text,
+
+                                imeAction =
+                                    ImeAction.Done
+                            ),
+
+                        keyboardActions =
+                            androidx.compose.foundation.text.KeyboardActions(
+
+                                onDone = {
+                                    focusManager.clearFocus()
+                                }
+                            ),
+
                         shape =
                             RoundedCornerShape(12.dp)
                     )
                 }
 
+
+                // ==================================================
+                // HAK AKSES
+                // ==================================================
 
                 item {
 
@@ -2378,6 +2744,7 @@ private fun TambahKaryawanDialog(
                             ) {
 
                                 RadioButton(
+
                                     selected =
                                         !isAdmin,
 
@@ -2407,6 +2774,7 @@ private fun TambahKaryawanDialog(
                                 )
 
                                 RadioButton(
+
                                     selected =
                                         isAdmin,
 
@@ -2434,6 +2802,10 @@ private fun TambahKaryawanDialog(
                     }
                 }
 
+
+                // ==================================================
+                // ERROR
+                // ==================================================
 
                 if (errorMessage.isNotBlank()) {
 
@@ -2466,8 +2838,25 @@ private fun TambahKaryawanDialog(
                         }
                     }
                 }
+
+
+                // ==================================================
+                // BOTTOM SPACER
+                // ==================================================
+
+                item {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(20.dp)
+                    )
+                }
             }
         },
+
+        // ======================================================
+        // CONFIRM BUTTON
+        // ======================================================
 
         confirmButton = {
 
@@ -2487,6 +2876,7 @@ private fun TambahKaryawanDialog(
                     val passwordClean =
                         password.trim()
 
+
                     if (
                         namaClean.isBlank() ||
                         emailClean.isBlank() ||
@@ -2498,6 +2888,7 @@ private fun TambahKaryawanDialog(
 
                         return@Button
                     }
+
 
                     if (
                         passwordClean.length < 6
@@ -2514,7 +2905,7 @@ private fun TambahKaryawanDialog(
                     errorMessage = ""
 
 
-                    MainScope().launch {
+                    scope.launch {
 
                         var secondaryApp:
                                 FirebaseApp? = null
@@ -2677,6 +3068,10 @@ private fun TambahKaryawanDialog(
                 }
             }
         },
+
+        // ======================================================
+        // DISMISS BUTTON
+        // ======================================================
 
         dismissButton = {
 

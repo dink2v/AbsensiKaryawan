@@ -11,9 +11,14 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+
 import com.example.absensikaryawan.navigation.AppNavigation
 import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.ui.theme.AbsensiKaryawanTheme
+
+import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : ComponentActivity() {
@@ -32,6 +37,37 @@ class MainActivity : ComponentActivity() {
         // ======================================================
 
         enableEdgeToEdge()
+
+
+        // ======================================================
+        // SESSION CHECK
+        // ======================================================
+
+        lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+
+                if (
+                    event ==
+                    Lifecycle.Event.ON_START
+                ) {
+
+                    if (
+                        SessionManager.shouldRequireLogin()
+                    ) {
+
+                        val firebaseAuth =
+                            FirebaseAuth.getInstance()
+
+                        if (
+                            firebaseAuth.currentUser != null
+                        ) {
+
+                            firebaseAuth.signOut()
+                        }
+                    }
+                }
+            }
+        )
 
 
         // ======================================================

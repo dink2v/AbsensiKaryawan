@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +45,6 @@ import com.example.absensikaryawan.ThemeDataStore
 import com.example.absensikaryawan.data.AbsensiDataStore
 import com.example.absensikaryawan.data.FirestoreRepository
 import com.example.absensikaryawan.data.UserRepository
-
 import com.example.absensikaryawan.screens.AdminDashboardScreen
 import com.example.absensikaryawan.screens.AdminSettingsScreen
 import com.example.absensikaryawan.screens.ApprovalScreen
@@ -65,7 +65,7 @@ import com.example.absensikaryawan.screens.StaffDashboardScreen
 import com.example.absensikaryawan.screens.TampilanScreen
 import com.example.absensikaryawan.screens.TentangAplikasiScreen
 import com.example.absensikaryawan.screens.ThemeMode
-
+import com.example.absensikaryawan.SessionManager
 import com.google.firebase.auth.FirebaseAuth
 
 import kotlinx.coroutines.launch
@@ -311,6 +311,33 @@ fun AppNavigation() {
 
     val context: Context =
         LocalContext.current
+
+
+    // ======================================================
+// SESSION BERDASARKAN JAM
+// ======================================================
+
+    LaunchedEffect(Unit) {
+
+        val firebaseAuth =
+            FirebaseAuth.getInstance()
+
+        if (
+            SessionManager.shouldRequireLogin() &&
+            firebaseAuth.currentUser != null
+        ) {
+
+            Log.d(
+                "SESSION_DEBUG",
+                "Jam non-persistent → session diakhiri"
+            )
+
+            firebaseAuth.signOut()
+
+            currentScreen.value =
+                AppScreen.Login
+        }
+    }
 
 
     // ======================================================

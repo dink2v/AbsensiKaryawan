@@ -635,7 +635,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Absensi Karyawan • Versi 1.0",
+                text = "© 2026 Absensi Karyawan • Versi 1.1",
                 fontSize = 11.sp,
                 color = TextGray
             )

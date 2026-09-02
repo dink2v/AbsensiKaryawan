@@ -225,7 +225,7 @@ fun AdminSettingsScreen(
 
             // ==================================================
             // TENTANG APLIKASI
-            // ==================================================
+            // ==========================================================
 
             SettingMenuCard(
 
@@ -396,6 +396,36 @@ fun AdminSettingsScreen(
             Spacer(
                 modifier =
                     Modifier.height(24.dp)
+            )
+
+
+            // ==================================================
+            // COPYRIGHT / VERSION
+            // ==================================================
+
+            Text(
+
+                text =
+                    "© 2026 Absensi Karyawan • Versi 1.1",
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            bottom = 8.dp
+                        ),
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    TextGray,
+
+                fontWeight =
+                    FontWeight.Normal,
+
+                textAlign =
+                    androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }

@@ -25,9 +25,8 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PendingActions
-import androidx.compose.material.icons.filled.PersonOff
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Settings
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,6 +50,9 @@ import androidx.compose.ui.unit.sp
 
 import com.google.firebase.firestore.FirebaseFirestore
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 
 import java.text.SimpleDateFormat
@@ -64,25 +66,31 @@ import java.util.Locale
 
 @Composable
 fun AdminDashboardScreen(
-
     onApproval: () -> Unit,
-
     onEmployees: () -> Unit,
-
     onRecap: () -> Unit,
-
     onSettings: () -> Unit
-
 ) {
 
     // ======================================================
     // FIRESTORE
     // ======================================================
 
-    val db =
-        remember {
-            FirebaseFirestore.getInstance()
-        }
+    val db = remember {
+        FirebaseFirestore.getInstance()
+    }
+
+
+    // ======================================================
+    // FORMATTER
+    // ======================================================
+
+    val dateFormatter = remember {
+        SimpleDateFormat(
+            "yyyy-MM-dd",
+            Locale.getDefault()
+        )
+    }
 
 
     // ======================================================
@@ -90,13 +98,10 @@ fun AdminDashboardScreen(
     // ======================================================
 
     var jumlahPengajuanHariIni by remember {
-
         mutableStateOf(0)
     }
 
-
     var jumlahPengajuanMenunggu by remember {
-
         mutableStateOf(0)
     }
 
@@ -106,7 +111,6 @@ fun AdminDashboardScreen(
     // ======================================================
 
     var jumlahKaryawan by remember {
-
         mutableStateOf(0)
     }
 
@@ -116,225 +120,235 @@ fun AdminDashboardScreen(
     // ======================================================
 
     var jumlahHadir by remember {
-
         mutableStateOf(0)
     }
-
 
     var jumlahSudahPulang by remember {
-
         mutableStateOf(0)
     }
 
-
     var jumlahBelumPulang by remember {
-
         mutableStateOf(0)
     }
 
 
     // ======================================================
     // LOAD DATA DASHBOARD
+    //
+    // Optimasi:
+    // 3 query Firestore dijalankan bersamaan.
     // ======================================================
 
     LaunchedEffect(Unit) {
 
         try {
 
-            // ==================================================
-            // TANGGAL HARI INI
-            // ==================================================
-
             val tanggalHariIni =
-                SimpleDateFormat(
-                    "yyyy-MM-dd",
-                    Locale.getDefault()
-                ).format(
+                dateFormatter.format(
                     Date()
                 )
 
 
-            // ==================================================
-            // LOAD USERS
-            // ==================================================
+            coroutineScope {
 
-            try {
+                val usersDeferred =
+                    async {
 
-                val usersSnapshot =
-                    db.collection("users")
-                        .get()
-                        .await()
-
-
-                jumlahKaryawan =
-                    usersSnapshot.size()
-
-            } catch (
-                e: Exception
-            ) {
-
-                e.printStackTrace()
-            }
-
-
-            // ==================================================
-            // LOAD ATTENDANCE HARI INI
-            // ==================================================
-
-            try {
-
-                val attendanceSnapshot =
-                    db.collection("attendance")
-                        .whereEqualTo(
-                            "tanggal",
-                            tanggalHariIni
-                        )
-                        .get()
-                        .await()
-
-
-                var totalHadir =
-                    0
-
-
-                var totalSudahPulang =
-                    0
-
-
-                var totalBelumPulang =
-                    0
-
-
-                attendanceSnapshot.documents.forEach { document ->
-
-                    val jamMasuk =
-                        document.getString(
-                            "jamMasuk"
-                        )
-                            ?: ""
-
-
-                    val jamPulang =
-                        document.getString(
-                            "jamPulang"
-                        )
-                            ?: ""
-
-
-                    if (
-                        jamMasuk.isNotBlank()
-                    ) {
-
-                        totalHadir++
+                        db.collection("users")
+                            .get()
+                            .await()
                     }
 
 
-                    if (
-                        jamPulang.isNotBlank()
-                    ) {
+                val attendanceDeferred =
+                    async {
 
-                        totalSudahPulang++
-
-                    } else if (
-                        jamMasuk.isNotBlank()
-                    ) {
-
-                        totalBelumPulang++
+                        db.collection("attendance")
+                            .whereEqualTo(
+                                "tanggal",
+                                tanggalHariIni
+                            )
+                            .get()
+                            .await()
                     }
+
+
+                val pengajuanDeferred =
+                    async {
+
+                        db.collection("pengajuan")
+                            .get()
+                            .await()
+                    }
+
+
+                // ==================================================
+                // TUNGGU SEMUA QUERY SELESAI
+                // ==================================================
+
+                val results =
+                    awaitAll(
+                        usersDeferred,
+                        attendanceDeferred,
+                        pengajuanDeferred
+                    )
+
+
+                // ==================================================
+                // USERS
+                // ==================================================
+
+                try {
+
+                    val usersSnapshot =
+                        results[0]
+
+                    jumlahKaryawan =
+                        usersSnapshot.size()
+
+                } catch (e: Exception) {
+
+                    e.printStackTrace()
                 }
 
 
-                jumlahHadir =
-                    totalHadir
+                // ==================================================
+                // ATTENDANCE
+                // ==================================================
+
+                try {
+
+                    val attendanceSnapshot =
+                        results[1]
+
+                    var totalHadir =
+                        0
+
+                    var totalSudahPulang =
+                        0
+
+                    var totalBelumPulang =
+                        0
 
 
-                jumlahSudahPulang =
-                    totalSudahPulang
+                    attendanceSnapshot.documents
+                        .forEach { document ->
+
+                            val jamMasuk =
+                                document.getString(
+                                    "jamMasuk"
+                                ) ?: ""
 
 
-                jumlahBelumPulang =
-                    totalBelumPulang
-
-            } catch (
-                e: Exception
-            ) {
-
-                e.printStackTrace()
-            }
+                            val jamPulang =
+                                document.getString(
+                                    "jamPulang"
+                                ) ?: ""
 
 
-            // ==================================================
-            // LOAD PENGAJUAN
-            // ==================================================
+                            if (
+                                jamMasuk.isNotBlank()
+                            ) {
 
-            try {
-
-                val snapshot =
-                    db.collection("pengajuan")
-                        .get()
-                        .await()
+                                totalHadir++
+                            }
 
 
-                var totalHariIni =
-                    0
+                            if (
+                                jamPulang.isNotBlank()
+                            ) {
+
+                                totalSudahPulang++
+
+                            } else if (
+                                jamMasuk.isNotBlank()
+                            ) {
+
+                                totalBelumPulang++
+                            }
+                        }
 
 
-                var totalMenunggu =
-                    0
+                    jumlahHadir =
+                        totalHadir
 
+                    jumlahSudahPulang =
+                        totalSudahPulang
 
-                snapshot.documents.forEach { document ->
+                    jumlahBelumPulang =
+                        totalBelumPulang
 
-                    val tanggalMulai =
-                        document.getString(
-                            "tanggalMulai"
-                        )
-                            ?: ""
+                } catch (e: Exception) {
 
-
-                    val status =
-                        document.getString(
-                            "status"
-                        )
-                            ?.lowercase()
-                            ?: ""
-
-
-                    if (
-                        tanggalMulai ==
-                        tanggalHariIni
-                    ) {
-
-                        totalHariIni++
-                    }
-
-
-                    if (
-                        status == "menunggu"
-                    ) {
-
-                        totalMenunggu++
-                    }
+                    e.printStackTrace()
                 }
 
 
-                jumlahPengajuanHariIni =
-                    totalHariIni
+                // ==================================================
+                // PENGAJUAN
+                // ==================================================
+
+                try {
+
+                    val snapshot =
+                        results[2]
+
+                    var totalHariIni =
+                        0
+
+                    var totalMenunggu =
+                        0
 
 
-                jumlahPengajuanMenunggu =
-                    totalMenunggu
+                    snapshot.documents
+                        .forEach { document ->
 
-            } catch (
-                e: Exception
-            ) {
+                            val tanggalMulai =
+                                document.getString(
+                                    "tanggalMulai"
+                                ) ?: ""
 
-                e.printStackTrace()
+
+                            val status =
+                                document.getString(
+                                    "status"
+                                )
+                                    ?.lowercase()
+                                    ?: ""
+
+
+                            if (
+                                tanggalMulai ==
+                                tanggalHariIni
+                            ) {
+
+                                totalHariIni++
+                            }
+
+
+                            if (
+                                status ==
+                                "menunggu"
+                            ) {
+
+                                totalMenunggu++
+                            }
+                        }
+
+
+                    jumlahPengajuanHariIni =
+                        totalHariIni
+
+                    jumlahPengajuanMenunggu =
+                        totalMenunggu
+
+                } catch (e: Exception) {
+
+                    e.printStackTrace()
+                }
             }
 
-        } catch (
-            e: Exception
-        ) {
+        } catch (e: Exception) {
 
             e.printStackTrace()
         }
@@ -376,7 +390,6 @@ fun AdminDashboardScreen(
 
 
             Row(
-
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -389,13 +402,11 @@ fun AdminDashboardScreen(
             ) {
 
                 Column(
-
                     modifier =
                         Modifier.weight(1f)
                 ) {
 
                     Text(
-
                         text =
                             "Beranda",
 
@@ -417,7 +428,6 @@ fun AdminDashboardScreen(
 
 
                     Text(
-
                         text =
                             "Kelola aktivitas aplikasi",
 
@@ -435,12 +445,10 @@ fun AdminDashboardScreen(
                 // ==========================================
 
                 Row(
-
                     modifier =
                         Modifier
                             .size(44.dp)
                             .background(
-
                                 color =
                                     Color.White,
 
@@ -458,7 +466,6 @@ fun AdminDashboardScreen(
                 ) {
 
                     Icon(
-
                         imageVector =
                             Icons.Default.Notifications,
 
@@ -469,9 +476,7 @@ fun AdminDashboardScreen(
                             TextDark,
 
                         modifier =
-                            Modifier.size(
-                                23.dp
-                            )
+                            Modifier.size(23.dp)
                     )
                 }
             }
@@ -485,7 +490,6 @@ fun AdminDashboardScreen(
         item {
 
             Card(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -496,7 +500,6 @@ fun AdminDashboardScreen(
 
                 colors =
                     CardDefaults.cardColors(
-
                         containerColor =
                             PrimaryGreen
                     ),
@@ -509,7 +512,6 @@ fun AdminDashboardScreen(
             ) {
 
                 Row(
-
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -523,13 +525,11 @@ fun AdminDashboardScreen(
                 ) {
 
                     Column(
-
                         modifier =
                             Modifier.weight(1f)
                     ) {
 
                         Text(
-
                             text =
                                 "Panel Admin",
 
@@ -551,7 +551,6 @@ fun AdminDashboardScreen(
 
 
                         Text(
-
                             text =
                                 "Pantau dan kelola aktivitas karyawan.",
 
@@ -567,12 +566,10 @@ fun AdminDashboardScreen(
 
 
                     Row(
-
                         modifier =
                             Modifier
                                 .size(56.dp)
                                 .background(
-
                                     color =
                                         Color.White.copy(
                                             alpha = 0.14f
@@ -592,7 +589,6 @@ fun AdminDashboardScreen(
                     ) {
 
                         Icon(
-
                             imageVector =
                                 Icons.Default.Home,
 
@@ -603,9 +599,7 @@ fun AdminDashboardScreen(
                                 Color.White,
 
                             modifier =
-                                Modifier.size(
-                                    30.dp
-                                )
+                                Modifier.size(30.dp)
                         )
                     }
                 }
@@ -620,7 +614,6 @@ fun AdminDashboardScreen(
         item {
 
             Text(
-
                 text =
                     "Statistik Hari Ini",
 
@@ -648,7 +641,6 @@ fun AdminDashboardScreen(
         item {
 
             Row(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -659,7 +651,6 @@ fun AdminDashboardScreen(
             ) {
 
                 AdminSummaryCard(
-
                     modifier =
                         Modifier.weight(1f),
 
@@ -675,7 +666,6 @@ fun AdminDashboardScreen(
 
 
                 AdminSummaryCard(
-
                     modifier =
                         Modifier.weight(1f),
 
@@ -699,7 +689,6 @@ fun AdminDashboardScreen(
         item {
 
             Row(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -710,7 +699,6 @@ fun AdminDashboardScreen(
             ) {
 
                 AdminSummaryCard(
-
                     modifier =
                         Modifier.weight(1f),
 
@@ -726,7 +714,6 @@ fun AdminDashboardScreen(
 
 
                 AdminSummaryCard(
-
                     modifier =
                         Modifier.weight(1f),
 
@@ -754,12 +741,10 @@ fun AdminDashboardScreen(
             ) {
 
                 Card(
-
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .clickable {
-
                                 onApproval()
                             },
 
@@ -770,21 +755,18 @@ fun AdminDashboardScreen(
 
                     colors =
                         CardDefaults.cardColors(
-
                             containerColor =
                                 Color.White
                         ),
 
                     elevation =
                         CardDefaults.cardElevation(
-
                             defaultElevation =
                                 2.dp
                         )
                 ) {
 
                     Row(
-
                         modifier =
                             Modifier
                                 .fillMaxWidth()
@@ -798,12 +780,10 @@ fun AdminDashboardScreen(
                     ) {
 
                         Row(
-
                             modifier =
                                 Modifier
                                     .size(46.dp)
                                     .background(
-
                                         color =
                                             Color(0xFFFFF3E0),
 
@@ -821,7 +801,6 @@ fun AdminDashboardScreen(
                         ) {
 
                             Icon(
-
                                 imageVector =
                                     Icons.Default.PendingActions,
 
@@ -832,9 +811,7 @@ fun AdminDashboardScreen(
                                     Color(0xFFD97706),
 
                                 modifier =
-                                    Modifier.size(
-                                        24.dp
-                                    )
+                                    Modifier.size(24.dp)
                             )
                         }
 
@@ -846,13 +823,11 @@ fun AdminDashboardScreen(
 
 
                         Column(
-
                             modifier =
                                 Modifier.weight(1f)
                         ) {
 
                             Text(
-
                                 text =
                                     "Pengajuan Baru",
 
@@ -874,7 +849,6 @@ fun AdminDashboardScreen(
 
 
                             Text(
-
                                 text =
                                     "$jumlahPengajuanMenunggu pengajuan menunggu persetujuan",
 
@@ -888,7 +862,6 @@ fun AdminDashboardScreen(
 
 
                         Icon(
-
                             imageVector =
                                 Icons.Default.ChevronRight,
 
@@ -899,9 +872,7 @@ fun AdminDashboardScreen(
                                 TextGray,
 
                             modifier =
-                                Modifier.size(
-                                    22.dp
-                                )
+                                Modifier.size(22.dp)
                         )
                     }
                 }
@@ -916,7 +887,6 @@ fun AdminDashboardScreen(
         item {
 
             Text(
-
                 text =
                     "Ringkasan Pengajuan",
 
@@ -940,7 +910,6 @@ fun AdminDashboardScreen(
         item {
 
             Row(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -951,7 +920,6 @@ fun AdminDashboardScreen(
             ) {
 
                 AdminSummaryCard(
-
                     modifier =
                         Modifier.weight(1f),
 
@@ -967,7 +935,6 @@ fun AdminDashboardScreen(
 
 
                 AdminSummaryCard(
-
                     modifier =
                         Modifier.weight(1f),
 
@@ -991,7 +958,6 @@ fun AdminDashboardScreen(
         item {
 
             Text(
-
                 text =
                     "Kehadiran Hari Ini",
 
@@ -1015,7 +981,6 @@ fun AdminDashboardScreen(
         item {
 
             Card(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -1026,7 +991,6 @@ fun AdminDashboardScreen(
 
                 colors =
                     CardDefaults.cardColors(
-
                         containerColor =
                             Color.White
                     ),
@@ -1039,17 +1003,13 @@ fun AdminDashboardScreen(
             ) {
 
                 Column(
-
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(
-                                17.dp
-                            )
+                            .padding(17.dp)
                 ) {
 
                     AdminAttendanceRow(
-
                         icon =
                             Icons.Default.CheckCircle,
 
@@ -1068,7 +1028,6 @@ fun AdminDashboardScreen(
 
 
                     AdminAttendanceRow(
-
                         icon =
                             Icons.Default.Schedule,
 
@@ -1087,7 +1046,6 @@ fun AdminDashboardScreen(
 
 
                     AdminAttendanceRow(
-
                         icon =
                             Icons.Default.CheckCircle,
 
@@ -1106,7 +1064,6 @@ fun AdminDashboardScreen(
 
 
                     Text(
-
                         text =
                             "Data berdasarkan absensi hari ini.",
 
@@ -1128,7 +1085,6 @@ fun AdminDashboardScreen(
         item {
 
             Text(
-
                 text =
                     "Akses Cepat",
 
@@ -1149,14 +1105,9 @@ fun AdminDashboardScreen(
         }
 
 
-        // ==================================================
-        // APPROVAL
-        // ==================================================
-
         item {
 
             AdminQuickMenu(
-
                 icon =
                     Icons.Default.NoteAdd,
 
@@ -1172,14 +1123,9 @@ fun AdminDashboardScreen(
         }
 
 
-        // ==================================================
-        // KARYAWAN
-        // ==================================================
-
         item {
 
             AdminQuickMenu(
-
                 icon =
                     Icons.Default.Groups,
 
@@ -1195,14 +1141,9 @@ fun AdminDashboardScreen(
         }
 
 
-        // ==================================================
-        // REKAP
-        // ==================================================
-
         item {
 
             AdminQuickMenu(
-
                 icon =
                     Icons.Default.Assessment,
 
@@ -1218,14 +1159,9 @@ fun AdminDashboardScreen(
         }
 
 
-        // ==================================================
-        // SETTING
-        // ==================================================
-
         item {
 
             AdminQuickMenu(
-
                 icon =
                     Icons.Default.Settings,
 
@@ -1243,19 +1179,19 @@ fun AdminDashboardScreen(
 
         // ==================================================
         // KELUAR
+        // Tetap dipertahankan seperti desain sebelumnya.
+        // Logout utama tetap melalui Setting.
         // ==================================================
 
         item {
 
             Card(
-
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-
-                            // Tetap dipertahankan.
-                            // Logout utama masih melalui Setting.
+                            // Tetap tidak melakukan logout.
+                            // Logout utama melalui Setting.
                         },
 
                 shape =
@@ -1265,21 +1201,18 @@ fun AdminDashboardScreen(
 
                 colors =
                     CardDefaults.cardColors(
-
                         containerColor =
                             Color.White
                     ),
 
                 elevation =
                     CardDefaults.cardElevation(
-
                         defaultElevation =
                             2.dp
                     )
             ) {
 
                 Row(
-
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -1293,12 +1226,10 @@ fun AdminDashboardScreen(
                 ) {
 
                     Row(
-
                         modifier =
                             Modifier
                                 .size(46.dp)
                                 .background(
-
                                     color =
                                         Color(0xFFFDECEC),
 
@@ -1316,7 +1247,6 @@ fun AdminDashboardScreen(
                     ) {
 
                         Icon(
-
                             imageVector =
                                 Icons.Default.Logout,
 
@@ -1327,9 +1257,7 @@ fun AdminDashboardScreen(
                                 Color(0xFFB91C1C),
 
                             modifier =
-                                Modifier.size(
-                                    23.dp
-                                )
+                                Modifier.size(23.dp)
                         )
                     }
 
@@ -1341,13 +1269,11 @@ fun AdminDashboardScreen(
 
 
                     Column(
-
                         modifier =
                             Modifier.weight(1f)
                     ) {
 
                         Text(
-
                             text =
                                 "Keluar",
 
@@ -1369,7 +1295,6 @@ fun AdminDashboardScreen(
 
 
                         Text(
-
                             text =
                                 "Keluar dari akun Admin",
 
@@ -1383,7 +1308,6 @@ fun AdminDashboardScreen(
 
 
                     Icon(
-
                         imageVector =
                             Icons.Default.ChevronRight,
 
@@ -1394,9 +1318,7 @@ fun AdminDashboardScreen(
                             TextGray,
 
                         modifier =
-                            Modifier.size(
-                                21.dp
-                            )
+                            Modifier.size(21.dp)
                     )
                 }
             }
@@ -1410,9 +1332,8 @@ fun AdminDashboardScreen(
         item {
 
             Text(
-
                 text =
-                    "Versi 1.0.0",
+                    "Versi 1.1",
 
                 modifier =
                     Modifier
@@ -1439,19 +1360,13 @@ fun AdminDashboardScreen(
 
 @Composable
 private fun AdminSummaryCard(
-
     modifier: Modifier,
-
     icon: ImageVector,
-
     title: String,
-
     value: String
-
 ) {
 
     Card(
-
         modifier =
             modifier,
 
@@ -1462,21 +1377,18 @@ private fun AdminSummaryCard(
 
         colors =
             CardDefaults.cardColors(
-
                 containerColor =
                     Color.White
             ),
 
         elevation =
             CardDefaults.cardElevation(
-
                 defaultElevation =
                     2.dp
             )
     ) {
 
         Column(
-
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -1487,12 +1399,10 @@ private fun AdminSummaryCard(
         ) {
 
             Row(
-
                 modifier =
                     Modifier
                         .size(40.dp)
                         .background(
-
                             color =
                                 Color(0xFFE6EEE9),
 
@@ -1510,7 +1420,6 @@ private fun AdminSummaryCard(
             ) {
 
                 Icon(
-
                     imageVector =
                         icon,
 
@@ -1521,9 +1430,7 @@ private fun AdminSummaryCard(
                         PrimaryGreen,
 
                     modifier =
-                        Modifier.size(
-                            21.dp
-                        )
+                        Modifier.size(21.dp)
                 )
             }
 
@@ -1535,7 +1442,6 @@ private fun AdminSummaryCard(
 
 
             Text(
-
                 text =
                     title,
 
@@ -1554,7 +1460,6 @@ private fun AdminSummaryCard(
 
 
             Text(
-
                 text =
                     value,
 
@@ -1578,17 +1483,12 @@ private fun AdminSummaryCard(
 
 @Composable
 private fun AdminAttendanceRow(
-
     icon: ImageVector,
-
     title: String,
-
     value: String
-
 ) {
 
     Row(
-
         modifier =
             Modifier.fillMaxWidth(),
 
@@ -1597,12 +1497,10 @@ private fun AdminAttendanceRow(
     ) {
 
         Row(
-
             modifier =
                 Modifier
                     .size(40.dp)
                     .background(
-
                         color =
                             Color(0xFFE6EEE9),
 
@@ -1620,7 +1518,6 @@ private fun AdminAttendanceRow(
         ) {
 
             Icon(
-
                 imageVector =
                     icon,
 
@@ -1631,9 +1528,7 @@ private fun AdminAttendanceRow(
                     PrimaryGreen,
 
                 modifier =
-                    Modifier.size(
-                        21.dp
-                    )
+                    Modifier.size(21.dp)
             )
         }
 
@@ -1645,7 +1540,6 @@ private fun AdminAttendanceRow(
 
 
         Text(
-
             text =
                 title,
 
@@ -1661,7 +1555,6 @@ private fun AdminAttendanceRow(
 
 
         Text(
-
             text =
                 value,
 
@@ -1684,24 +1577,17 @@ private fun AdminAttendanceRow(
 
 @Composable
 private fun AdminQuickMenu(
-
     icon: ImageVector,
-
     title: String,
-
     subtitle: String,
-
     onClick: () -> Unit
-
 ) {
 
     Card(
-
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable {
-
                     onClick()
                 },
 
@@ -1712,21 +1598,18 @@ private fun AdminQuickMenu(
 
         colors =
             CardDefaults.cardColors(
-
                 containerColor =
                     Color.White
             ),
 
         elevation =
             CardDefaults.cardElevation(
-
                 defaultElevation =
                     2.dp
             )
     ) {
 
         Row(
-
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -1740,12 +1623,10 @@ private fun AdminQuickMenu(
         ) {
 
             Row(
-
                 modifier =
                     Modifier
                         .size(46.dp)
                         .background(
-
                             color =
                                 Color(0xFFE6EEE9),
 
@@ -1763,7 +1644,6 @@ private fun AdminQuickMenu(
             ) {
 
                 Icon(
-
                     imageVector =
                         icon,
 
@@ -1774,9 +1654,7 @@ private fun AdminQuickMenu(
                         PrimaryGreen,
 
                     modifier =
-                        Modifier.size(
-                            23.dp
-                        )
+                        Modifier.size(23.dp)
                 )
             }
 
@@ -1788,13 +1666,11 @@ private fun AdminQuickMenu(
 
 
             Column(
-
                 modifier =
                     Modifier.weight(1f)
             ) {
 
                 Text(
-
                     text =
                         title,
 
@@ -1816,7 +1692,6 @@ private fun AdminQuickMenu(
 
 
                 Text(
-
                     text =
                         subtitle,
 
@@ -1830,7 +1705,6 @@ private fun AdminQuickMenu(
 
 
             Icon(
-
                 imageVector =
                     Icons.Default.ChevronRight,
 
@@ -1841,9 +1715,7 @@ private fun AdminQuickMenu(
                     TextGray,
 
                 modifier =
-                    Modifier.size(
-                        22.dp
-                    )
+                    Modifier.size(22.dp)
             )
         }
     }

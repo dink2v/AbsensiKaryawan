@@ -383,7 +383,7 @@ fun SettingsScreen(
         Text(
 
             text =
-                "Versi 1.0.0",
+                "© 2026 Absensi Karyawan • Versi 1.1",
 
             modifier =
                 Modifier.fillMaxWidth(),

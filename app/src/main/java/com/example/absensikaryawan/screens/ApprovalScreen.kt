@@ -61,13 +61,13 @@ fun ApprovalScreen(
     // REPOSITORY
     // ==========================================================
 
-    val repository =
-        remember {
-            PengajuanRepository()
-        }
+    val repository = remember {
+        PengajuanRepository()
+    }
 
-    val scope =
-        rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
+
+    val scrollState = rememberScrollState()
 
 
     // ==========================================================
@@ -99,13 +99,14 @@ fun ApprovalScreen(
 
     fun muatData() {
 
+        if (sedangMemuat) return
+
         scope.launch {
 
             sedangMemuat = true
             pesanError = ""
 
-            val result =
-                repository.ambilSemuaPengajuan()
+            val result = repository.ambilSemuaPengajuan()
 
             result.onSuccess { data ->
 
@@ -250,7 +251,7 @@ fun ApprovalScreen(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(
-                            rememberScrollState()
+                            scrollState
                         )
                         .padding(
                             horizontal = 20.dp
