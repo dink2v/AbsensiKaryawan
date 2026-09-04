@@ -357,7 +357,7 @@ fun KaryawanScreen(
 
                 Spacer(
                     modifier =
-                        Modifier.width(4.dp)
+                        Modifier.width(3.dp)
                 )
 
                 Surface(
@@ -387,7 +387,7 @@ fun KaryawanScreen(
                                 PrimaryGreen,
 
                             modifier =
-                                Modifier.size(23.dp)
+                                Modifier.size(22.dp)
                         )
                     }
                 }
@@ -418,17 +418,35 @@ fun KaryawanScreen(
 
                     Text(
                         text =
-                            "$totalKaryawan karyawan terdaftar",
+                            when {
+                                loading ->
+                                    "Memuat data karyawan..."
+
+                                totalKaryawan == 0 ->
+                                    "Belum ada karyawan terdaftar"
+
+                                else ->
+                                    "$totalKaryawan karyawan terdaftar"
+                            },
 
                         fontSize =
                             12.sp,
 
                         color =
-                            TextGray
+                            TextGray,
+
+                        maxLines =
+                            1,
+
+                        overflow =
+                            TextOverflow.Ellipsis
                     )
                 }
 
                 IconButton(
+                    enabled =
+                        !loading,
+
                     onClick = {
 
                         if (!loading) {
@@ -445,14 +463,18 @@ fun KaryawanScreen(
                             "Refresh",
 
                         tint =
-                            PrimaryGreen
+                            if (loading) {
+                                TextGray
+                            } else {
+                                PrimaryGreen
+                            }
                     )
                 }
             }
 
 
             // ==================================================
-            // BUTTON TAMBAH
+            // ADD BUTTON
             // ==================================================
 
             Button(
@@ -466,12 +488,17 @@ fun KaryawanScreen(
                         .padding(horizontal = 20.dp),
 
                 shape =
-                    RoundedCornerShape(13.dp),
+                    RoundedCornerShape(14.dp),
 
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor =
                             PrimaryGreen
+                    ),
+
+                contentPadding =
+                    PaddingValues(
+                        vertical = 12.dp
                     )
             ) {
 
@@ -493,7 +520,10 @@ fun KaryawanScreen(
 
                 Text(
                     text =
-                        "Tambah Data",
+                        "Tambah Data Karyawan",
+
+                    fontSize =
+                        14.sp,
 
                     fontWeight =
                         FontWeight.SemiBold
@@ -503,7 +533,7 @@ fun KaryawanScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.height(15.dp)
             )
 
 
@@ -608,10 +638,13 @@ fun KaryawanScreen(
 
                     Text(
                         text =
-                            "Cari nama, email, jabatan...",
+                            "Cari nama, email, jabatan, atau divisi",
 
                         fontSize =
-                            13.sp
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 },
 
@@ -644,7 +677,10 @@ fun KaryawanScreen(
                                     Icons.Default.Close,
 
                                 contentDescription =
-                                    "Hapus pencarian"
+                                    "Hapus pencarian",
+
+                                tint =
+                                    TextGray
                             )
                         }
                     }
@@ -663,7 +699,10 @@ fun KaryawanScreen(
                             Color.White,
 
                         unfocusedContainerColor =
-                            Color.White
+                            Color.White,
+
+                        cursorColor =
+                            PrimaryGreen
                     )
             )
 
@@ -695,14 +734,38 @@ fun KaryawanScreen(
                             Arrangement.Center
                     ) {
 
-                        CircularProgressIndicator(
+                        Surface(
+                            modifier =
+                                Modifier.size(64.dp),
+
+                            shape =
+                                CircleShape,
+
                             color =
-                                PrimaryGreen
-                        )
+                                Color(0xFFE6EEE9)
+                        ) {
+
+                            Box(
+                                contentAlignment =
+                                    Alignment.Center
+                            ) {
+
+                                CircularProgressIndicator(
+                                    modifier =
+                                        Modifier.size(28.dp),
+
+                                    color =
+                                        PrimaryGreen,
+
+                                    strokeWidth =
+                                        3.dp
+                                )
+                            }
+                        }
 
                         Spacer(
                             modifier =
-                                Modifier.height(10.dp)
+                                Modifier.height(12.dp)
                         )
 
                         Text(
@@ -711,6 +774,25 @@ fun KaryawanScreen(
 
                             fontSize =
                                 13.sp,
+
+                            fontWeight =
+                                FontWeight.Medium,
+
+                            color =
+                                TextDark
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(3.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Mohon tunggu sebentar",
+
+                            fontSize =
+                                11.sp,
 
                             color =
                                 TextGray
@@ -735,23 +817,41 @@ fun KaryawanScreen(
                             Arrangement.Center
                     ) {
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.Group,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                Color(0xFFB91C1C),
-
+                        Surface(
                             modifier =
-                                Modifier.size(42.dp)
-                        )
+                                Modifier.size(70.dp),
+
+                            shape =
+                                CircleShape,
+
+                            color =
+                                Color(0xFFFFEBEE)
+                        ) {
+
+                            Box(
+                                contentAlignment =
+                                    Alignment.Center
+                            ) {
+
+                                Icon(
+                                    imageVector =
+                                        Icons.Default.Group,
+
+                                    contentDescription =
+                                        null,
+
+                                    tint =
+                                        Color(0xFFB91C1C),
+
+                                    modifier =
+                                        Modifier.size(34.dp)
+                                )
+                            }
+                        }
 
                         Spacer(
                             modifier =
-                                Modifier.height(10.dp)
+                                Modifier.height(14.dp)
                         )
 
                         Text(
@@ -789,15 +889,19 @@ fun KaryawanScreen(
 
                         Spacer(
                             modifier =
-                                Modifier.height(14.dp)
+                                Modifier.height(15.dp)
                         )
 
                         OutlinedButton(
                             onClick = {
+
                                 if (!loading) {
                                     refreshKey++
                                 }
-                            }
+                            },
+
+                            shape =
+                                RoundedCornerShape(11.dp)
                         ) {
 
                             Icon(
@@ -805,7 +909,10 @@ fun KaryawanScreen(
                                     Icons.Default.Refresh,
 
                                 contentDescription =
-                                    null
+                                    null,
+
+                                modifier =
+                                    Modifier.size(17.dp)
                             )
 
                             Spacer(
@@ -815,7 +922,10 @@ fun KaryawanScreen(
 
                             Text(
                                 text =
-                                    "Coba Lagi"
+                                    "Coba Lagi",
+
+                                fontSize =
+                                    13.sp
                             )
                         }
                     }
@@ -840,7 +950,7 @@ fun KaryawanScreen(
 
                         Surface(
                             modifier =
-                                Modifier.size(70.dp),
+                                Modifier.size(72.dp),
 
                             shape =
                                 CircleShape,
@@ -856,7 +966,11 @@ fun KaryawanScreen(
 
                                 Icon(
                                     imageVector =
-                                        Icons.Default.Search,
+                                        if (searchQuery.isBlank()) {
+                                            Icons.Default.Group
+                                        } else {
+                                            Icons.Default.Search
+                                        },
 
                                     contentDescription =
                                         null,
@@ -895,13 +1009,13 @@ fun KaryawanScreen(
 
                         Spacer(
                             modifier =
-                                Modifier.height(5.dp)
+                                Modifier.height(6.dp)
                         )
 
                         Text(
                             text =
                                 if (searchQuery.isBlank()) {
-                                    "Tambahkan data karyawan menggunakan tombol di atas."
+                                    "Tambahkan data karyawan menggunakan\n tombol di atas."
                                 } else {
                                     "Coba gunakan kata kunci pencarian lain."
                                 },
@@ -921,44 +1035,123 @@ fun KaryawanScreen(
 
                 else -> {
 
-                    LazyColumn(
-
+                    Column(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .weight(1f),
-
-                        verticalArrangement =
-                            Arrangement.spacedBy(10.dp),
-
-                        contentPadding =
-                            PaddingValues(
-                                start = 20.dp,
-                                top = 0.dp,
-                                end = 20.dp,
-                                bottom = 24.dp
-                            )
+                                .weight(1f)
                     ) {
 
-                        items(
-                            items =
-                                hasilPencarian,
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = 20.dp,
+                                        vertical = 2.dp
+                                    ),
 
-                            key = {
-                                it.id
-                            }
-                        ) { karyawan ->
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
 
-                            KaryawanCard(
-                                karyawan =
-                                    karyawan,
+                            Text(
+                                text =
+                                    if (searchQuery.isBlank()) {
+                                        "Daftar Karyawan"
+                                    } else {
+                                        "Hasil Pencarian"
+                                    },
 
-                                onClick = {
+                                fontSize =
+                                    15.sp,
 
-                                    selectedKaryawan =
-                                        karyawan
-                                }
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
                             )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.width(6.dp)
+                            )
+
+                            Surface(
+                                shape =
+                                    RoundedCornerShape(20.dp),
+
+                                color =
+                                    Color(0xFFE6EEE9)
+                            ) {
+
+                                Text(
+                                    text =
+                                        hasilPencarian.size.toString(),
+
+                                    modifier =
+                                        Modifier.padding(
+                                            horizontal = 8.dp,
+                                            vertical = 3.dp
+                                        ),
+
+                                    fontSize =
+                                        10.sp,
+
+                                    fontWeight =
+                                        FontWeight.Bold,
+
+                                    color =
+                                        PrimaryGreen
+                                )
+                            }
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(8.dp)
+                        )
+
+                        LazyColumn(
+
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+
+                            verticalArrangement =
+                                Arrangement.spacedBy(10.dp),
+
+                            contentPadding =
+                                PaddingValues(
+                                    start = 20.dp,
+                                    top = 0.dp,
+                                    end = 20.dp,
+                                    bottom = 24.dp
+                                )
+                        ) {
+
+                            items(
+                                items =
+                                    hasilPencarian,
+
+                                key = {
+                                    it.id
+                                }
+                            ) { karyawan ->
+
+                                KaryawanCard(
+                                    karyawan =
+                                        karyawan,
+
+                                    onClick = {
+
+                                        selectedKaryawan =
+                                            karyawan
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -986,7 +1179,7 @@ private fun KaryawanSummaryCard(
             modifier,
 
         shape =
-            RoundedCornerShape(15.dp),
+            RoundedCornerShape(16.dp),
 
         colors =
             CardDefaults.cardColors(
@@ -1005,12 +1198,12 @@ private fun KaryawanSummaryCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(11.dp)
+                    .padding(12.dp)
         ) {
 
             Surface(
                 modifier =
-                    Modifier.size(34.dp),
+                    Modifier.size(35.dp),
 
                 shape =
                     RoundedCornerShape(10.dp),
@@ -1042,7 +1235,7 @@ private fun KaryawanSummaryCard(
 
             Spacer(
                 modifier =
-                    Modifier.height(7.dp)
+                    Modifier.height(8.dp)
             )
 
             Text(
@@ -1058,7 +1251,7 @@ private fun KaryawanSummaryCard(
 
             Spacer(
                 modifier =
-                    Modifier.height(1.dp)
+                    Modifier.height(2.dp)
             )
 
             Text(
@@ -1123,15 +1316,23 @@ private fun KaryawanCard(
                 Alignment.CenterVertically
         ) {
 
+            // ==================================================
+            // INITIAL
+            // ==================================================
+
             Surface(
                 modifier =
-                    Modifier.size(48.dp),
+                    Modifier.size(50.dp),
 
                 shape =
                     CircleShape,
 
                 color =
-                    Color(0xFFE6EEE9)
+                    if (karyawan.isAdmin) {
+                        Color(0xFFF3E8FF)
+                    } else {
+                        Color(0xFFE6EEE9)
+                    }
             ) {
 
                 Box(
@@ -1152,7 +1353,11 @@ private fun KaryawanCard(
                             FontWeight.Bold,
 
                         color =
-                            PrimaryGreen
+                            if (karyawan.isAdmin) {
+                                Color(0xFF7C3AED)
+                            } else {
+                                PrimaryGreen
+                            }
                     )
                 }
             }
@@ -1163,6 +1368,10 @@ private fun KaryawanCard(
                     Modifier.width(12.dp)
             )
 
+
+            // ==================================================
+            // INFORMATION
+            // ==================================================
 
             Column(
                 modifier =
@@ -1225,10 +1434,13 @@ private fun KaryawanCard(
 
                     Spacer(
                         modifier =
-                            Modifier.height(5.dp)
+                            Modifier.height(6.dp)
                     )
 
                     Row(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
                         verticalAlignment =
                             Alignment.CenterVertically
                     ) {
@@ -1312,6 +1524,10 @@ private fun KaryawanCard(
                     Modifier.width(8.dp)
             )
 
+
+            // ==================================================
+            // ROLE
+            // ==================================================
 
             Surface(
                 shape =
@@ -1414,6 +1630,10 @@ private fun KaryawanDetailScreen(
                 Modifier.fillMaxSize()
         ) {
 
+            // ==================================================
+            // HEADER
+            // ==================================================
+
             Row(
                 modifier =
                     Modifier
@@ -1449,7 +1669,10 @@ private fun KaryawanDetailScreen(
                         Modifier.width(4.dp)
                 )
 
-                Column {
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
 
                     Text(
                         text =
@@ -1479,6 +1702,10 @@ private fun KaryawanDetailScreen(
             }
 
 
+            // ==================================================
+            // DETAIL CONTENT
+            // ==================================================
+
             LazyColumn(
 
                 modifier =
@@ -1487,7 +1714,7 @@ private fun KaryawanDetailScreen(
                 contentPadding =
                     PaddingValues(
                         start = 20.dp,
-                        top = 6.dp,
+                        top = 5.dp,
                         end = 20.dp,
                         bottom = 30.dp
                     ),
@@ -1495,6 +1722,10 @@ private fun KaryawanDetailScreen(
                 verticalArrangement =
                     Arrangement.spacedBy(14.dp)
             ) {
+
+                // ==================================================
+                // PROFILE HEADER
+                // ==================================================
 
                 item {
 
@@ -1530,13 +1761,17 @@ private fun KaryawanDetailScreen(
 
                             Surface(
                                 modifier =
-                                    Modifier.size(82.dp),
+                                    Modifier.size(84.dp),
 
                                 shape =
                                     CircleShape,
 
                                 color =
-                                    Color(0xFFE6EEE9)
+                                    if (karyawan.isAdmin) {
+                                        Color(0xFFF3E8FF)
+                                    } else {
+                                        Color(0xFFE6EEE9)
+                                    }
                             ) {
 
                                 Box(
@@ -1551,13 +1786,17 @@ private fun KaryawanDetailScreen(
                                             ),
 
                                         fontSize =
-                                            25.sp,
+                                            26.sp,
 
                                         fontWeight =
                                             FontWeight.Bold,
 
                                         color =
-                                            PrimaryGreen
+                                            if (karyawan.isAdmin) {
+                                                Color(0xFF7C3AED)
+                                            } else {
+                                                PrimaryGreen
+                                            }
                                     )
                                 }
                             }
@@ -1583,7 +1822,13 @@ private fun KaryawanDetailScreen(
                                     TextDark,
 
                                 textAlign =
-                                    TextAlign.Center
+                                    TextAlign.Center,
+
+                                maxLines =
+                                    2,
+
+                                overflow =
+                                    TextOverflow.Ellipsis
                             )
 
                             Spacer(
@@ -1636,6 +1881,10 @@ private fun KaryawanDetailScreen(
                 }
 
 
+                // ==================================================
+                // PERSONAL
+                // ==================================================
+
                 item {
 
                     SectionTitle(
@@ -1682,6 +1931,10 @@ private fun KaryawanDetailScreen(
                     }
                 }
 
+
+                // ==================================================
+                // PEKERJAAN
+                // ==================================================
 
                 item {
 
@@ -1750,6 +2003,10 @@ private fun KaryawanDetailScreen(
                 }
 
 
+                // ==================================================
+                // KONTAK
+                // ==================================================
+
                 item {
 
                     SectionTitle(
@@ -1797,13 +2054,18 @@ private fun SectionTitle(
             title,
 
         fontSize =
-            16.sp,
+            15.sp,
 
         fontWeight =
             FontWeight.Bold,
 
         color =
-            TextDark
+            TextDark,
+
+        modifier =
+            Modifier.padding(
+                horizontal = 2.dp
+            )
     )
 }
 
@@ -1880,19 +2142,25 @@ private fun DetailRow(
                 Color(0xFFE8F5E9)
         ) {
 
-            Icon(
-                imageVector =
-                    icon,
+            Box(
+                contentAlignment =
+                    Alignment.Center
+            ) {
 
-                contentDescription =
-                    null,
+                Icon(
+                    imageVector =
+                        icon,
 
-                tint =
-                    PrimaryGreen,
+                    contentDescription =
+                        null,
 
-                modifier =
-                    Modifier.padding(10.dp)
-            )
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(20.dp)
+                )
+            }
         }
 
         Spacer(
@@ -1932,7 +2200,13 @@ private fun DetailRow(
                     FontWeight.SemiBold,
 
                 color =
-                    TextDark
+                    TextDark,
+
+                maxLines =
+                    3,
+
+                overflow =
+                    TextOverflow.Ellipsis
             )
         }
     }
@@ -2053,7 +2327,7 @@ private fun TambahKaryawanDialog(
 
 
     // ======================================================
-    // FIELD YANG SEDANG FOCUS
+    // FIELD FOCUS
     // ======================================================
 
     var focusedField by remember {
@@ -2278,7 +2552,16 @@ private fun TambahKaryawanDialog(
                             ),
 
                         shape =
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    PrimaryGreen,
+
+                                cursorColor =
+                                    PrimaryGreen
+                            )
                     )
                 }
 
@@ -2351,7 +2634,16 @@ private fun TambahKaryawanDialog(
                             ),
 
                         shape =
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    PrimaryGreen,
+
+                                cursorColor =
+                                    PrimaryGreen
+                            )
                     )
                 }
 
@@ -2422,7 +2714,11 @@ private fun TambahKaryawanDialog(
                                         },
 
                                     contentDescription =
-                                        "Tampilkan password"
+                                        if (showPassword) {
+                                            "Sembunyikan password"
+                                        } else {
+                                            "Tampilkan password"
+                                        }
                                 )
                             }
                         },
@@ -2453,7 +2749,16 @@ private fun TambahKaryawanDialog(
                             ),
 
                         shape =
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    PrimaryGreen,
+
+                                cursorColor =
+                                    PrimaryGreen
+                            )
                     )
                 }
 
@@ -2544,7 +2849,16 @@ private fun TambahKaryawanDialog(
                             ),
 
                         shape =
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    PrimaryGreen,
+
+                                cursorColor =
+                                    PrimaryGreen
+                            )
                     )
                 }
 
@@ -2617,7 +2931,16 @@ private fun TambahKaryawanDialog(
                             ),
 
                         shape =
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    PrimaryGreen,
+
+                                cursorColor =
+                                    PrimaryGreen
+                            )
                     )
                 }
 
@@ -2690,7 +3013,16 @@ private fun TambahKaryawanDialog(
                             ),
 
                         shape =
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(12.dp),
+
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    PrimaryGreen,
+
+                                cursorColor =
+                                    PrimaryGreen
+                            )
                     )
                 }
 
@@ -2765,7 +3097,10 @@ private fun TambahKaryawanDialog(
                                             FontWeight.SemiBold
                                         } else {
                                             FontWeight.Normal
-                                        }
+                                        },
+
+                                    color =
+                                        TextDark
                                 )
 
                                 Spacer(
@@ -2795,7 +3130,10 @@ private fun TambahKaryawanDialog(
                                             FontWeight.SemiBold
                                         } else {
                                             FontWeight.Normal
-                                        }
+                                        },
+
+                                    color =
+                                        TextDark
                                 )
                             }
                         }

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -67,6 +68,7 @@ import java.util.Locale
 fun StaffDashboardScreen(
     refreshKey: Int,
     onScan: () -> Unit,
+    onAbsenLuarKantor: () -> Unit,
     onProfile: () -> Unit,
     onHistory: () -> Unit,
     onHistoryPulang: () -> Unit,
@@ -91,7 +93,6 @@ fun StaffDashboardScreen(
 
     // ======================================================
     // FORMATTER
-    // Dibuat sekali, tidak setiap detik
     // ======================================================
 
     val timeFormatter = remember {
@@ -178,11 +179,6 @@ fun StaffDashboardScreen(
 
     // ======================================================
     // LOAD USER & ABSENSI
-    //
-    // Tidak lagi while(true).
-    // Data hanya dimuat ketika:
-    // - screen pertama kali dibuka
-    // - refreshKey berubah
     // ======================================================
 
     LaunchedEffect(refreshKey) {
@@ -312,9 +308,6 @@ fun StaffDashboardScreen(
 
     // ======================================================
     // RESET ABSENSI SAAT HARI BERGANTI
-    //
-    // Dipisahkan dari proses Firestore sehingga tidak perlu
-    // menahan coroutine Firestore selama berjam-jam.
     // ======================================================
 
     LaunchedEffect(Unit) {
@@ -853,36 +846,333 @@ fun StaffDashboardScreen(
             )
 
 
-            val horizontalScrollState =
-                rememberScrollState()
+            // ==================================================
+            // ABSENSI UTAMA
+            // ==================================================
 
+            if (!sudahAbsen) {
+
+                // ==================================================
+                // SCAN QR ABSEN
+                // ==================================================
+
+                Card(
+                    onClick =
+                        onScan,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(82.dp),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                PrimaryGreen
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation =
+                                2.dp
+                        )
+                ) {
+
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    horizontal = 18.dp
+                                ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.QrCodeScanner,
+
+                            contentDescription =
+                                "Scan QR Absen",
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(36.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(16.dp)
+                        )
+
+                        Column {
+
+                            Text(
+                                text =
+                                    "Scan QR Absen",
+
+                                fontSize =
+                                    16.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color.White
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(3.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "Scan untuk absen masuk di kantor",
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    Color.White
+                            )
+                        }
+                    }
+                }
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(10.dp)
+                )
+
+
+                // ==================================================
+                // ABSEN LUAR KANTOR
+                // ==================================================
+
+                Card(
+                    onClick =
+                        onAbsenLuarKantor,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(82.dp),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color.White
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation =
+                                2.dp
+                        )
+                ) {
+
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    horizontal = 18.dp
+                                ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.LocationOn,
+
+                            contentDescription =
+                                "Absen Luar Kantor",
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(34.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(16.dp)
+                        )
+
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
+                        ) {
+
+                            Text(
+                                text =
+                                    "Absen Luar Kantor",
+
+                                fontSize =
+                                    16.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(3.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "Untuk tugas langsung ke klien",
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    TextGray
+                            )
+                        }
+                    }
+                }
+
+            } else {
+
+                // ==================================================
+                // SUDAH ABSEN
+                // QR SEKARANG UNTUK ABSEN PULANG
+                // ==================================================
+
+                Card(
+                    onClick =
+                        onScan,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(82.dp),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                PrimaryGreen
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation =
+                                2.dp
+                        )
+                ) {
+
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    horizontal = 18.dp
+                                ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.QrCodeScanner,
+
+                            contentDescription =
+                                "Scan QR Pulang",
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(36.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(16.dp)
+                        )
+
+                        Column {
+
+                            Text(
+                                text =
+                                    "Scan QR Absen Pulang",
+
+                                fontSize =
+                                    16.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color.White
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(3.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "Scan QR saat sudah kembali ke kantor",
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    Color.White
+                            )
+                        }
+                    }
+                }
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(20.dp)
+            )
+
+
+            // ==================================================
+            // AKSI LAINNYA
+            // ==================================================
 
             Row(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .horizontalScroll(
-                            horizontalScrollState
+                            rememberScrollState()
                         ),
 
                 horizontalArrangement =
                     Arrangement.spacedBy(12.dp)
             ) {
-
-                QuickActionCard(
-                    icon =
-                        Icons.Default.QrCodeScanner,
-
-                    title =
-                        "Scan QR",
-
-                    subtitle =
-                        "Absensi",
-
-                    onClick =
-                        onScan
-                )
-
 
                 QuickActionCard(
                     icon =

@@ -4,6 +4,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
+
 // ==========================================================
 // FIRESTORE REPOSITORY
 // ==========================================================
@@ -13,12 +14,14 @@ class FirestoreRepository {
     private val db =
         FirebaseFirestore.getInstance()
 
+
     // ==========================================================
     // COLLECTION ABSENSI
     // ==========================================================
 
     private val attendanceCollection =
         db.collection("attendance")
+
 
     // ==========================================================
     // COLLECTION USERS / KARYAWAN
@@ -69,6 +72,47 @@ class FirestoreRepository {
 
 
     // ==========================================================
+    // SIMPAN ABSEN MASUK LUAR KANTOR
+    // ==========================================================
+
+    suspend fun simpanAbsenLuarKantor(
+        uid: String,
+        nama: String,
+        tanggal: String,
+        jamMasuk: String,
+        lokasi: String,
+        alasan: String
+    ): Result<Unit> {
+
+        return try {
+
+            val data =
+                hashMapOf<String, Any>(
+                    "uid" to uid,
+                    "nama" to nama,
+                    "tanggal" to tanggal,
+                    "jamMasuk" to jamMasuk,
+                    "jamPulang" to "",
+                    "status" to "Hadir",
+                    "qrData" to "LUAR_KANTOR",
+                    "lokasi" to lokasi,
+                    "alasan" to alasan
+                )
+
+            attendanceCollection
+                .add(data)
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+
+    // ==========================================================
     // CARI ABSEN HARI INI
     // ==========================================================
 
@@ -93,15 +137,21 @@ class FirestoreRepository {
                     .get()
                     .await()
 
+
             if (snapshot.isEmpty) {
+
                 return null
             }
+
 
             val document =
                 snapshot.documents.first()
 
+
             AbsenHariIni(
-                documentId = document.id,
+
+                documentId =
+                    document.id,
 
                 jamMasuk =
                     document.getString(
@@ -221,6 +271,7 @@ class FirestoreRepository {
                     .get()
                     .await()
 
+
             val daftar =
                 snapshot.documents.map { document ->
 
@@ -281,6 +332,7 @@ class FirestoreRepository {
                     )
                 }
 
+
             Result.success(
                 daftar
             )
@@ -290,6 +342,11 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
+
+    // ==========================================================
+    // AMBIL PENGAJUAN SAYA
+    // ==========================================================
 
     suspend fun getPengajuanSaya(
         uid: String
@@ -306,6 +363,7 @@ class FirestoreRepository {
                     .get()
                     .await()
 
+
             val daftar =
                 snapshot.documents.map { document ->
 
@@ -366,6 +424,7 @@ class FirestoreRepository {
                     )
                 }
 
+
             Result.success(
                 daftar
             )
@@ -375,6 +434,7 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
 
     // ==========================================================
     // UPDATE STATUS PENGAJUAN
@@ -444,10 +504,12 @@ class FirestoreRepository {
                     "isAdmin" to isAdmin
                 )
 
+
             val document =
                 usersCollection
                     .add(data)
                     .await()
+
 
             Result.success(
                 document.id
@@ -473,6 +535,7 @@ class FirestoreRepository {
                 usersCollection
                     .get()
                     .await()
+
 
             val daftar =
                 snapshot.documents.map { document ->
@@ -517,6 +580,7 @@ class FirestoreRepository {
                         it.nama.lowercase()
                     }
 
+
             Result.success(
                 daftar
             )
@@ -560,6 +624,7 @@ class FirestoreRepository {
                     "isAdmin" to isAdmin
                 )
 
+
             usersCollection
                 .document(
                     documentId
@@ -568,6 +633,7 @@ class FirestoreRepository {
                     data
                 )
                 .await()
+
 
             Result.success(Unit)
 
@@ -594,6 +660,7 @@ class FirestoreRepository {
                 )
                 .delete()
                 .await()
+
 
             Result.success(Unit)
 

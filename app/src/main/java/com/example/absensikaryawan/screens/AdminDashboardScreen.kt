@@ -135,7 +135,6 @@ fun AdminDashboardScreen(
     // ======================================================
     // LOAD DATA DASHBOARD
     //
-    // Optimasi:
     // 3 query Firestore dijalankan bersamaan.
     // ======================================================
 
@@ -183,7 +182,7 @@ fun AdminDashboardScreen(
 
 
                 // ==================================================
-                // TUNGGU SEMUA QUERY SELESAI
+                // TUNGGU SEMUA QUERY
                 // ==================================================
 
                 val results =
@@ -385,7 +384,7 @@ fun AdminDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(10.dp)
+                    Modifier.height(8.dp)
             )
 
 
@@ -476,7 +475,7 @@ fun AdminDashboardScreen(
                             TextDark,
 
                         modifier =
-                            Modifier.size(23.dp)
+                            Modifier.size(22.dp)
                     )
                 }
             }
@@ -568,7 +567,7 @@ fun AdminDashboardScreen(
                     Row(
                         modifier =
                             Modifier
-                                .size(56.dp)
+                                .size(54.dp)
                                 .background(
                                     color =
                                         Color.White.copy(
@@ -577,7 +576,7 @@ fun AdminDashboardScreen(
 
                                     shape =
                                         RoundedCornerShape(
-                                            16.dp
+                                            15.dp
                                         )
                                 ),
 
@@ -599,7 +598,7 @@ fun AdminDashboardScreen(
                                 Color.White,
 
                             modifier =
-                                Modifier.size(30.dp)
+                                Modifier.size(29.dp)
                         )
                     }
                 }
@@ -628,7 +627,7 @@ fun AdminDashboardScreen(
 
                 modifier =
                     Modifier.padding(
-                        top = 4.dp
+                        top = 2.dp
                     )
             )
         }
@@ -732,6 +731,7 @@ fun AdminDashboardScreen(
 
         // ==================================================
         // PENGAJUAN BARU
+        // Hanya muncul jika ada pengajuan menunggu.
         // ==================================================
 
         item {
@@ -901,7 +901,7 @@ fun AdminDashboardScreen(
 
                 modifier =
                     Modifier.padding(
-                        top = 4.dp
+                        top = 2.dp
                     )
             )
         }
@@ -972,7 +972,7 @@ fun AdminDashboardScreen(
 
                 modifier =
                     Modifier.padding(
-                        top = 4.dp
+                        top = 2.dp
                     )
             )
         }
@@ -1006,7 +1006,10 @@ fun AdminDashboardScreen(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(17.dp)
+                            .padding(
+                                horizontal = 17.dp,
+                                vertical = 17.dp
+                            )
                 ) {
 
                     AdminAttendanceRow(
@@ -1099,7 +1102,7 @@ fun AdminDashboardScreen(
 
                 modifier =
                     Modifier.padding(
-                        top = 4.dp
+                        top = 2.dp
                     )
             )
         }
@@ -1179,7 +1182,8 @@ fun AdminDashboardScreen(
 
         // ==================================================
         // KELUAR
-        // Tetap dipertahankan seperti desain sebelumnya.
+        //
+        // Tetap dipertahankan sebagai bagian UI.
         // Logout utama tetap melalui Setting.
         // ==================================================
 
@@ -1190,7 +1194,7 @@ fun AdminDashboardScreen(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            // Tetap tidak melakukan logout.
+                            // Tidak melakukan logout.
                             // Logout utama melalui Setting.
                         },
 
@@ -1326,28 +1330,14 @@ fun AdminDashboardScreen(
 
 
         // ==================================================
-        // VERSI
+        // BOTTOM SPACING
         // ==================================================
 
         item {
 
-            Text(
-                text =
-                    "Versi 1.1",
-
+            Spacer(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            top = 2.dp,
-                            bottom = 14.dp
-                        ),
-
-                fontSize =
-                    11.sp,
-
-                color =
-                    TextGray
+                    Modifier.height(8.dp)
             )
         }
     }
