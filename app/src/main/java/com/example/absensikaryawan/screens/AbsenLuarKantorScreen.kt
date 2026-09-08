@@ -562,7 +562,7 @@ fun AbsenLuarKantorScreen(
                     Text(
 
                         text =
-                            "Kirim Pengajuan",
+                            "Kirim Absen",
 
                         fontSize =
                             15.sp,

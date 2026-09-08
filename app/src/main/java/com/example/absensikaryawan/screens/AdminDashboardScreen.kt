@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
@@ -42,11 +43,12 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+//import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -69,7 +71,8 @@ fun AdminDashboardScreen(
     onApproval: () -> Unit,
     onEmployees: () -> Unit,
     onRecap: () -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    onChat: () -> Unit
 ) {
 
     // ======================================================
@@ -134,8 +137,6 @@ fun AdminDashboardScreen(
 
     // ======================================================
     // LOAD DATA DASHBOARD
-    //
-    // 3 query Firestore dijalankan bersamaan.
     // ======================================================
 
     LaunchedEffect(Unit) {
@@ -150,6 +151,10 @@ fun AdminDashboardScreen(
 
             coroutineScope {
 
+                // ==========================================
+                // QUERY USERS
+                // ==========================================
+
                 val usersDeferred =
                     async {
 
@@ -158,6 +163,10 @@ fun AdminDashboardScreen(
                             .await()
                     }
 
+
+                // ==========================================
+                // QUERY ATTENDANCE
+                // ==========================================
 
                 val attendanceDeferred =
                     async {
@@ -172,6 +181,10 @@ fun AdminDashboardScreen(
                     }
 
 
+                // ==========================================
+                // QUERY PENGAJUAN
+                // ==========================================
+
                 val pengajuanDeferred =
                     async {
 
@@ -181,9 +194,9 @@ fun AdminDashboardScreen(
                     }
 
 
-                // ==================================================
+                // ==========================================
                 // TUNGGU SEMUA QUERY
-                // ==================================================
+                // ==========================================
 
                 val results =
                     awaitAll(
@@ -245,6 +258,10 @@ fun AdminDashboardScreen(
                                 ) ?: ""
 
 
+                            // ======================================
+                            // HADIR
+                            // ======================================
+
                             if (
                                 jamMasuk.isNotBlank()
                             ) {
@@ -252,6 +269,10 @@ fun AdminDashboardScreen(
                                 totalHadir++
                             }
 
+
+                            // ======================================
+                            // PULANG
+                            // ======================================
 
                             if (
                                 jamPulang.isNotBlank()
@@ -316,6 +337,10 @@ fun AdminDashboardScreen(
                                     ?: ""
 
 
+                            // ======================================
+                            // PENGAJUAN HARI INI
+                            // ======================================
+
                             if (
                                 tanggalMulai ==
                                 tanggalHariIni
@@ -324,6 +349,10 @@ fun AdminDashboardScreen(
                                 totalHariIni++
                             }
 
+
+                            // ======================================
+                            // MENUNGGU
+                            // ======================================
 
                             if (
                                 status ==
@@ -731,7 +760,6 @@ fun AdminDashboardScreen(
 
         // ==================================================
         // PENGAJUAN BARU
-        // Hanya muncul jika ada pengajuan menunggu.
         // ==================================================
 
         item {
@@ -1108,6 +1136,10 @@ fun AdminDashboardScreen(
         }
 
 
+        // ==================================================
+        // APPROVAL
+        // ==================================================
+
         item {
 
             AdminQuickMenu(
@@ -1125,6 +1157,32 @@ fun AdminDashboardScreen(
             )
         }
 
+
+        // ==================================================
+        // CHAT
+        // ==================================================
+
+        item {
+
+            AdminQuickMenu(
+                icon =
+                    Icons.Default.Chat,
+
+                title =
+                    "Chat",
+
+                subtitle =
+                    "Hubungi dan balas pesan karyawan",
+
+                onClick =
+                    onChat
+            )
+        }
+
+
+        // ==================================================
+        // KARYAWAN
+        // ==================================================
 
         item {
 
@@ -1144,6 +1202,10 @@ fun AdminDashboardScreen(
         }
 
 
+        // ==================================================
+        // REKAP
+        // ==================================================
+
         item {
 
             AdminQuickMenu(
@@ -1161,6 +1223,10 @@ fun AdminDashboardScreen(
             )
         }
 
+
+        // ==================================================
+        // SETTING
+        // ==================================================
 
         item {
 
@@ -1182,9 +1248,6 @@ fun AdminDashboardScreen(
 
         // ==================================================
         // KELUAR
-        //
-        // Tetap dipertahankan sebagai bagian UI.
-        // Logout utama tetap melalui Setting.
         // ==================================================
 
         item {
@@ -1194,7 +1257,6 @@ fun AdminDashboardScreen(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            // Tidak melakukan logout.
                             // Logout utama melalui Setting.
                         },
 
@@ -1394,7 +1456,7 @@ private fun AdminSummaryCard(
                         .size(40.dp)
                         .background(
                             color =
-                                Color(0xFFE6EEE9),
+                                SoftGreen,
 
                             shape =
                                 RoundedCornerShape(
@@ -1492,7 +1554,7 @@ private fun AdminAttendanceRow(
                     .size(40.dp)
                     .background(
                         color =
-                            Color(0xFFE6EEE9),
+                            SoftGreen,
 
                         shape =
                             RoundedCornerShape(
@@ -1618,7 +1680,7 @@ private fun AdminQuickMenu(
                         .size(46.dp)
                         .background(
                             color =
-                                Color(0xFFE6EEE9),
+                                SoftGreen,
 
                             shape =
                                 RoundedCornerShape(

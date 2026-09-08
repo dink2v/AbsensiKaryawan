@@ -25,7 +25,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,24 +33,29 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Work
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -63,7 +67,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -71,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
@@ -88,11 +92,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
+import androidx.compose.ui.focus.onFocusChanged
+
 import androidx.core.content.ContextCompat
 
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
+
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -109,13 +118,9 @@ private const val TAG = "ScanAbsenScreen"
  */
 
 private const val SCANNER_FRAME_SIZE_DP = 280f
-
 private const val QR_MIN_SIZE_DP = 45f
-
 private const val QR_MAX_SIZE_RATIO = 0.90f
-
 private const val QR_MIN_OVERLAP_RATIO = 0.80f
-
 private const val QR_FRAME_TOLERANCE_DP = 12f
 
 
@@ -126,7 +131,6 @@ private const val QR_FRAME_TOLERANCE_DP = 12f
  */
 
 private const val QR_REQUIRED_VALID_FRAMES = 3
-
 private const val QR_MAX_TRACKING_DISTANCE_DP = 40f
 
 
@@ -136,28 +140,30 @@ private const val QR_MAX_TRACKING_DISTANCE_DP = 40f
  * ============================================================
  */
 
-private val ScannerGreen = Color(0xFF00E676)
+private val ScannerGreen =
+    Color(0xFF00E676)
 
-private val ScannerGreenBright = Color(0xFF69F0AE)
+private val ScannerGreenBright =
+    Color(0xFF69F0AE)
 
-private val ScannerGreenDark = Color(0xFF00C853)
+private val ScannerGreenDark =
+    Color(0xFF00C853)
 
+
+/*
+ * ============================================================
+ * SCAN ABSEN SCREEN
+ * ============================================================
+ */
 
 @Composable
 fun ScanAbsenScreen(
     onBack: () -> Unit,
-    onQrScanned: (String, String) -> Unit,
-
-    /*
-     * Sekarang Absen Luar Kantor mengirimkan:
-     *
-     * String pertama  = Lokasi
-     * String kedua    = Alasan / Keperluan
-     */
-    onAbsenLuarKantor: (String, String) -> Unit
+    onQrScanned: (String, String) -> Unit
 ) {
 
-    val context = LocalContext.current
+    val context =
+        LocalContext.current
 
 
     /*
@@ -189,24 +195,14 @@ fun ScanAbsenScreen(
      * ========================================================
      */
 
-    var showAbsenLuarKantorGuide by remember {
+    var absenLuarKantorTerbuka by remember {
         mutableStateOf(false)
     }
 
-    var showAbsenLuarKantorForm by remember {
-        mutableStateOf(false)
-    }
-
-    /*
-     * Lokasi diketik manual oleh user.
-     */
     var lokasiLuarKantor by remember {
         mutableStateOf("")
     }
 
-    /*
-     * Alasan / keperluan diketik manual oleh user.
-     */
     var alasanLuarKantor by remember {
         mutableStateOf("")
     }
@@ -216,11 +212,6 @@ fun ScanAbsenScreen(
      * ========================================================
      * VALIDASI QR
      * ========================================================
-     *
-     * 0 = belum ada QR
-     * 1 = frame pertama
-     * 2 = frame kedua
-     * 3 = QR terkunci
      */
 
     var validationProgress by remember {
@@ -284,6 +275,207 @@ fun ScanAbsenScreen(
 
     /*
      * ========================================================
+     * SCROLL STATE
+     * ========================================================
+     */
+
+    val scrollState =
+        rememberScrollState()
+
+
+    /*
+     * ========================================================
+     * COROUTINE
+     * ========================================================
+     */
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
+
+    /*
+     * ========================================================
+     * BRING INTO VIEW REQUESTER
+     * ========================================================
+     */
+
+    val catatanBringIntoViewRequester =
+        remember {
+            BringIntoViewRequester()
+        }
+
+    val lokasiBringIntoViewRequester =
+        remember {
+            BringIntoViewRequester()
+        }
+
+    val alasanBringIntoViewRequester =
+        remember {
+            BringIntoViewRequester()
+        }
+
+
+    /*
+     * ========================================================
+     * FOCUS STATE
+     * ========================================================
+     */
+
+    var catatanFocused by remember {
+        mutableStateOf(false)
+    }
+
+    var lokasiFocused by remember {
+        mutableStateOf(false)
+    }
+
+    var alasanFocused by remember {
+        mutableStateOf(false)
+    }
+
+
+    /*
+     * ========================================================
+     * FUNGSI SCROLL FIELD
+     * ========================================================
+     */
+
+    fun scrollToField(
+        requester: BringIntoViewRequester,
+        extraScroll: Int = 0
+    ) {
+
+        coroutineScope.launch {
+
+            /*
+             * Tunggu field benar-benar mendapat fokus.
+             */
+            delay(150)
+
+            requester.bringIntoView()
+
+            /*
+             * Tunggu keyboard/layout berubah.
+             */
+            delay(300)
+
+            requester.bringIntoView()
+
+            /*
+             * Scroll tambahan jika diperlukan.
+             */
+            if (extraScroll > 0) {
+
+                delay(150)
+
+                scrollState.animateScrollTo(
+                    scrollState.value + extraScroll
+                )
+            }
+        }
+    }
+
+
+    /*
+     * ========================================================
+     * AUTO SCROLL CATATAN
+     * ========================================================
+     */
+
+    LaunchedEffect(
+        catatanFocused,
+        catatan
+    ) {
+
+        if (catatanFocused) {
+
+            scrollToField(
+                requester =
+                    catatanBringIntoViewRequester
+            )
+        }
+    }
+
+
+    /*
+     * ========================================================
+     * AUTO SCROLL LOKASI
+     * ========================================================
+     */
+
+    LaunchedEffect(
+        lokasiFocused,
+        lokasiLuarKantor
+    ) {
+
+        if (lokasiFocused) {
+
+            scrollToField(
+                requester =
+                    lokasiBringIntoViewRequester
+            )
+        }
+    }
+
+
+    /*
+     * ========================================================
+     * AUTO SCROLL ALASAN
+     * ========================================================
+     *
+     * Field ini berada paling bawah,
+     * sehingga dibuat lebih agresif.
+     */
+
+    LaunchedEffect(
+        alasanFocused,
+        alasanLuarKantor
+    ) {
+
+        if (alasanFocused) {
+
+            coroutineScope.launch {
+
+                /*
+                 * Tahap 1
+                 */
+                delay(150)
+
+                alasanBringIntoViewRequester
+                    .bringIntoView()
+
+                /*
+                 * Tahap 2 setelah keyboard muncul
+                 */
+                delay(350)
+
+                alasanBringIntoViewRequester
+                    .bringIntoView()
+
+                /*
+                 * Tahap 3
+                 */
+                delay(250)
+
+                alasanBringIntoViewRequester
+                    .bringIntoView()
+
+                /*
+                 * Pastikan scroll berada
+                 * cukup jauh dari bawah.
+                 */
+                delay(150)
+
+                scrollState.animateScrollTo(
+                    scrollState.maxValue
+                )
+            }
+        }
+    }
+
+
+    /*
+     * ========================================================
      * PERMISSION LAUNCHER
      * ========================================================
      */
@@ -293,7 +485,8 @@ fun ScanAbsenScreen(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
 
-            kameraDiizinkan = granted
+            kameraDiizinkan =
+                granted
 
             if (!granted) {
 
@@ -365,11 +558,16 @@ fun ScanAbsenScreen(
      */
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                MaterialTheme.colorScheme.background
-            )
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(
+                    scrollState
+                )
+                .imePadding()
+                .background(
+                    MaterialTheme.colorScheme.background
+                )
     ) {
 
 
@@ -380,12 +578,14 @@ fun ScanAbsenScreen(
          */
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 12.dp,
-                    vertical = 10.dp
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 12.dp,
+                        vertical = 10.dp
+                    ),
+
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
@@ -397,6 +597,7 @@ fun ScanAbsenScreen(
                 Icon(
                     imageVector =
                         Icons.Default.ArrowBack,
+
                     contentDescription =
                         "Kembali"
                 )
@@ -458,11 +659,12 @@ fun ScanAbsenScreen(
          */
 
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 16.dp
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp
+                    ),
 
             colors =
                 CardDefaults.cardColors(
@@ -473,55 +675,9 @@ fun ScanAbsenScreen(
             shape =
                 RoundedCornerShape(16.dp)
         ) {
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Icon(
-                    imageVector =
-                        Icons.Default.CameraAlt,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(10.dp)
-                )
-
-                Column {
-
-                    Text(
-                        text =
-                            "Posisikan QR di dalam kotak",
-
-                        fontWeight =
-                            FontWeight.SemiBold
-                    )
-
-                    Text(
-                        text =
-                            "Pastikan QR terlihat jelas dan tidak terlalu jauh.",
-
-                        style =
-                            MaterialTheme.typography.bodySmall,
-
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            /*
+             * Sengaja kosong sesuai desain sebelumnya.
+             */
         }
 
 
@@ -538,12 +694,13 @@ fun ScanAbsenScreen(
          */
 
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(
-                    horizontal = 16.dp
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(420.dp)
+                    .padding(
+                        horizontal = 16.dp
+                    ),
 
             shape =
                 RoundedCornerShape(20.dp),
@@ -559,10 +716,15 @@ fun ScanAbsenScreen(
                     Modifier.fillMaxSize()
             ) {
 
+                /*
+                 * CAMERA
+                 */
+
                 if (kameraDiizinkan) {
 
                     QRScannerCamera(
-                        scanLock = scanLock,
+                        scanLock =
+                            scanLock,
 
                         sudahScan =
                             sudahScan,
@@ -611,6 +773,10 @@ fun ScanAbsenScreen(
                     )
 
                 } else {
+
+                    /*
+                     * CAMERA PERMISSION UI
+                     */
 
                     Column(
                         modifier =
@@ -695,13 +861,14 @@ fun ScanAbsenScreen(
                  */
 
                 Surface(
-                    modifier = Modifier
-                        .align(
-                            Alignment.TopCenter
-                        )
-                        .padding(
-                            top = 12.dp
-                        ),
+                    modifier =
+                        Modifier
+                            .align(
+                                Alignment.TopCenter
+                            )
+                            .padding(
+                                top = 12.dp
+                            ),
 
                     shape =
                         RoundedCornerShape(50),
@@ -787,13 +954,14 @@ fun ScanAbsenScreen(
                 ) {
 
                     Surface(
-                        modifier = Modifier
-                            .align(
-                                Alignment.BottomCenter
-                            )
-                            .padding(
-                                bottom = 16.dp
-                            ),
+                        modifier =
+                            Modifier
+                                .align(
+                                    Alignment.BottomCenter
+                                )
+                                .padding(
+                                    bottom = 16.dp
+                                ),
 
                         shape =
                             RoundedCornerShape(50),
@@ -888,19 +1056,20 @@ fun ScanAbsenScreen(
                             resetScanner()
                         },
 
-                        modifier = Modifier
-                            .align(
-                                Alignment.TopEnd
-                            )
-                            .padding(8.dp)
-                            .clip(
-                                RoundedCornerShape(50)
-                            )
-                            .background(
-                                Color.Black.copy(
-                                    alpha = 0.60f
+                        modifier =
+                            Modifier
+                                .align(
+                                    Alignment.TopEnd
                                 )
-                            )
+                                .padding(8.dp)
+                                .clip(
+                                    RoundedCornerShape(50.dp)
+                                )
+                                .background(
+                                    Color.Black.copy(
+                                        alpha = 0.60f
+                                    )
+                                )
                     ) {
 
                         Icon(
@@ -937,11 +1106,12 @@ fun ScanAbsenScreen(
         ) {
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 16.dp
-                    ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 16.dp
+                        ),
 
                 colors =
                     CardDefaults.cardColors(
@@ -1033,11 +1203,30 @@ fun ScanAbsenScreen(
                 catatan = it
             },
 
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 16.dp
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp
+                    )
+                    .bringIntoViewRequester(
+                        catatanBringIntoViewRequester
+                    )
+                    .onFocusChanged { focusState ->
+
+                        catatanFocused =
+                            focusState.isFocused
+
+                        if (
+                            focusState.isFocused
+                        ) {
+
+                            scrollToField(
+                                requester =
+                                    catatanBringIntoViewRequester
+                            )
+                        }
+                    },
 
             label = {
                 Text(
@@ -1051,7 +1240,8 @@ fun ScanAbsenScreen(
                 )
             },
 
-            maxLines = 3,
+            maxLines =
+                3,
 
             shape =
                 RoundedCornerShape(14.dp)
@@ -1092,12 +1282,13 @@ fun ScanAbsenScreen(
                         qrData.isNotBlank() &&
                         !sedangKirim,
 
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 16.dp
-                )
-                .height(52.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp
+                    )
+                    .height(52.dp),
 
             shape =
                 RoundedCornerShape(14.dp),
@@ -1118,7 +1309,8 @@ fun ScanAbsenScreen(
                     color =
                         Color.White,
 
-                    strokeWidth = 2.dp
+                    strokeWidth =
+                        2.dp
                 )
 
                 Spacer(
@@ -1156,83 +1348,186 @@ fun ScanAbsenScreen(
 
         Spacer(
             modifier =
-                Modifier.height(8.dp)
+                Modifier.height(10.dp)
         )
 
 
         /*
          * ====================================================
-         * ABSEN LUAR KANTOR
+         * BUTTON ABSEN DI LUAR KANTOR
          * ====================================================
          */
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 16.dp
-                )
-                .clickable {
+        Button(
+            onClick = {
 
-                    /*
-                     * Tampilkan panduan terlebih dahulu.
-                     */
-                    showAbsenLuarKantorGuide =
-                        true
-                },
+                absenLuarKantorTerbuka =
+                    !absenLuarKantorTerbuka
+            },
 
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        MaterialTheme.colorScheme.surfaceVariant
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp
+                    )
+                    .height(52.dp),
 
             shape =
-                RoundedCornerShape(14.dp)
+                RoundedCornerShape(14.dp),
+
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        MaterialTheme.colorScheme.surface,
+
+                    contentColor =
+                        MaterialTheme.colorScheme.primary
+                ),
+
+            elevation =
+                ButtonDefaults.buttonElevation(
+                    defaultElevation = 1.dp
+                )
         ) {
 
-            Row(
+            Icon(
+                imageVector =
+                    Icons.Default.Work,
+
+                contentDescription =
+                    null
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(8.dp)
+            )
+
+            Text(
+                text =
+                    "Absen di Luar Kantor",
+
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            Icon(
+                imageVector =
+                    if (absenLuarKantorTerbuka)
+                        Icons.Default.KeyboardArrowUp
+                    else
+                        Icons.Default.KeyboardArrowDown,
+
+                contentDescription =
+                    if (absenLuarKantorTerbuka)
+                        "Tutup"
+                    else
+                        "Buka"
+            )
+        }
+
+
+        /*
+         * ====================================================
+         * FORM ABSEN LUAR KANTOR
+         * ====================================================
+         */
+
+        if (absenLuarKantorTerbuka) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+            Card(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
+                        .padding(
+                            horizontal = 16.dp
+                        ),
 
-                verticalAlignment =
-                    Alignment.CenterVertically
+                shape =
+                    RoundedCornerShape(16.dp),
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.surface
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation = 2.dp
+                    )
             ) {
-
-                Icon(
-                    imageVector =
-                        Icons.Default.LocationOn,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(10.dp)
-                )
 
                 Column(
                     modifier =
-                        Modifier.weight(1f)
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                 ) {
 
-                    Text(
-                        text =
-                            "Absen Luar Kantor",
+                    /*
+                     * =================================================
+                     * HEADER FORM
+                     * =================================================
+                     */
 
-                        fontWeight =
-                            FontWeight.Bold
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Work,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                MaterialTheme.colorScheme.primary,
+
+                            modifier =
+                                Modifier.size(24.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(8.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Absen dari lokasi tugas",
+
+                            style =
+                                MaterialTheme.typography.titleMedium,
+
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(5.dp)
                     )
 
+
                     Text(
                         text =
-                            "Gunakan jika sedang bertugas di luar kantor.",
+                            "Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.",
 
                         style =
                             MaterialTheme.typography.bodySmall,
@@ -1240,108 +1535,307 @@ fun ScanAbsenScreen(
                         color =
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(16.dp)
+                    )
+
+
+                    /*
+                     * =================================================
+                     * LOKASI
+                     * =================================================
+                     */
+
+                    Text(
+                        text =
+                            "Lokasi",
+
+                        style =
+                            MaterialTheme.typography.labelLarge,
+
+                        fontWeight =
+                            FontWeight.SemiBold
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(6.dp)
+                    )
+
+
+                    OutlinedTextField(
+                        value =
+                            lokasiLuarKantor,
+
+                        onValueChange = {
+                            lokasiLuarKantor =
+                                it
+                        },
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewRequester(
+                                    lokasiBringIntoViewRequester
+                                )
+                                .onFocusChanged { focusState ->
+
+                                    lokasiFocused =
+                                        focusState.isFocused
+
+                                    if (
+                                        focusState.isFocused
+                                    ) {
+
+                                        scrollToField(
+                                            requester =
+                                                lokasiBringIntoViewRequester
+                                        )
+                                    }
+                                },
+
+                        placeholder = {
+                            Text(
+                                "Contoh: SMK Negeri 1 Blitar"
+                            )
+                        },
+
+                        leadingIcon = {
+                            Icon(
+                                imageVector =
+                                    Icons.Default.LocationOn,
+
+                                contentDescription =
+                                    null
+                            )
+                        },
+
+                        singleLine =
+                            true,
+
+                        shape =
+                            RoundedCornerShape(14.dp)
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(14.dp)
+                    )
+
+
+                    /*
+                     * =================================================
+                     * ALASAN / KEPERLUAN
+                     * =================================================
+                     */
+
+                    Text(
+                        text =
+                            "Alasan / Keperluan",
+
+                        style =
+                            MaterialTheme.typography.labelLarge,
+
+                        fontWeight =
+                            FontWeight.SemiBold
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(6.dp)
+                    )
+
+
+                    OutlinedTextField(
+                        value =
+                            alasanLuarKantor,
+
+                        onValueChange = {
+                            alasanLuarKantor =
+                                it
+                        },
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewRequester(
+                                    alasanBringIntoViewRequester
+                                )
+                                .onFocusChanged { focusState ->
+
+                                    alasanFocused =
+                                        focusState.isFocused
+
+                                    if (
+                                        focusState.isFocused
+                                    ) {
+
+                                        coroutineScope.launch {
+
+                                            /*
+                                             * Tunggu keyboard.
+                                             */
+                                            delay(200)
+
+                                            alasanBringIntoViewRequester
+                                                .bringIntoView()
+
+                                            /*
+                                             * Tunggu layout berubah.
+                                             */
+                                            delay(350)
+
+                                            alasanBringIntoViewRequester
+                                                .bringIntoView()
+
+                                            /*
+                                             * Pastikan benar-benar
+                                             * sampai ke bagian bawah.
+                                             */
+                                            delay(250)
+
+                                            scrollState.animateScrollTo(
+                                                scrollState.maxValue
+                                            )
+
+                                            /*
+                                             * Satu kali final check.
+                                             */
+                                            delay(150)
+
+                                            alasanBringIntoViewRequester
+                                                .bringIntoView()
+                                        }
+                                    }
+                                },
+
+                        placeholder = {
+                            Text(
+                                "Contoh: Bertemu klien untuk keperluan pekerjaan"
+                            )
+                        },
+
+                        leadingIcon = {
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Work,
+
+                                contentDescription =
+                                    null
+                            )
+                        },
+
+                        minLines =
+                            3,
+
+                        maxLines =
+                            5,
+
+                        shape =
+                            RoundedCornerShape(14.dp)
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(16.dp)
+                    )
+
+
+                    /*
+                     * =================================================
+                     * KIRIM ABSEN
+                     * =================================================
+                     */
+
+                    Button(
+                        onClick = {
+
+                            /*
+                             * Logic Firestore tetap
+                             * disambungkan di navigation/repository.
+                             */
+                        },
+
+                        enabled =
+                            lokasiLuarKantor
+                                .trim()
+                                .isNotEmpty() &&
+                                    alasanLuarKantor
+                                        .trim()
+                                        .isNotEmpty(),
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+
+                        shape =
+                            RoundedCornerShape(14.dp)
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Send,
+
+                            contentDescription =
+                                null
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(8.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Kirim Absen",
+
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
                 }
-
-                Icon(
-                    imageVector =
-                        Icons.Default.Info,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
+
+
+            /*
+             * =================================================
+             * EXTRA BOTTOM SPACE
+             * =================================================
+             *
+             * Ini penting agar field Alasan dan tombol
+             * Kirim Absen masih bisa dinaikkan ketika keyboard
+             * sedang terbuka.
+             */
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        if (alasanFocused || lokasiFocused)
+                            220.dp
+                        else
+                            80.dp
+                    )
+            )
         }
 
 
+        /*
+         * ====================================================
+         * BOTTOM SPACE
+         * ====================================================
+         */
+
         Spacer(
             modifier =
-                Modifier.height(12.dp)
-        )
-    }
-
-
-    /*
-     * ========================================================
-     * DIALOG PANDUAN ABSEN LUAR KANTOR
-     * ========================================================
-     */
-
-    if (showAbsenLuarKantorGuide) {
-
-        AbsenLuarKantorGuideDialog(
-
-            onDismiss = {
-
-                showAbsenLuarKantorGuide =
-                    false
-            },
-
-            onContinue = {
-
-                showAbsenLuarKantorGuide =
-                    false
-
-                /*
-                 * Setelah panduan selesai,
-                 * buka form pengisian.
-                 */
-                showAbsenLuarKantorForm =
-                    true
-            }
-        )
-    }
-
-
-    /*
-     * ========================================================
-     * FORM ABSEN LUAR KANTOR
-     * ========================================================
-     */
-
-    if (showAbsenLuarKantorForm) {
-
-        AbsenLuarKantorFormDialog(
-
-            lokasi =
-                lokasiLuarKantor,
-
-            alasan =
-                alasanLuarKantor,
-
-            onLokasiChange = {
-                lokasiLuarKantor = it
-            },
-
-            onAlasanChange = {
-                alasanLuarKantor = it
-            },
-
-            onDismiss = {
-
-                showAbsenLuarKantorForm =
-                    false
-            },
-
-            onSubmit = {
-
-                /*
-                 * Tutup form.
-                 */
-                showAbsenLuarKantorForm =
-                    false
-
-                /*
-                 * Kirim lokasi dan alasan
-                 * ke navigation / proses pengajuan.
-                 */
-                onAbsenLuarKantor(
-                    lokasiLuarKantor.trim(),
-                    alasanLuarKantor.trim()
-                )
-            }
+                Modifier.height(40.dp)
         )
     }
 }
@@ -1360,9 +1854,7 @@ private fun QRScannerCamera(
     qrBoundingBox: Rect?,
     qrCornerPoints: List<Point>?,
     scannerResetKey: Int,
-
     onValidationProgress: (Int) -> Unit,
-
     onQrDetected: (
         String,
         Rect,
@@ -1402,7 +1894,7 @@ private fun QRScannerCamera(
 
     /*
      * ========================================================
-     * PREVIEW VIEW
+     * PREVIEW
      * ========================================================
      */
 
@@ -1412,13 +1904,19 @@ private fun QRScannerCamera(
             cameraController
         ) {
 
-            PreviewView(context).apply {
+            PreviewView(
+                context
+            ).apply {
 
                 implementationMode =
-                    PreviewView.ImplementationMode.COMPATIBLE
+                    PreviewView
+                        .ImplementationMode
+                        .COMPATIBLE
 
                 scaleType =
-                    PreviewView.ScaleType.FILL_CENTER
+                    PreviewView
+                        .ScaleType
+                        .FILL_CENTER
 
                 controller =
                     cameraController
@@ -1428,7 +1926,7 @@ private fun QRScannerCamera(
 
     /*
      * ========================================================
-     * ML KIT QR SCANNER
+     * ML KIT
      * ========================================================
      */
 
@@ -1436,7 +1934,8 @@ private fun QRScannerCamera(
         remember {
 
             val options =
-                BarcodeScannerOptions.Builder()
+                BarcodeScannerOptions
+                    .Builder()
                     .setBarcodeFormats(
                         Barcode.FORMAT_QR_CODE
                     )
@@ -1461,12 +1960,6 @@ private fun QRScannerCamera(
         scannerResetKey
     ) {
 
-        /*
-         * ====================================================
-         * STATE VALIDASI MULTI FRAME
-         * ====================================================
-         */
-
         var validFrameCount =
             0
 
@@ -1481,9 +1974,7 @@ private fun QRScannerCamera(
 
 
         /*
-         * ====================================================
          * RESET VALIDATION
-         * ====================================================
          */
 
         fun resetValidation() {
@@ -1508,12 +1999,11 @@ private fun QRScannerCamera(
 
         /*
          * ====================================================
-         * ML KIT ANALYZER
+         * ANALYZER
          * ====================================================
          */
 
         val analyzer =
-
             MlKitAnalyzer(
                 listOf(scanner),
 
@@ -1527,9 +2017,9 @@ private fun QRScannerCamera(
             ) { result ->
 
                 /*
-                 * Kalau sudah lock,
-                 * jangan proses QR lagi.
+                 * Sudah lock.
                  */
+
                 if (scanLock.get()) {
 
                     return@MlKitAnalyzer
@@ -1537,15 +2027,15 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Ambil barcode.
+                 * Barcode.
                  */
+
                 val barcodes =
-                    result.getValue(scanner)
+                    result.getValue(
+                        scanner
+                    )
 
 
-                /*
-                 * Tidak ada barcode.
-                 */
                 if (
                     barcodes.isNullOrEmpty()
                 ) {
@@ -1557,8 +2047,9 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Cari QR yang memiliki value.
+                 * Cari QR yang mempunyai value.
                  */
+
                 val barcode =
                     barcodes.firstOrNull {
 
@@ -1576,13 +2067,16 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Ambil value QR.
+                 * QR value.
                  */
+
                 val value =
                     barcode.rawValue
 
 
-                if (value.isNullOrBlank()) {
+                if (
+                    value.isNullOrBlank()
+                ) {
 
                     resetValidation()
 
@@ -1593,11 +2087,14 @@ private fun QRScannerCamera(
                 /*
                  * Bounding box.
                  */
+
                 val boundingBox =
                     barcode.boundingBox
 
 
-                if (boundingBox == null) {
+                if (
+                    boundingBox == null
+                ) {
 
                     resetValidation()
 
@@ -1606,13 +2103,16 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Ukuran PreviewView.
+                 * Preview size.
                  */
+
                 val previewWidth =
-                    previewView.width.toFloat()
+                    previewView.width
+                        .toFloat()
 
                 val previewHeight =
-                    previewView.height.toFloat()
+                    previewView.height
+                        .toFloat()
 
 
                 if (
@@ -1629,8 +2129,10 @@ private fun QRScannerCamera(
                 /*
                  * Density.
                  */
+
                 val density =
-                    context.resources
+                    context
+                        .resources
                         .displayMetrics
                         .density
 
@@ -1652,65 +2154,75 @@ private fun QRScannerCamera(
 
                 val scannerLeft =
                     (
-                            previewWidth -
-                                    scannerFrameSizePx
-                            ) / 2f -
-                            tolerancePx
+                            (
+                                    previewWidth -
+                                            scannerFrameSizePx
+                                    ) / 2f
+                            ) - tolerancePx
 
 
                 val scannerTop =
                     (
-                            previewHeight -
-                                    scannerFrameSizePx
-                            ) / 2f -
-                            tolerancePx
+                            (
+                                    previewHeight -
+                                            scannerFrameSizePx
+                                    ) / 2f
+                            ) - tolerancePx
 
 
                 val scannerRight =
                     (
-                            previewWidth +
-                                    scannerFrameSizePx
-                            ) / 2f +
-                            tolerancePx
+                            (
+                                    previewWidth +
+                                            scannerFrameSizePx
+                                    ) / 2f
+                            ) + tolerancePx
 
 
                 val scannerBottom =
                     (
-                            previewHeight +
-                                    scannerFrameSizePx
-                            ) / 2f +
-                            tolerancePx
+                            (
+                                    previewHeight +
+                                            scannerFrameSizePx
+                                    ) / 2f
+                            ) + tolerancePx
 
 
                 /*
                  * =================================================
-                 * QR BOUNDING BOX
+                 * QR BOX
                  * =================================================
                  */
 
                 val qrLeft =
-                    boundingBox.left.toFloat()
+                    boundingBox.left
+                        .toFloat()
 
                 val qrTop =
-                    boundingBox.top.toFloat()
+                    boundingBox.top
+                        .toFloat()
 
                 val qrRight =
-                    boundingBox.right.toFloat()
+                    boundingBox.right
+                        .toFloat()
 
                 val qrBottom =
-                    boundingBox.bottom.toFloat()
+                    boundingBox.bottom
+                        .toFloat()
 
 
                 val qrWidth =
-                    boundingBox.width().toFloat()
+                    boundingBox.width()
+                        .toFloat()
 
                 val qrHeight =
-                    boundingBox.height().toFloat()
+                    boundingBox.height()
+                        .toFloat()
 
 
                 /*
                  * =================================================
-                 * VALIDASI UKURAN
+                 * UKURAN
                  * =================================================
                  */
 
@@ -1718,15 +2230,11 @@ private fun QRScannerCamera(
                     QR_MIN_SIZE_DP *
                             density
 
-
                 val maxQrSizePx =
                     scannerFrameSizePx *
                             QR_MAX_SIZE_RATIO
 
 
-                /*
-                 * QR terlalu kecil.
-                 */
                 if (
                     qrWidth < minQrSizePx ||
                     qrHeight < minQrSizePx
@@ -1743,9 +2251,6 @@ private fun QRScannerCamera(
                 }
 
 
-                /*
-                 * QR terlalu besar.
-                 */
                 if (
                     qrWidth > maxQrSizePx ||
                     qrHeight > maxQrSizePx
@@ -1764,7 +2269,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * VALIDASI POSISI
+                 * POSISI
                  * =================================================
                  */
 
@@ -1773,7 +2278,6 @@ private fun QRScannerCamera(
                             qrLeft +
                                     qrRight
                             ) / 2f
-
 
                 val qrCenterY =
                     (
@@ -1814,20 +2318,17 @@ private fun QRScannerCamera(
                         scannerLeft
                     )
 
-
                 val intersectionTop =
                     maxOf(
                         qrTop,
                         scannerTop
                     )
 
-
                 val intersectionRight =
                     minOf(
                         qrRight,
                         scannerRight
                     )
-
 
                 val intersectionBottom =
                     minOf(
@@ -1843,7 +2344,6 @@ private fun QRScannerCamera(
                                 intersectionLeft
                     )
 
-
                 val intersectionHeight =
                     maxOf(
                         0f,
@@ -1856,14 +2356,12 @@ private fun QRScannerCamera(
                     intersectionWidth *
                             intersectionHeight
 
-
                 val qrArea =
                     maxOf(
                         1f,
                         qrWidth *
                                 qrHeight
                     )
-
 
                 val overlapRatio =
                     intersectionArea /
@@ -1888,7 +2386,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * MULTI FRAME VALIDATION
+                 * MULTI FRAME
                  * =================================================
                  */
 
@@ -1898,9 +2396,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * =================================================
                  * FRAME PERTAMA
-                 * =================================================
                  */
 
                 if (
@@ -1934,9 +2430,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * =================================================
-                 * QR YANG SAMA
-                 * =================================================
+                 * QR SAMA
                  */
 
                 val sameQr =
@@ -1945,9 +2439,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * =================================================
-                 * JARAK PERPINDAHAN CENTER
-                 * =================================================
+                 * JARAK
                  */
 
                 val centerDistance =
@@ -1960,21 +2452,13 @@ private fun QRScannerCamera(
                     )
 
 
-                /*
-                 * =================================================
-                 * POSISI STABIL
-                 * =================================================
-                 */
-
                 val stablePosition =
                     centerDistance <=
                             maxTrackingDistancePx
 
 
                 /*
-                 * =================================================
-                 * RESET JIKA TIDAK STABIL
-                 * =================================================
+                 * RESET
                  */
 
                 if (
@@ -2014,9 +2498,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * =================================================
-                 * FRAME VALID BERIKUTNYA
-                 * =================================================
+                 * FRAME BERIKUTNYA
                  */
 
                 validFrameCount++
@@ -2050,8 +2532,9 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Belum mencapai 3 frame.
+                 * Belum 3 frame.
                  */
+
                 if (
                     validFrameCount <
                     QR_REQUIRED_VALID_FRAMES
@@ -2063,7 +2546,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * QR VALID / LOCK
+                 * LOCK QR
                  * =================================================
                  */
 
@@ -2081,6 +2564,7 @@ private fun QRScannerCamera(
                 /*
                  * Corner points.
                  */
+
                 val cornerPoints =
                     barcode.cornerPoints
                         ?.toList()
@@ -2101,8 +2585,11 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Kirim hasil.
+                 * =================================================
+                 * KIRIM HASIL
+                 * =================================================
                  */
+
                 onQrDetected(
                     value,
                     boundingBox,
@@ -2117,12 +2604,13 @@ private fun QRScannerCamera(
          * ====================================================
          */
 
-        cameraController.setImageAnalysisAnalyzer(
-            ContextCompat.getMainExecutor(
-                context
-            ),
-            analyzer
-        )
+        cameraController
+            .setImageAnalysisAnalyzer(
+                ContextCompat.getMainExecutor(
+                    context
+                ),
+                analyzer
+            )
 
 
         /*
@@ -2131,9 +2619,10 @@ private fun QRScannerCamera(
          * ====================================================
          */
 
-        cameraController.bindToLifecycle(
-            lifecycleOwner
-        )
+        cameraController
+            .bindToLifecycle(
+                lifecycleOwner
+            )
 
 
         /*
@@ -2152,7 +2641,8 @@ private fun QRScannerCamera(
             cameraController
                 .clearImageAnalysisAnalyzer()
 
-            cameraController.unbind()
+            cameraController
+                .unbind()
 
             scanner.close()
         }
@@ -2169,6 +2659,10 @@ private fun QRScannerCamera(
         modifier =
             Modifier.fillMaxSize()
     ) {
+
+        /*
+         * CAMERA PREVIEW
+         */
 
         AndroidView(
             modifier =
@@ -2187,9 +2681,7 @@ private fun QRScannerCamera(
 
 
         /*
-         * =================================================
          * SCANNER FRAME
-         * =================================================
          */
 
         if (!sudahScan) {
@@ -2203,8 +2695,9 @@ private fun QRScannerCamera(
 
 
             /*
-             * Scanner line bergerak.
+             * SCANNER LINE
              */
+
             ScannerLine(
                 modifier =
                     Modifier.align(
@@ -2215,9 +2708,7 @@ private fun QRScannerCamera(
 
 
         /*
-         * =================================================
          * QR DETECTION OVERLAY
-         * =================================================
          */
 
         if (sudahScan) {
@@ -2283,85 +2774,122 @@ private fun ScannerFrame(
 
 
     Box(
-        modifier = modifier
-            .size(
-                SCANNER_FRAME_SIZE_DP.dp
-            )
+        modifier =
+            modifier
+                .size(
+                    SCANNER_FRAME_SIZE_DP.dp
+                )
     ) {
 
+        /*
+         * TOP LEFT
+         */
+
         Box(
-            modifier = Modifier
-                .align(
-                    Alignment.TopStart
-                )
-                .size(52.dp)
-                .alpha(cornerAlpha)
-                .border(
-                    width = 4.dp,
-                    color =
-                        ScannerGreen,
-                    shape =
-                        RoundedCornerShape(
-                            topStart = 20.dp
-                        )
-                )
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.TopStart
+                    )
+                    .size(52.dp)
+                    .alpha(
+                        cornerAlpha
+                    )
+                    .border(
+                        width = 4.dp,
+
+                        color =
+                            ScannerGreen,
+
+                        shape =
+                            RoundedCornerShape(
+                                topStart = 20.dp
+                            )
+                    )
         )
 
 
+        /*
+         * TOP RIGHT
+         */
+
         Box(
-            modifier = Modifier
-                .align(
-                    Alignment.TopEnd
-                )
-                .size(52.dp)
-                .alpha(cornerAlpha)
-                .border(
-                    width = 4.dp,
-                    color =
-                        ScannerGreen,
-                    shape =
-                        RoundedCornerShape(
-                            topEnd = 20.dp
-                        )
-                )
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.TopEnd
+                    )
+                    .size(52.dp)
+                    .alpha(
+                        cornerAlpha
+                    )
+                    .border(
+                        width = 4.dp,
+
+                        color =
+                            ScannerGreen,
+
+                        shape =
+                            RoundedCornerShape(
+                                topEnd = 20.dp
+                            )
+                    )
         )
 
 
+        /*
+         * BOTTOM LEFT
+         */
+
         Box(
-            modifier = Modifier
-                .align(
-                    Alignment.BottomStart
-                )
-                .size(52.dp)
-                .alpha(cornerAlpha)
-                .border(
-                    width = 4.dp,
-                    color =
-                        ScannerGreen,
-                    shape =
-                        RoundedCornerShape(
-                            bottomStart = 20.dp
-                        )
-                )
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.BottomStart
+                    )
+                    .size(52.dp)
+                    .alpha(
+                        cornerAlpha
+                    )
+                    .border(
+                        width = 4.dp,
+
+                        color =
+                            ScannerGreen,
+
+                        shape =
+                            RoundedCornerShape(
+                                bottomStart = 20.dp
+                            )
+                    )
         )
 
 
+        /*
+         * BOTTOM RIGHT
+         */
+
         Box(
-            modifier = Modifier
-                .align(
-                    Alignment.BottomEnd
-                )
-                .size(52.dp)
-                .alpha(cornerAlpha)
-                .border(
-                    width = 4.dp,
-                    color =
-                        ScannerGreen,
-                    shape =
-                        RoundedCornerShape(
-                            bottomEnd = 20.dp
-                        )
-                )
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.BottomEnd
+                    )
+                    .size(52.dp)
+                    .alpha(
+                        cornerAlpha
+                    )
+                    .border(
+                        width = 4.dp,
+
+                        color =
+                            ScannerGreen,
+
+                        shape =
+                            RoundedCornerShape(
+                                bottomEnd = 20.dp
+                            )
+                    )
         )
     }
 }
@@ -2413,57 +2941,68 @@ private fun ScannerLine(
 
 
     Box(
-        modifier = modifier
-            .size(
-                SCANNER_FRAME_SIZE_DP.dp
-            )
+        modifier =
+            modifier
+                .size(
+                    SCANNER_FRAME_SIZE_DP.dp
+                )
     ) {
 
+        /*
+         * GLOW
+         */
+
         Box(
-            modifier = Modifier
-                .align(
-                    Alignment.Center
-                )
-                .offset(
-                    y = position.dp
-                )
-                .width(250.dp)
-                .height(8.dp)
-                .clip(
-                    RoundedCornerShape(50)
-                )
-                .background(
-                    ScannerGreen.copy(
-                        alpha = 0.20f
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.Center
                     )
-                )
+                    .offset(
+                        y = position.dp
+                    )
+                    .width(250.dp)
+                    .height(8.dp)
+                    .clip(
+                        RoundedCornerShape(50)
+                    )
+                    .background(
+                        ScannerGreen.copy(
+                            alpha = 0.20f
+                        )
+                    )
         )
 
 
+        /*
+         * MAIN LINE
+         */
+
         Box(
-            modifier = Modifier
-                .align(
-                    Alignment.Center
-                )
-                .offset(
-                    y = position.dp
-                )
-                .width(250.dp)
-                .height(2.dp)
-                .clip(
-                    RoundedCornerShape(50)
-                )
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color.Transparent,
-                            ScannerGreenDark,
-                            ScannerGreenBright,
-                            ScannerGreenDark,
-                            Color.Transparent
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.Center
+                    )
+                    .offset(
+                        y = position.dp
+                    )
+                    .width(250.dp)
+                    .height(2.dp)
+                    .clip(
+                        RoundedCornerShape(50)
+                    )
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                ScannerGreenDark,
+                                ScannerGreenBright,
+                                ScannerGreenDark,
+                                Color.Transparent
+                            )
                         )
                     )
-                )
         )
     }
 }
@@ -2483,8 +3022,15 @@ private fun QRDetectionOverlay(
 ) {
 
     Canvas(
-        modifier = modifier
+        modifier =
+            modifier
     ) {
+
+        /*
+         * =================================================
+         * CORNER POINTS
+         * =================================================
+         */
 
         if (
             cornerPoints != null &&
@@ -2495,8 +3041,13 @@ private fun QRDetectionOverlay(
                 Path().apply {
 
                     moveTo(
-                        cornerPoints[0].x.toFloat(),
-                        cornerPoints[0].y.toFloat()
+                        cornerPoints[0]
+                            .x
+                            .toFloat(),
+
+                        cornerPoints[0]
+                            .y
+                            .toFloat()
                     )
 
                     for (
@@ -2504,8 +3055,13 @@ private fun QRDetectionOverlay(
                     ) {
 
                         lineTo(
-                            cornerPoints[i].x.toFloat(),
-                            cornerPoints[i].y.toFloat()
+                            cornerPoints[i]
+                                .x
+                                .toFloat(),
+
+                            cornerPoints[i]
+                                .y
+                                .toFloat()
                         )
                     }
 
@@ -2513,8 +3069,13 @@ private fun QRDetectionOverlay(
                 }
 
 
+            /*
+             * OUTLINE
+             */
+
             drawPath(
-                path = path,
+                path =
+                    path,
 
                 color =
                     ScannerGreen,
@@ -2522,11 +3083,16 @@ private fun QRDetectionOverlay(
                 style =
                     Stroke(
                         width = 5f,
+
                         cap =
                             StrokeCap.Round
                     )
             )
 
+
+            /*
+             * CORNER DOTS
+             */
 
             cornerPoints.forEach { point ->
 
@@ -2549,6 +3115,10 @@ private fun QRDetectionOverlay(
             boundingBox != null
         ) {
 
+            /*
+             * FALLBACK BOX
+             */
+
             drawRect(
 
                 color =
@@ -2556,14 +3126,20 @@ private fun QRDetectionOverlay(
 
                 topLeft =
                     androidx.compose.ui.geometry.Offset(
-                        boundingBox.left.toFloat(),
-                        boundingBox.top.toFloat()
+                        boundingBox.left
+                            .toFloat(),
+
+                        boundingBox.top
+                            .toFloat()
                     ),
 
                 size =
                     androidx.compose.ui.geometry.Size(
-                        boundingBox.width().toFloat(),
-                        boundingBox.height().toFloat()
+                        boundingBox.width()
+                            .toFloat(),
+
+                        boundingBox.height()
+                            .toFloat()
                     ),
 
                 style =
@@ -2572,487 +3148,5 @@ private fun QRDetectionOverlay(
                     )
             )
         }
-    }
-}
-
-
-/*
- * ============================================================
- * PANDUAN ABSEN LUAR KANTOR
- * ============================================================
- */
-
-@Composable
-private fun AbsenLuarKantorGuideDialog(
-    onDismiss: () -> Unit,
-    onContinue: () -> Unit
-) {
-
-    AlertDialog(
-
-        onDismissRequest =
-            onDismiss,
-
-        icon = {
-
-            Icon(
-                imageVector =
-                    Icons.Default.LocationOn,
-
-                contentDescription =
-                    null,
-
-                tint =
-                    MaterialTheme.colorScheme.primary,
-
-                modifier =
-                    Modifier.size(42.dp)
-            )
-        },
-
-        title = {
-
-            Text(
-                text =
-                    "Absen Luar Kantor",
-
-                fontWeight =
-                    FontWeight.Bold
-            )
-        },
-
-        text = {
-
-            Column {
-
-                Text(
-                    text =
-                        "Gunakan fitur ini jika kamu sedang bertugas di luar kantor.",
-
-                    style =
-                        MaterialTheme.typography.bodyMedium
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
-                )
-
-                Text(
-                    text =
-                        "Cara pengisian:",
-
-                    fontWeight =
-                        FontWeight.Bold
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-
-                /*
-                 * STEP 1
-                 */
-
-                GuideStep(
-                    number = "1",
-
-                    text =
-                        "Masukkan lokasi tempat kamu bertugas."
-                )
-
-
-                /*
-                 * STEP 2
-                 */
-
-                GuideStep(
-                    number = "2",
-
-                    text =
-                        "Masukkan alasan atau keperluan bertugas di luar kantor."
-                )
-
-
-                /*
-                 * STEP 3
-                 */
-
-                GuideStep(
-                    number = "3",
-
-                    text =
-                        "Periksa kembali data yang sudah dimasukkan."
-                )
-
-
-                /*
-                 * STEP 4
-                 */
-
-                GuideStep(
-                    number = "4",
-
-                    text =
-                        "Tekan Kirim Pengajuan jika semua data sudah benar."
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-                Text(
-                    text =
-                        "Pastikan informasi yang diberikan sesuai dengan kegiatan sebenarnya.",
-
-                    style =
-                        MaterialTheme.typography.bodySmall,
-
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-
-        confirmButton = {
-
-            Button(
-                onClick =
-                    onContinue
-            ) {
-
-                Text(
-                    text =
-                        "Lanjutkan"
-                )
-            }
-        },
-
-        dismissButton = {
-
-            TextButton(
-                onClick =
-                    onDismiss
-            ) {
-
-                Text(
-                    text =
-                        "Batal"
-                )
-            }
-        }
-    )
-}
-
-
-/*
- * ============================================================
- * FORM ABSEN LUAR KANTOR
- * ============================================================
- */
-
-@Composable
-private fun AbsenLuarKantorFormDialog(
-    lokasi: String,
-    alasan: String,
-
-    onLokasiChange: (String) -> Unit,
-    onAlasanChange: (String) -> Unit,
-
-    onDismiss: () -> Unit,
-    onSubmit: () -> Unit
-) {
-
-    /*
-     * Form hanya valid jika:
-     *
-     * 1. Lokasi diisi
-     * 2. Alasan / Keperluan diisi
-     */
-
-    val formValid =
-        lokasi.isNotBlank() &&
-                alasan.isNotBlank()
-
-
-    AlertDialog(
-
-        onDismissRequest =
-            onDismiss,
-
-        icon = {
-
-            Icon(
-                imageVector =
-                    Icons.Default.LocationOn,
-
-                contentDescription =
-                    null,
-
-                tint =
-                    MaterialTheme.colorScheme.primary,
-
-                modifier =
-                    Modifier.size(42.dp)
-            )
-        },
-
-        title = {
-
-            Text(
-                text =
-                    "Isi Absen Luar Kantor",
-
-                fontWeight =
-                    FontWeight.Bold
-            )
-        },
-
-        text = {
-
-            Column {
-
-                Text(
-                    text =
-                        "Masukkan informasi sesuai dengan kegiatan bertugas di luar kantor.",
-
-                    style =
-                        MaterialTheme.typography.bodySmall,
-
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
-                )
-
-
-                /*
-                 * =================================================
-                 * LOKASI
-                 * =================================================
-                 */
-
-                OutlinedTextField(
-
-                    value =
-                        lokasi,
-
-                    onValueChange =
-                        onLokasiChange,
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    label = {
-
-                        Text(
-                            "Lokasi"
-                        )
-                    },
-
-                    placeholder = {
-
-                        Text(
-                            "Masukkan lokasi tempat bertugas"
-                        )
-                    },
-
-                    singleLine = true,
-
-                    leadingIcon = {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.LocationOn,
-
-                            contentDescription =
-                                null
-                        )
-                    },
-
-                    shape =
-                        RoundedCornerShape(12.dp)
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-
-                /*
-                 * =================================================
-                 * ALASAN / KEPERLUAN
-                 * =================================================
-                 */
-
-                OutlinedTextField(
-
-                    value =
-                        alasan,
-
-                    onValueChange =
-                        onAlasanChange,
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    label = {
-
-                        Text(
-                            "Alasan / Keperluan"
-                        )
-                    },
-
-                    placeholder = {
-
-                        Text(
-                            "Masukkan alasan bertugas di luar kantor"
-                        )
-                    },
-
-                    minLines = 3,
-
-                    maxLines = 4,
-
-                    shape =
-                        RoundedCornerShape(12.dp)
-                )
-            }
-        },
-
-        confirmButton = {
-
-            Button(
-
-                onClick =
-                    onSubmit,
-
-                enabled =
-                    formValid
-            ) {
-
-                Icon(
-                    imageVector =
-                        Icons.Default.CheckCircle,
-
-                    contentDescription =
-                        null
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(6.dp)
-                )
-
-                Text(
-                    text =
-                        "Kirim Pengajuan"
-                )
-            }
-        },
-
-        dismissButton = {
-
-            TextButton(
-                onClick =
-                    onDismiss
-            ) {
-
-                Text(
-                    text =
-                        "Batal"
-                )
-            }
-        }
-    )
-}
-
-
-/*
- * ============================================================
- * GUIDE STEP
- * ============================================================
- */
-
-@Composable
-private fun GuideStep(
-    number: String,
-    text: String
-) {
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = 4.dp
-                ),
-
-        verticalAlignment =
-            Alignment.Top
-    ) {
-
-        Surface(
-            modifier =
-                Modifier.size(24.dp),
-
-            shape =
-                RoundedCornerShape(50),
-
-            color =
-                MaterialTheme.colorScheme.primaryContainer
-        ) {
-
-            Box(
-                modifier =
-                    Modifier.fillMaxSize(),
-
-                contentAlignment =
-                    Alignment.Center
-            ) {
-
-                Text(
-                    text =
-                        number,
-
-                    style =
-                        MaterialTheme.typography.labelSmall,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-
-        Spacer(
-            modifier =
-                Modifier.width(8.dp)
-        )
-
-
-        Text(
-            text =
-                text,
-
-            modifier =
-                Modifier.weight(1f),
-
-            style =
-                MaterialTheme.typography.bodySmall
-        )
     }
 }

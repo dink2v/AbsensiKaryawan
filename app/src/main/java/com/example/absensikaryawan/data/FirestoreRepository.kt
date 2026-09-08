@@ -2,6 +2,8 @@ package com.example.absensikaryawan.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
 
@@ -29,6 +31,14 @@ class FirestoreRepository {
 
     private val usersCollection =
         db.collection("users")
+
+
+    // ==========================================================
+    // COLLECTION CHAT
+    // ==========================================================
+
+    private val chatCollection =
+        db.collection("chats")
 
 
     // ==========================================================
@@ -669,6 +679,177 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
+
+    // ==========================================================
+    // ==========================================================
+    // CHAT ADMIN / HRD
+    // ==========================================================
+    // ==========================================================
+
+
+    // ==========================================================
+    // SIMPAN PESAN CHAT
+    // ==========================================================
+
+    suspend fun kirimPesanChat(
+        staffUid: String,
+        senderUid: String,
+        senderType: String,
+        message: String
+    ): Result<Unit> {
+
+        return try {
+
+            val text =
+                message.trim()
+
+            if (text.isEmpty()) {
+
+                return Result.failure(
+                    IllegalArgumentException(
+                        "Pesan tidak boleh kosong"
+                    )
+                )
+            }
+
+
+            val data =
+                hashMapOf<String, Any>(
+
+                    "senderUid" to
+                            senderUid,
+
+                    "senderType" to
+                            senderType,
+
+                    "message" to
+                            text,
+
+                    "timestamp" to
+                            Timestamp.now()
+                )
+
+
+            chatCollection
+                .document(
+                    staffUid
+                )
+                .collection(
+                    "messages"
+                )
+                .add(
+                    data
+                )
+                .await()
+
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+
+    // ==========================================================
+    // REALTIME PESAN CHAT
+    // ==========================================================
+
+    fun listenChatMessages(
+        staffUid: String,
+        onMessagesChanged:
+            (List<ChatMessageData>) -> Unit,
+        onError:
+            (Exception) -> Unit
+    ): ListenerRegistration {
+
+        return chatCollection
+            .document(
+                staffUid
+            )
+            .collection(
+                "messages"
+            )
+            .orderBy(
+                "timestamp",
+                Query.Direction.ASCENDING
+            )
+            .addSnapshotListener { snapshot, error ->
+
+                if (error != null) {
+
+                    onError(
+                        error
+                    )
+
+                    return@addSnapshotListener
+                }
+
+
+                if (snapshot == null) {
+
+                    onMessagesChanged(
+                        emptyList()
+                    )
+
+                    return@addSnapshotListener
+                }
+
+
+                val messages =
+                    snapshot.documents.mapNotNull { document ->
+
+                        val message =
+                            document.getString(
+                                "message"
+                            )
+                                ?: return@mapNotNull null
+
+                        val senderUid =
+                            document.getString(
+                                "senderUid"
+                            )
+                                ?: ""
+
+                        val senderType =
+                            document.getString(
+                                "senderType"
+                            )
+                                ?: "staff"
+
+                        val timestamp =
+                            document.getTimestamp(
+                                "timestamp"
+                            )
+
+
+                        ChatMessageData(
+
+                            id =
+                                document.id,
+
+                            message =
+                                message,
+
+                            senderUid =
+                                senderUid,
+
+                            senderType =
+                                senderType,
+
+                            timestamp =
+                                timestamp
+                        )
+                    }
+
+
+                onMessagesChanged(
+                    messages
+                )
+            }
+    }
 }
 
 
@@ -735,4 +916,22 @@ data class KaryawanData(
     val usernameTele: String,
 
     val isAdmin: Boolean
+)
+
+
+// ==========================================================
+// DATA CHAT
+// ==========================================================
+
+data class ChatMessageData(
+
+    val id: String,
+
+    val message: String,
+
+    val senderUid: String,
+
+    val senderType: String,
+
+    val timestamp: Timestamp?
 )

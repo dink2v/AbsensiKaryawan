@@ -207,6 +207,28 @@ fun BantuanScreen(
 
                 HelpItem(
                     icon =
+                        Icons.Default.QrCodeScanner,
+
+                    title =
+                        "Cara Absen di Luar Kantor",
+
+                    description =
+                        "Panduan melakukan absensi dari lokasi tugas",
+
+                    steps = listOf(
+                        "Buka menu Scan.",
+                        "Tekan tombol Absen di Luar Kantor.",
+                        "Isi Lokasi tempat kamu sedang bertugas, misalnya SMK Negeri 1 Blitar atau Kantor Cabang Kediri.",
+                        "Isi Alasan / Keperluan sesuai kegiatan atau tugas yang sedang dilakukan.",
+                        "Tekan tombol Kirim Absen.",
+                        "Sistem akan mencatat Absen Masuk secara langsung.",
+                        "Jam Masuk otomatis mengikuti waktu saat Absen dikirim.",
+                        "Setelah selesai bekerja, lakukan Absen Pulang seperti biasa."
+                    )
+                ),
+
+                HelpItem(
+                    icon =
                         Icons.Default.History,
 
                     title =
