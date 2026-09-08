@@ -139,7 +139,9 @@ fun RiwayatScreen(
     onDetailClick: (RiwayatPengajuan) -> Unit,
 
     filterStatusAwal: FilterStatusPengajuan =
-        FilterStatusPengajuan.SEMUA
+        FilterStatusPengajuan.SEMUA,
+
+    refreshKey: Int = 0
 ) {
 
     // ======================================================
@@ -460,7 +462,7 @@ fun RiwayatScreen(
     // LOAD SAAT SCREEN DIBUKA
     // ======================================================
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshKey) {
         loadSemuaData()
     }
 

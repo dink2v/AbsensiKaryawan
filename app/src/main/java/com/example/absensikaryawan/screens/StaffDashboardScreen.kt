@@ -388,7 +388,6 @@ fun StaffDashboardScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
                     .verticalScroll(
                         verticalScrollState
                     )
@@ -396,7 +395,7 @@ fun StaffDashboardScreen(
                         horizontal = 20.dp,
                         vertical = 12.dp
                     )
-        ) {
+        )   {
 
             // ==================================================
             // HEADER

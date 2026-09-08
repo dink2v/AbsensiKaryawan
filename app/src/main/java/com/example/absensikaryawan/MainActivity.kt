@@ -35,6 +35,12 @@ class MainActivity : ComponentActivity() {
         // ======================================================
         // EDGE TO EDGE
         // ======================================================
+        //
+        // Aplikasi boleh menggambar sampai area system bar.
+        //
+        // Padding/inset untuk status bar dan navigation bar
+        // akan ditangani oleh Compose pada masing-masing screen.
+        //
 
         enableEdgeToEdge()
 

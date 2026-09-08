@@ -108,7 +108,28 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.hypot
 
 
-private const val TAG = "ScanAbsenScreen"
+private const val TAG =
+    "ScanAbsenScreen"
+
+
+/*
+ * ============================================================
+ * QR KANTOR RESMI
+ * ============================================================
+ *
+ * QR INI ADALAH QR FINAL YANG SUDAH DIBUAT.
+ *
+ * Jangan ubah URL kecuali QR kantor memang diganti.
+ */
+
+private const val QR_KANTOR_MALANG =
+    "https://q.me-qr.com/x5ie23mg"
+
+private const val QR_KANTOR_BLITAR =
+    "https://q.me-qr.com/hbywvgy7"
+
+private const val QR_KANTOR_KEDIRI =
+    "https://q.me-qr.com/14vy2ipr"
 
 
 /*
@@ -117,11 +138,20 @@ private const val TAG = "ScanAbsenScreen"
  * ============================================================
  */
 
-private const val SCANNER_FRAME_SIZE_DP = 280f
-private const val QR_MIN_SIZE_DP = 45f
-private const val QR_MAX_SIZE_RATIO = 0.90f
-private const val QR_MIN_OVERLAP_RATIO = 0.80f
-private const val QR_FRAME_TOLERANCE_DP = 12f
+private const val SCANNER_FRAME_SIZE_DP =
+    280f
+
+private const val QR_MIN_SIZE_DP =
+    45f
+
+private const val QR_MAX_SIZE_RATIO =
+    0.90f
+
+private const val QR_MIN_OVERLAP_RATIO =
+    0.80f
+
+private const val QR_FRAME_TOLERANCE_DP =
+    12f
 
 
 /*
@@ -130,8 +160,11 @@ private const val QR_FRAME_TOLERANCE_DP = 12f
  * ============================================================
  */
 
-private const val QR_REQUIRED_VALID_FRAMES = 3
-private const val QR_MAX_TRACKING_DISTANCE_DP = 40f
+private const val QR_REQUIRED_VALID_FRAMES =
+    3
+
+private const val QR_MAX_TRACKING_DISTANCE_DP =
+    40f
 
 
 /*
@@ -148,6 +181,75 @@ private val ScannerGreenBright =
 
 private val ScannerGreenDark =
     Color(0xFF00C853)
+
+
+/*
+ * ============================================================
+ * DATA QR KANTOR
+ * ============================================================
+ */
+
+private data class RegisteredQr(
+    val url: String,
+    val officeName: String
+)
+
+
+private val registeredQrCodes =
+    listOf(
+
+        RegisteredQr(
+            url =
+                QR_KANTOR_MALANG,
+
+            officeName =
+                "KANTOR MALANG"
+        ),
+
+        RegisteredQr(
+            url =
+                QR_KANTOR_BLITAR,
+
+            officeName =
+                "KANTOR BLITAR"
+        ),
+
+        RegisteredQr(
+            url =
+                QR_KANTOR_KEDIRI,
+
+            officeName =
+                "KANTOR KEDIRI"
+        )
+    )
+
+
+/*
+ * ============================================================
+ * FUNGSI VALIDASI QR
+ * ============================================================
+ */
+
+private fun getRegisteredOffice(
+    qrValue: String
+): RegisteredQr? {
+
+    val normalizedValue =
+        qrValue
+            .trim()
+            .removeSuffix("/")
+
+    return registeredQrCodes
+        .firstOrNull { registeredQr ->
+
+            registeredQr.url
+                .removeSuffix("/")
+                .equals(
+                    normalizedValue,
+                    ignoreCase = true
+                )
+        }
+}
 
 
 /*
@@ -186,6 +288,32 @@ fun ScanAbsenScreen(
 
     var sedangKirim by remember {
         mutableStateOf(false)
+    }
+
+
+    /*
+     * ========================================================
+     * KANTOR HASIL VALIDASI
+     * ========================================================
+     */
+
+    var kantorTerdeteksi by remember {
+        mutableStateOf("")
+    }
+
+
+    /*
+     * ========================================================
+     * ERROR QR
+     * ========================================================
+     */
+
+    var qrTidakValid by remember {
+        mutableStateOf(false)
+    }
+
+    var qrErrorMessage by remember {
+        mutableStateOf("")
     }
 
 
@@ -268,9 +396,10 @@ fun ScanAbsenScreen(
      * ========================================================
      */
 
-    val scanLock = remember {
-        AtomicBoolean(false)
-    }
+    val scanLock =
+        remember {
+            AtomicBoolean(false)
+        }
 
 
     /*
@@ -347,29 +476,21 @@ fun ScanAbsenScreen(
 
         coroutineScope.launch {
 
-            /*
-             * Tunggu field benar-benar mendapat fokus.
-             */
             delay(150)
 
             requester.bringIntoView()
 
-            /*
-             * Tunggu keyboard/layout berubah.
-             */
             delay(300)
 
             requester.bringIntoView()
 
-            /*
-             * Scroll tambahan jika diperlukan.
-             */
             if (extraScroll > 0) {
 
                 delay(150)
 
                 scrollState.animateScrollTo(
-                    scrollState.value + extraScroll
+                    scrollState.value +
+                            extraScroll
                 )
             }
         }
@@ -422,9 +543,6 @@ fun ScanAbsenScreen(
      * ========================================================
      * AUTO SCROLL ALASAN
      * ========================================================
-     *
-     * Field ini berada paling bawah,
-     * sehingga dibuat lebih agresif.
      */
 
     LaunchedEffect(
@@ -436,34 +554,21 @@ fun ScanAbsenScreen(
 
             coroutineScope.launch {
 
-                /*
-                 * Tahap 1
-                 */
                 delay(150)
 
                 alasanBringIntoViewRequester
                     .bringIntoView()
 
-                /*
-                 * Tahap 2 setelah keyboard muncul
-                 */
                 delay(350)
 
                 alasanBringIntoViewRequester
                     .bringIntoView()
 
-                /*
-                 * Tahap 3
-                 */
                 delay(250)
 
                 alasanBringIntoViewRequester
                     .bringIntoView()
 
-                /*
-                 * Pastikan scroll berada
-                 * cukup jauh dari bawah.
-                 */
                 delay(150)
 
                 scrollState.animateScrollTo(
@@ -530,6 +635,8 @@ fun ScanAbsenScreen(
 
         qrData = ""
 
+        kantorTerdeteksi = ""
+
         qrBoundingBox = null
 
         qrCornerPoints = null
@@ -539,6 +646,10 @@ fun ScanAbsenScreen(
         sedangKirim = false
 
         validationProgress = 0
+
+        qrTidakValid = false
+
+        qrErrorMessage = ""
 
         scanLock.set(false)
 
@@ -566,7 +677,9 @@ fun ScanAbsenScreen(
                 )
                 .imePadding()
                 .background(
-                    MaterialTheme.colorScheme.background
+                    MaterialTheme
+                        .colorScheme
+                        .background
                 )
     ) {
 
@@ -618,7 +731,9 @@ fun ScanAbsenScreen(
                         "Scan Kehadiran",
 
                     style =
-                        MaterialTheme.typography.titleLarge,
+                        MaterialTheme
+                            .typography
+                            .titleLarge,
 
                     fontWeight =
                         FontWeight.Bold
@@ -629,10 +744,14 @@ fun ScanAbsenScreen(
                         "Arahkan kamera ke QR Code",
 
                     style =
-                        MaterialTheme.typography.bodySmall,
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
 
                     color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant
                 )
             }
 
@@ -644,7 +763,9 @@ fun ScanAbsenScreen(
                     null,
 
                 tint =
-                    MaterialTheme.colorScheme.primary,
+                    MaterialTheme
+                        .colorScheme
+                        .primary,
 
                 modifier =
                     Modifier.size(30.dp)
@@ -669,14 +790,17 @@ fun ScanAbsenScreen(
             colors =
                 CardDefaults.cardColors(
                     containerColor =
-                        MaterialTheme.colorScheme.primaryContainer
+                        MaterialTheme
+                            .colorScheme
+                            .primaryContainer
                 ),
 
             shape =
                 RoundedCornerShape(16.dp)
         ) {
+
             /*
-             * Sengaja kosong sesuai desain sebelumnya.
+             * Sengaja dipertahankan.
              */
         }
 
@@ -716,6 +840,7 @@ fun ScanAbsenScreen(
                     Modifier.fillMaxSize()
             ) {
 
+
                 /*
                  * CAMERA
                  */
@@ -750,8 +875,89 @@ fun ScanAbsenScreen(
                                 box,
                                 points ->
 
+                            /*
+                             * =================================
+                             * VALIDASI FINAL QR
+                             * =================================
+                             */
+
+                            val registeredOffice =
+                                getRegisteredOffice(
+                                    value
+                                )
+
+
+                            if (
+                                registeredOffice == null
+                            ) {
+
+                                /*
+                                 * QR BUKAN MILIK
+                                 * SISTEM.
+                                 */
+
+                                qrTidakValid =
+                                    true
+
+                                qrErrorMessage =
+                                    "QR Code tidak terdaftar sebagai QR kantor."
+
+                                qrData =
+                                    ""
+
+                                kantorTerdeteksi =
+                                    ""
+
+                                sudahScan =
+                                    false
+
+                                qrBoundingBox =
+                                    null
+
+                                qrCornerPoints =
+                                    null
+
+                                validationProgress =
+                                    0
+
+                                /*
+                                 * Buka scanner lagi.
+                                 */
+
+                                scanLock.set(false)
+
+                                scannerResetKey++
+
+
+                                Log.w(
+                                    TAG,
+                                    """
+                                    QR TIDAK VALID
+                                    value=$value
+                                    """.trimIndent()
+                                )
+
+                                return@QRScannerCamera
+                            }
+
+
+                            /*
+                             * =================================
+                             * QR VALID
+                             * =================================
+                             */
+
+                            qrTidakValid =
+                                false
+
+                            qrErrorMessage =
+                                ""
+
                             qrData =
-                                value
+                                registeredOffice.url
+
+                            kantorTerdeteksi =
+                                registeredOffice.officeName
 
                             qrBoundingBox =
                                 box
@@ -765,9 +971,14 @@ fun ScanAbsenScreen(
                             validationProgress =
                                 QR_REQUIRED_VALID_FRAMES
 
+
                             Log.d(
                                 TAG,
-                                "QR BERHASIL DIKUNCI: $value"
+                                """
+                                QR VALID
+                                kantor=${registeredOffice.officeName}
+                                value=${registeredOffice.url}
+                                """.trimIndent()
                             )
                         }
                     )
@@ -802,7 +1013,9 @@ fun ScanAbsenScreen(
                                 Modifier.size(50.dp),
 
                             tint =
-                                MaterialTheme.colorScheme.error
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
                         )
 
                         Spacer(
@@ -828,7 +1041,9 @@ fun ScanAbsenScreen(
                                 "Izinkan akses kamera untuk melakukan scan QR.",
 
                             style =
-                                MaterialTheme.typography.bodyMedium
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
                         )
 
                         Spacer(
@@ -839,9 +1054,10 @@ fun ScanAbsenScreen(
                         Button(
                             onClick = {
 
-                                permissionLauncher.launch(
-                                    Manifest.permission.CAMERA
-                                )
+                                permissionLauncher
+                                    .launch(
+                                        Manifest.permission.CAMERA
+                                    )
                             }
                         ) {
 
@@ -874,12 +1090,21 @@ fun ScanAbsenScreen(
                         RoundedCornerShape(50),
 
                     color =
-                        if (sudahScan)
-                            Color(0xFF1B5E20)
-                        else
-                            Color.Black.copy(
-                                alpha = 0.65f
-                            )
+                        when {
+
+                            sudahScan ->
+                                Color(0xFF1B5E20)
+
+                            qrTidakValid ->
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+
+                            else ->
+                                Color.Black.copy(
+                                    alpha = 0.65f
+                                )
+                        }
                 ) {
 
                     Row(
@@ -895,10 +1120,17 @@ fun ScanAbsenScreen(
 
                         Icon(
                             imageVector =
-                                if (sudahScan)
-                                    Icons.Default.CheckCircle
-                                else
-                                    Icons.Default.QrCodeScanner,
+                                when {
+
+                                    sudahScan ->
+                                        Icons.Default.CheckCircle
+
+                                    qrTidakValid ->
+                                        Icons.Default.Warning
+
+                                    else ->
+                                        Icons.Default.QrCodeScanner
+                                },
 
                             contentDescription =
                                 null,
@@ -922,6 +1154,9 @@ fun ScanAbsenScreen(
                                     sudahScan ->
                                         "QR TERKUNCI"
 
+                                    qrTidakValid ->
+                                        "QR TIDAK VALID"
+
                                     validationProgress > 0 ->
                                         "MEMERIKSA QR $validationProgress/$QR_REQUIRED_VALID_FRAMES"
 
@@ -936,109 +1171,10 @@ fun ScanAbsenScreen(
                                 FontWeight.Bold,
 
                             style =
-                                MaterialTheme.typography.labelMedium
+                                MaterialTheme
+                                    .typography
+                                    .labelMedium
                         )
-                    }
-                }
-
-
-                /*
-                 * =================================================
-                 * VALIDATION INDICATOR
-                 * =================================================
-                 */
-
-                if (
-                    !sudahScan &&
-                    validationProgress > 0
-                ) {
-
-                    Surface(
-                        modifier =
-                            Modifier
-                                .align(
-                                    Alignment.BottomCenter
-                                )
-                                .padding(
-                                    bottom = 16.dp
-                                ),
-
-                        shape =
-                            RoundedCornerShape(50),
-
-                        color =
-                            Color.Black.copy(
-                                alpha = 0.70f
-                            )
-                    ) {
-
-                        Row(
-                            modifier =
-                                Modifier.padding(
-                                    horizontal = 14.dp,
-                                    vertical = 8.dp
-                                ),
-
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-
-                            repeat(
-                                QR_REQUIRED_VALID_FRAMES
-                            ) { index ->
-
-                                val active =
-                                    index <
-                                            validationProgress
-
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(8.dp)
-                                            .clip(
-                                                RoundedCornerShape(50)
-                                            )
-                                            .background(
-                                                if (active)
-                                                    ScannerGreen
-                                                else
-                                                    Color.White.copy(
-                                                        alpha = 0.35f
-                                                    )
-                                            )
-                                )
-
-                                if (
-                                    index <
-                                    QR_REQUIRED_VALID_FRAMES - 1
-                                ) {
-
-                                    Spacer(
-                                        modifier =
-                                            Modifier.width(5.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(
-                                modifier =
-                                    Modifier.width(8.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Memastikan QR stabil",
-
-                                color =
-                                    Color.White,
-
-                                style =
-                                    MaterialTheme.typography.labelSmall,
-
-                                fontWeight =
-                                    FontWeight.Medium
-                            )
-                        }
                     }
                 }
 
@@ -1088,10 +1224,134 @@ fun ScanAbsenScreen(
         }
 
 
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
+        /*
+         * ====================================================
+         * QR TIDAK VALID
+         * ====================================================
+         */
+
+        if (qrTidakValid) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+            Card(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 16.dp
+                        ),
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme
+                                .colorScheme
+                                .errorContainer
+                    ),
+
+                shape =
+                    RoundedCornerShape(14.dp)
+            ) {
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Warning,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            MaterialTheme
+                                .colorScheme
+                                .error,
+
+                        modifier =
+                            Modifier.size(28.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(10.dp)
+                    )
+
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+
+                        Text(
+                            text =
+                                "QR TIDAK VALID",
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .onErrorContainer
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(2.dp)
+                        )
+
+                        Text(
+                            text =
+                                qrErrorMessage,
+
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .onErrorContainer
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(4.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Gunakan QR resmi kantor Malang, Blitar, atau Kediri.",
+
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+
+                            fontWeight =
+                                FontWeight.Medium,
+
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .onErrorContainer
+                        )
+                    }
+                }
+            }
+        }
 
 
         /*
@@ -1104,6 +1364,11 @@ fun ScanAbsenScreen(
             sudahScan &&
             qrData.isNotBlank()
         ) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
 
             Card(
                 modifier =
@@ -1159,7 +1424,7 @@ fun ScanAbsenScreen(
 
                         Text(
                             text =
-                                "QR berhasil dikunci",
+                                "QR VALID",
 
                             fontWeight =
                                 FontWeight.Bold,
@@ -1168,12 +1433,40 @@ fun ScanAbsenScreen(
                                 Color(0xFF1B5E20)
                         )
 
+                        Spacer(
+                            modifier =
+                                Modifier.height(2.dp)
+                        )
+
                         Text(
                             text =
-                                "QR sudah tervalidasi. Tekan Konfirmasi Absen untuk melanjutkan.",
+                                kantorTerdeteksi,
 
                             style =
-                                MaterialTheme.typography.bodySmall,
+                                MaterialTheme
+                                    .typography
+                                    .titleSmall,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color(0xFF1B5E20)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(2.dp)
+                        )
+
+                        Text(
+                            text =
+                                "QR resmi kantor berhasil dikenali. Kamu dapat melanjutkan konfirmasi absen.",
+
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
 
                             color =
                                 Color(0xFF33691E)
@@ -1181,12 +1474,13 @@ fun ScanAbsenScreen(
                     }
                 }
             }
-
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
         }
+
+
+        Spacer(
+            modifier =
+                Modifier.height(8.dp)
+        )
 
 
         /*
@@ -1268,7 +1562,8 @@ fun ScanAbsenScreen(
                     !sedangKirim
                 ) {
 
-                    sedangKirim = true
+                    sedangKirim =
+                        true
 
                     onQrScanned(
                         qrData,
@@ -1296,7 +1591,9 @@ fun ScanAbsenScreen(
             colors =
                 ButtonDefaults.buttonColors(
                     containerColor =
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme
+                            .colorScheme
+                            .primary
                 )
         ) {
 
@@ -1379,15 +1676,20 @@ fun ScanAbsenScreen(
             colors =
                 ButtonDefaults.buttonColors(
                     containerColor =
-                        MaterialTheme.colorScheme.surface,
+                        MaterialTheme
+                            .colorScheme
+                            .surface,
 
                     contentColor =
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme
+                            .colorScheme
+                            .primary
                 ),
 
             elevation =
                 ButtonDefaults.buttonElevation(
-                    defaultElevation = 1.dp
+                    defaultElevation =
+                        1.dp
                 )
         ) {
 
@@ -1419,13 +1721,17 @@ fun ScanAbsenScreen(
 
             Icon(
                 imageVector =
-                    if (absenLuarKantorTerbuka)
+                    if (
+                        absenLuarKantorTerbuka
+                    )
                         Icons.Default.KeyboardArrowUp
                     else
                         Icons.Default.KeyboardArrowDown,
 
                 contentDescription =
-                    if (absenLuarKantorTerbuka)
+                    if (
+                        absenLuarKantorTerbuka
+                    )
                         "Tutup"
                     else
                         "Buka"
@@ -1439,7 +1745,9 @@ fun ScanAbsenScreen(
          * ====================================================
          */
 
-        if (absenLuarKantorTerbuka) {
+        if (
+            absenLuarKantorTerbuka
+        ) {
 
             Spacer(
                 modifier =
@@ -1460,12 +1768,15 @@ fun ScanAbsenScreen(
                 colors =
                     CardDefaults.cardColors(
                         containerColor =
-                            MaterialTheme.colorScheme.surface
+                            MaterialTheme
+                                .colorScheme
+                                .surface
                     ),
 
                 elevation =
                     CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
+                        defaultElevation =
+                            2.dp
                     )
             ) {
 
@@ -1495,7 +1806,9 @@ fun ScanAbsenScreen(
                                 null,
 
                             tint =
-                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme
+                                    .colorScheme
+                                    .primary,
 
                             modifier =
                                 Modifier.size(24.dp)
@@ -1511,7 +1824,9 @@ fun ScanAbsenScreen(
                                 "Absen dari lokasi tugas",
 
                             style =
-                                MaterialTheme.typography.titleMedium,
+                                MaterialTheme
+                                    .typography
+                                    .titleMedium,
 
                             fontWeight =
                                 FontWeight.Bold
@@ -1530,10 +1845,14 @@ fun ScanAbsenScreen(
                             "Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.",
 
                         style =
-                            MaterialTheme.typography.bodySmall,
+                            MaterialTheme
+                                .typography
+                                .bodySmall,
 
                         color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant
                     )
 
 
@@ -1554,7 +1873,9 @@ fun ScanAbsenScreen(
                             "Lokasi",
 
                         style =
-                            MaterialTheme.typography.labelLarge,
+                            MaterialTheme
+                                .typography
+                                .labelLarge,
 
                         fontWeight =
                             FontWeight.SemiBold
@@ -1639,7 +1960,9 @@ fun ScanAbsenScreen(
                             "Alasan / Keperluan",
 
                         style =
-                            MaterialTheme.typography.labelLarge,
+                            MaterialTheme
+                                .typography
+                                .labelLarge,
 
                         fontWeight =
                             FontWeight.SemiBold
@@ -1678,35 +2001,22 @@ fun ScanAbsenScreen(
 
                                         coroutineScope.launch {
 
-                                            /*
-                                             * Tunggu keyboard.
-                                             */
                                             delay(200)
 
                                             alasanBringIntoViewRequester
                                                 .bringIntoView()
 
-                                            /*
-                                             * Tunggu layout berubah.
-                                             */
                                             delay(350)
 
                                             alasanBringIntoViewRequester
                                                 .bringIntoView()
 
-                                            /*
-                                             * Pastikan benar-benar
-                                             * sampai ke bagian bawah.
-                                             */
                                             delay(250)
 
                                             scrollState.animateScrollTo(
                                                 scrollState.maxValue
                                             )
 
-                                            /*
-                                             * Satu kali final check.
-                                             */
                                             delay(150)
 
                                             alasanBringIntoViewRequester
@@ -1809,16 +2119,15 @@ fun ScanAbsenScreen(
              * =================================================
              * EXTRA BOTTOM SPACE
              * =================================================
-             *
-             * Ini penting agar field Alasan dan tombol
-             * Kirim Absen masih bisa dinaikkan ketika keyboard
-             * sedang terbuka.
              */
 
             Spacer(
                 modifier =
                     Modifier.height(
-                        if (alasanFocused || lokasiFocused)
+                        if (
+                            alasanFocused ||
+                            lokasiFocused
+                        )
                             220.dp
                         else
                             80.dp
@@ -1883,10 +2192,12 @@ private fun QRScannerCamera(
             ).apply {
 
                 cameraSelector =
-                    CameraSelector.DEFAULT_BACK_CAMERA
+                    CameraSelector
+                        .DEFAULT_BACK_CAMERA
 
                 setEnabledUseCases(
-                    CameraController.IMAGE_ANALYSIS
+                    CameraController
+                        .IMAGE_ANALYSIS
                 )
             }
         }
@@ -1974,7 +2285,9 @@ private fun QRScannerCamera(
 
 
         /*
+         * ====================================================
          * RESET VALIDATION
+         * ====================================================
          */
 
         fun resetValidation() {
@@ -2010,9 +2323,10 @@ private fun QRScannerCamera(
                 CameraController
                     .COORDINATE_SYSTEM_VIEW_REFERENCED,
 
-                ContextCompat.getMainExecutor(
-                    context
-                )
+                ContextCompat
+                    .getMainExecutor(
+                        context
+                    )
 
             ) { result ->
 
@@ -2020,7 +2334,9 @@ private fun QRScannerCamera(
                  * Sudah lock.
                  */
 
-                if (scanLock.get()) {
+                if (
+                    scanLock.get()
+                ) {
 
                     return@MlKitAnalyzer
                 }
@@ -2058,7 +2374,9 @@ private fun QRScannerCamera(
                     }
 
 
-                if (barcode == null) {
+                if (
+                    barcode == null
+                ) {
 
                     resetValidation()
 
@@ -2067,7 +2385,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * QR value.
+                 * QR VALUE
                  */
 
                 val value =
@@ -2085,7 +2403,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Bounding box.
+                 * BOUNDING BOX
                  */
 
                 val boundingBox =
@@ -2103,15 +2421,17 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Preview size.
+                 * PREVIEW SIZE
                  */
 
                 val previewWidth =
-                    previewView.width
+                    previewView
+                        .width
                         .toFloat()
 
                 val previewHeight =
-                    previewView.height
+                    previewView
+                        .height
                         .toFloat()
 
 
@@ -2127,7 +2447,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Density.
+                 * DENSITY
                  */
 
                 val density =
@@ -2222,7 +2542,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * UKURAN
+                 * UKURAN QR
                  * =================================================
                  */
 
@@ -2293,7 +2613,9 @@ private fun QRScannerCamera(
                             qrCenterY <= scannerBottom
 
 
-                if (!centerInsideFrame) {
+                if (
+                    !centerInsideFrame
+                ) {
 
                     Log.d(
                         TAG,
@@ -2340,6 +2662,7 @@ private fun QRScannerCamera(
                 val intersectionWidth =
                     maxOf(
                         0f,
+
                         intersectionRight -
                                 intersectionLeft
                     )
@@ -2347,6 +2670,7 @@ private fun QRScannerCamera(
                 val intersectionHeight =
                     maxOf(
                         0f,
+
                         intersectionBottom -
                                 intersectionTop
                     )
@@ -2359,6 +2683,7 @@ private fun QRScannerCamera(
                 val qrArea =
                     maxOf(
                         1f,
+
                         qrWidth *
                                 qrHeight
                     )
@@ -2375,7 +2700,7 @@ private fun QRScannerCamera(
 
                     Log.d(
                         TAG,
-                        "QR ditolak: overlap = $overlapRatio"
+                        "QR ditolak: overlap=$overlapRatio"
                     )
 
                     resetValidation()
@@ -2458,7 +2783,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * RESET
+                 * RESET VALIDASI
                  */
 
                 if (
@@ -2546,7 +2871,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * LOCK QR
+                 * LOCK
                  * =================================================
                  */
 
@@ -2562,7 +2887,7 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Corner points.
+                 * CORNER POINTS
                  */
 
                 val cornerPoints =
@@ -2586,7 +2911,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * KIRIM HASIL
+                 * KIRIM KE VALIDATOR
                  * =================================================
                  */
 
@@ -2606,9 +2931,11 @@ private fun QRScannerCamera(
 
         cameraController
             .setImageAnalysisAnalyzer(
-                ContextCompat.getMainExecutor(
-                    context
-                ),
+                ContextCompat
+                    .getMainExecutor(
+                        context
+                    ),
+
                 analyzer
             )
 
@@ -2684,7 +3011,9 @@ private fun QRScannerCamera(
          * SCANNER FRAME
          */
 
-        if (!sudahScan) {
+        if (
+            !sudahScan
+        ) {
 
             ScannerFrame(
                 modifier =
@@ -2711,7 +3040,9 @@ private fun QRScannerCamera(
          * QR DETECTION OVERLAY
          */
 
-        if (sudahScan) {
+        if (
+            sudahScan
+        ) {
 
             QRDetectionOverlay(
                 boundingBox =
@@ -2741,7 +3072,8 @@ private fun ScannerFrame(
 
     val transition =
         rememberInfiniteTransition(
-            label = "scannerFrame"
+            label =
+                "scannerFrame"
         )
 
 
@@ -2759,7 +3091,9 @@ private fun ScannerFrame(
 
                 animation =
                     tween(
-                        durationMillis = 1100,
+                        durationMillis =
+                            1100,
+
                         easing =
                             LinearEasing
                     ),
@@ -2908,7 +3242,8 @@ private fun ScannerLine(
 
     val transition =
         rememberInfiniteTransition(
-            label = "scannerLine"
+            label =
+                "scannerLine"
         )
 
 
@@ -2926,7 +3261,9 @@ private fun ScannerLine(
 
                 animation =
                     tween(
-                        durationMillis = 1800,
+                        durationMillis =
+                            1800,
+
                         easing =
                             LinearEasing
                     ),
@@ -3104,10 +3441,12 @@ private fun QRDetectionOverlay(
                         8f,
 
                     center =
-                        androidx.compose.ui.geometry.Offset(
-                            point.x.toFloat(),
-                            point.y.toFloat()
-                        )
+                        androidx.compose.ui
+                            .geometry
+                            .Offset(
+                                point.x.toFloat(),
+                                point.y.toFloat()
+                            )
                 )
             }
 
@@ -3125,22 +3464,26 @@ private fun QRDetectionOverlay(
                     ScannerGreen,
 
                 topLeft =
-                    androidx.compose.ui.geometry.Offset(
-                        boundingBox.left
-                            .toFloat(),
+                    androidx.compose.ui
+                        .geometry
+                        .Offset(
+                            boundingBox.left
+                                .toFloat(),
 
-                        boundingBox.top
-                            .toFloat()
-                    ),
+                            boundingBox.top
+                                .toFloat()
+                        ),
 
                 size =
-                    androidx.compose.ui.geometry.Size(
-                        boundingBox.width()
-                            .toFloat(),
+                    androidx.compose.ui
+                        .geometry
+                        .Size(
+                            boundingBox.width()
+                                .toFloat(),
 
-                        boundingBox.height()
-                            .toFloat()
-                    ),
+                            boundingBox.height()
+                                .toFloat()
+                        ),
 
                 style =
                     Stroke(

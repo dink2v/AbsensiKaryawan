@@ -43,12 +43,11 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-//import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -72,7 +71,8 @@ fun AdminDashboardScreen(
     onEmployees: () -> Unit,
     onRecap: () -> Unit,
     onSettings: () -> Unit,
-    onChat: () -> Unit
+    onChat: () -> Unit,
+    onNotification: () -> Unit
 ) {
 
     // ======================================================
@@ -469,7 +469,7 @@ fun AdminDashboardScreen(
 
 
                 // ==========================================
-                // NOTIFIKASI
+                // NOTIFIKASI ADMIN
                 // ==========================================
 
                 Row(
@@ -484,7 +484,15 @@ fun AdminDashboardScreen(
                                     RoundedCornerShape(
                                         14.dp
                                     )
-                            ),
+                            )
+                            .clickable {
+
+                                // ==================================
+                                // BUKA HALAMAN NOTIFIKASI ADMIN
+                                // ==================================
+
+                                onNotification()
+                            },
 
                     horizontalArrangement =
                         Arrangement.Center,
@@ -498,7 +506,7 @@ fun AdminDashboardScreen(
                             Icons.Default.Notifications,
 
                         contentDescription =
-                            "Notifikasi",
+                            "Notifikasi Admin",
 
                         tint =
                             TextDark,
@@ -773,6 +781,7 @@ fun AdminDashboardScreen(
                         Modifier
                             .fillMaxWidth()
                             .clickable {
+
                                 onApproval()
                             },
 
@@ -1640,6 +1649,7 @@ private fun AdminQuickMenu(
             Modifier
                 .fillMaxWidth()
                 .clickable {
+
                     onClick()
                 },
 
