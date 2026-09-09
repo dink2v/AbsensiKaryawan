@@ -97,12 +97,51 @@ class PengajuanRepository {
 
 
             // ==================================================
-            // SIMPAN
+            // SIMPAN PENGAJUAN
             // ==================================================
 
+            val pengajuanReference =
+                firestore
+                    .collection("pengajuan")
+                    .add(data)
+                    .await()
+
+
+            // ==================================================
+            // NOTIFIKASI PENGAJUAN MENUNGGU
+            // ==================================================
+
+            val notificationData =
+                hashMapOf<String, Any>(
+
+                    "userId" to uid,
+
+                    "title" to
+                            "Pengajuan Menunggu",
+
+                    "message" to
+                            "Pengajuan $jenis kamu sedang menunggu persetujuan admin.",
+
+                    "type" to
+                            "PENGAJUAN",
+
+                    "target" to
+                            "PENGAJUAN_MENUNGGU",
+
+                    "read" to
+                            false,
+
+                    "timestamp" to
+                            FieldValue.serverTimestamp(),
+
+                    "pengajuanId" to
+                            pengajuanReference.id
+                )
+
+
             firestore
-                .collection("pengajuan")
-                .add(data)
+                .collection("notifications")
+                .add(notificationData)
                 .await()
 
 
@@ -268,6 +307,59 @@ class PengajuanRepository {
                     )
 
 
+            // ==================================================
+            // AMBIL DATA PENGAJUAN
+            // ==================================================
+
+            val pengajuanDocument =
+                firestore
+                    .collection("pengajuan")
+                    .document(documentId)
+                    .get()
+                    .await()
+
+
+            if (!pengajuanDocument.exists()) {
+
+                return Result.failure(
+                    Exception(
+                        "Data pengajuan tidak ditemukan."
+                    )
+                )
+            }
+
+
+            // ==================================================
+            // AMBIL UID STAFF
+            // ==================================================
+
+            val staffUid =
+                pengajuanDocument.getString("uid")
+
+
+            if (staffUid.isNullOrBlank()) {
+
+                return Result.failure(
+                    Exception(
+                        "UID karyawan pada pengajuan tidak ditemukan."
+                    )
+                )
+            }
+
+
+            // ==================================================
+            // AMBIL JENIS PENGAJUAN
+            // ==================================================
+
+            val jenis =
+                pengajuanDocument.getString("jenis")
+                    ?: "pengajuan"
+
+
+            // ==================================================
+            // UPDATE STATUS
+            // ==================================================
+
             val data =
                 hashMapOf<String, Any>(
 
@@ -285,6 +377,98 @@ class PengajuanRepository {
                 .collection("pengajuan")
                 .document(documentId)
                 .update(data)
+                .await()
+
+
+            // ==================================================
+            // SIAPKAN NOTIFIKASI
+            // ==================================================
+
+            val statusNormal =
+                status
+                    .trim()
+                    .lowercase()
+
+
+            val title: String
+            val message: String
+            val target: String
+
+
+            when (statusNormal) {
+
+                "disetujui" -> {
+
+                    title =
+                        "Pengajuan Disetujui"
+
+                    message =
+                        "Pengajuan $jenis kamu telah disetujui oleh admin."
+
+                    target =
+                        "PENGAJUAN_DISETUJUI"
+                }
+
+
+                "ditolak" -> {
+
+                    title =
+                        "Pengajuan Ditolak"
+
+                    message =
+                        "Pengajuan $jenis kamu telah ditolak oleh admin."
+
+                    target =
+                        "PENGAJUAN_DITOLAK"
+                }
+
+
+                else -> {
+
+                    title =
+                        "Status Pengajuan Diperbarui"
+
+                    message =
+                        "Status pengajuan $jenis kamu telah diperbarui."
+
+                    target =
+                        "PENGAJUAN_MENUNGGU"
+                }
+            }
+
+
+            // ==================================================
+            // SIMPAN NOTIFIKASI
+            // ==================================================
+
+            val notificationData =
+                hashMapOf<String, Any>(
+
+                    "userId" to staffUid,
+
+                    "title" to title,
+
+                    "message" to message,
+
+                    "type" to
+                            "PENGAJUAN",
+
+                    "target" to target,
+
+                    "read" to
+                            false,
+
+                    "timestamp" to
+                            FieldValue.serverTimestamp(),
+
+                    "pengajuanId" to
+                            documentId
+                )
+
+
+            firestore
+                .collection("notifications")
+                .add(notificationData)
                 .await()
 
 

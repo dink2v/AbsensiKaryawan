@@ -20,8 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
@@ -62,8 +64,25 @@ private data class DataRekapAbsensi(
     val tanggal: String,
     val jamMasuk: String,
     val jamPulang: String,
-    val catatan: String
+    val catatan: String,
+    val qrData: String,
+    val qrDataPulang: String,
+    val kantor: String
 )
+
+
+// ==========================================================
+// FILTER KANTOR
+// ==========================================================
+
+private enum class FilterKantor(
+    val label: String
+) {
+    SEMUA("Semua"),
+    MALANG("Malang"),
+    BLITAR("Blitar"),
+    KEDIRI("Kediri")
+}
 
 
 // ==========================================================
@@ -104,6 +123,12 @@ fun RekapAdminScreen() {
         mutableIntStateOf(0)
     }
 
+    var filterKantor by remember {
+        mutableStateOf(
+            FilterKantor.SEMUA
+        )
+    }
+
 
     // ======================================================
     // LOAD DATA FIRESTORE
@@ -124,14 +149,53 @@ fun RekapAdminScreen() {
             daftarRekap = snapshot.documents
                 .map { document ->
 
+                    val qrData =
+                        document.getString("qrData")
+                            ?: ""
+
+                    val qrDataPulang =
+                        document.getString("qrDataPulang")
+                            ?: ""
+
                     DataRekapAbsensi(
                         id = document.id,
-                        uid = document.getString("uid") ?: "",
-                        nama = document.getString("nama") ?: "Tanpa Nama",
-                        tanggal = document.getString("tanggal") ?: "",
-                        jamMasuk = document.getString("jamMasuk") ?: "",
-                        jamPulang = document.getString("jamPulang") ?: "",
-                        catatan = document.getString("catatan") ?: ""
+
+                        uid =
+                            document.getString("uid")
+                                ?: "",
+
+                        nama =
+                            document.getString("nama")
+                                ?: "Tanpa Nama",
+
+                        tanggal =
+                            document.getString("tanggal")
+                                ?: "",
+
+                        jamMasuk =
+                            document.getString("jamMasuk")
+                                ?: "",
+
+                        jamPulang =
+                            document.getString("jamPulang")
+                                ?: "",
+
+                        catatan =
+                            document.getString("catatan")
+                                ?: "",
+
+                        qrData =
+                            qrData,
+
+                        qrDataPulang =
+                            qrDataPulang,
+
+                        kantor =
+                            getKantorFromQr(
+                                qrData = qrData,
+                                qrDataPulang =
+                                    qrDataPulang
+                            )
                     )
                 }
                 .sortedWith(
@@ -145,7 +209,8 @@ fun RekapAdminScreen() {
         } catch (e: Exception) {
 
             errorMessage =
-                e.message ?: "Gagal mengambil data rekap."
+                e.message
+                    ?: "Gagal mengambil data rekap."
 
         } finally {
 
@@ -155,18 +220,57 @@ fun RekapAdminScreen() {
 
 
     // ======================================================
-    // STATISTIK
+    // FILTER DATA
     // ======================================================
 
-    val totalData = daftarRekap.size
+    val daftarRekapFiltered =
+        when (filterKantor) {
 
-    val totalHadir = daftarRekap.count {
-        it.jamMasuk.isNotBlank()
-    }
+            FilterKantor.SEMUA ->
+                daftarRekap
 
-    val totalPulang = daftarRekap.count {
-        it.jamPulang.isNotBlank()
-    }
+            FilterKantor.MALANG ->
+                daftarRekap.filter {
+                    it.kantor.equals(
+                        "Malang",
+                        ignoreCase = true
+                    )
+                }
+
+            FilterKantor.BLITAR ->
+                daftarRekap.filter {
+                    it.kantor.equals(
+                        "Blitar",
+                        ignoreCase = true
+                    )
+                }
+
+            FilterKantor.KEDIRI ->
+                daftarRekap.filter {
+                    it.kantor.equals(
+                        "Kediri",
+                        ignoreCase = true
+                    )
+                }
+        }
+
+
+    // ======================================================
+    // STATISTIK SESUAI KANTOR
+    // ======================================================
+
+    val totalData =
+        daftarRekapFiltered.size
+
+    val totalHadir =
+        daftarRekapFiltered.count {
+            it.jamMasuk.isNotBlank()
+        }
+
+    val totalPulang =
+        daftarRekapFiltered.count {
+            it.jamPulang.isNotBlank()
+        }
 
 
     // ======================================================
@@ -174,12 +278,16 @@ fun RekapAdminScreen() {
     // ======================================================
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Background
+        modifier =
+            Modifier.fillMaxSize(),
+
+        color =
+            Background
     ) {
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier =
+                Modifier.fillMaxSize()
         ) {
 
             // ==================================================
@@ -193,49 +301,82 @@ fun RekapAdminScreen() {
                         horizontal = 20.dp,
                         vertical = 14.dp
                     ),
-                verticalAlignment = Alignment.CenterVertically
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = RoundedCornerShape(13.dp),
-                    color = Color(0xFFE6EEE9)
+                    modifier =
+                        Modifier.size(44.dp),
+
+                    shape =
+                        RoundedCornerShape(13.dp),
+
+                    color =
+                        Color(0xFFE6EEE9)
                 ) {
 
                     Box(
-                        contentAlignment = Alignment.Center
+                        contentAlignment =
+                            Alignment.Center
                     ) {
 
                         Icon(
-                            imageVector = Icons.Default.Assessment,
-                            contentDescription = null,
-                            tint = PrimaryGreen,
-                            modifier = Modifier.size(24.dp)
+                            imageVector =
+                                Icons.Default.Assessment,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(24.dp)
                         )
                     }
                 }
 
                 Spacer(
-                    modifier = Modifier.width(11.dp)
+                    modifier =
+                        Modifier.width(11.dp)
                 )
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text = "Rekap Absensi",
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
+                        text =
+                            "Rekap Absensi",
+
+                        fontSize =
+                            21.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
                     )
 
                     Text(
-                        text = "Data kehadiran seluruh karyawan",
-                        fontSize = 12.sp,
-                        color = TextGray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text =
+                            "Data kehadiran seluruh kantor",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray,
+
+                        maxLines =
+                            1,
+
+                        overflow =
+                            TextOverflow.Ellipsis
                     )
                 }
 
@@ -246,55 +387,21 @@ fun RekapAdminScreen() {
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = PrimaryGreen
+                        imageVector =
+                            Icons.Default.Refresh,
+
+                        contentDescription =
+                            "Refresh",
+
+                        tint =
+                            PrimaryGreen
                     )
                 }
             }
 
 
             // ==================================================
-            // SUMMARY
-            // ==================================================
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(9.dp)
-            ) {
-
-                RekapSummaryCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Assessment,
-                    title = "Total",
-                    value = totalData.toString()
-                )
-
-                RekapSummaryCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.CheckCircle,
-                    title = "Masuk",
-                    value = totalHadir.toString()
-                )
-
-                RekapSummaryCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.AccessTime,
-                    title = "Pulang",
-                    value = totalPulang.toString()
-                )
-            }
-
-
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
-
-
-            // ==================================================
-            // SECTION TITLE
+            // LABEL FILTER
             // ==================================================
 
             Row(
@@ -303,33 +410,288 @@ fun RekapAdminScreen() {
                     .padding(
                         horizontal = 20.dp
                     ),
-                verticalAlignment = Alignment.CenterVertically
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.FilterList,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        TextGray,
+
+                    modifier =
+                        Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(7.dp)
+                )
+
+                Text(
+                    text =
+                        "Pilih Kantor",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(8.dp)
+            )
+
+
+            // ==================================================
+            // BUTTON KANTOR
+            // ==================================================
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp
+                    ),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(7.dp)
+            ) {
+
+                FilterKantorButton(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    label =
+                        FilterKantor.SEMUA.label,
+
+                    selected =
+                        filterKantor ==
+                                FilterKantor.SEMUA,
+
+                    onClick = {
+
+                        filterKantor =
+                            FilterKantor.SEMUA
+                    }
+                )
+
+                FilterKantorButton(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    label =
+                        FilterKantor.MALANG.label,
+
+                    selected =
+                        filterKantor ==
+                                FilterKantor.MALANG,
+
+                    onClick = {
+
+                        filterKantor =
+                            FilterKantor.MALANG
+                    }
+                )
+
+                FilterKantorButton(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    label =
+                        FilterKantor.BLITAR.label,
+
+                    selected =
+                        filterKantor ==
+                                FilterKantor.BLITAR,
+
+                    onClick = {
+
+                        filterKantor =
+                            FilterKantor.BLITAR
+                    }
+                )
+
+                FilterKantorButton(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    label =
+                        FilterKantor.KEDIRI.label,
+
+                    selected =
+                        filterKantor ==
+                                FilterKantor.KEDIRI,
+
+                    onClick = {
+
+                        filterKantor =
+                            FilterKantor.KEDIRI
+                    }
+                )
+            }
+
+
+            // ==================================================
+            // TOTAL / MASUK / PULANG
+            // TEPAT DI BAWAH BUTTON KANTOR
+            // ==================================================
+
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp
+                    ),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(9.dp)
+            ) {
+
+                RekapSummaryCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Assessment,
+
+                    title =
+                        "Total",
+
+                    value =
+                        totalData.toString()
+                )
+
+                RekapSummaryCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.CheckCircle,
+
+                    title =
+                        "Masuk",
+
+                    value =
+                        totalHadir.toString()
+                )
+
+                RekapSummaryCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.AccessTime,
+
+                    title =
+                        "Pulang",
+
+                    value =
+                        totalPulang.toString()
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(18.dp)
+            )
+
+
+            // ==================================================
+            // SECTION DATA
+            // ==================================================
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp
+                    ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Text(
-                    text = "Data Kehadiran",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark,
-                    modifier = Modifier.weight(1f)
+                    text =
+                        when (filterKantor) {
+
+                            FilterKantor.SEMUA ->
+                                "Data Semua Kantor"
+
+                            FilterKantor.MALANG ->
+                                "Data Kantor Malang"
+
+                            FilterKantor.BLITAR ->
+                                "Data Kantor Blitar"
+
+                            FilterKantor.KEDIRI ->
+                                "Data Kantor Kediri"
+                        },
+
+                    fontSize =
+                        16.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark,
+
+                    modifier =
+                        Modifier.weight(1f)
                 )
 
-                if (!loading && errorMessage.isBlank()) {
+                if (
+                    !loading &&
+                    errorMessage.isBlank()
+                ) {
 
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFE6EEE9)
+                        shape =
+                            RoundedCornerShape(20.dp),
+
+                        color =
+                            Color(0xFFE6EEE9)
                     ) {
 
                         Text(
-                            text = "$totalData data",
-                            modifier = Modifier.padding(
-                                horizontal = 10.dp,
-                                vertical = 5.dp
-                            ),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen
+                            text =
+                                "$totalData data",
+
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 5.dp
+                                ),
+
+                            fontSize =
+                                10.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                PrimaryGreen
                         )
                     }
                 }
@@ -337,7 +699,8 @@ fun RekapAdminScreen() {
 
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier =
+                    Modifier.height(10.dp)
             )
 
 
@@ -364,8 +727,11 @@ fun RekapAdminScreen() {
                 errorMessage.isNotBlank() -> {
 
                     RekapError(
-                        message = errorMessage,
+                        message =
+                            errorMessage,
+
                         onRetry = {
+
                             refreshKey++
                         }
                     )
@@ -376,9 +742,12 @@ fun RekapAdminScreen() {
                 // EMPTY
                 // ==================================================
 
-                daftarRekap.isEmpty() -> {
+                daftarRekapFiltered.isEmpty() -> {
 
-                    RekapEmpty()
+                    RekapEmpty(
+                        filterKantor =
+                            filterKantor
+                    )
                 }
 
 
@@ -406,19 +775,109 @@ fun RekapAdminScreen() {
                     ) {
 
                         items(
-                            items = daftarRekap,
+                            items =
+                                daftarRekapFiltered,
+
                             key = {
                                 it.id
                             }
                         ) { data ->
 
                             RekapAttendanceCard(
-                                data = data
+                                data =
+                                    data
                             )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+
+// ==========================================================
+// BUTTON FILTER KANTOR
+// ==========================================================
+
+@Composable
+private fun FilterKantorButton(
+    modifier: Modifier,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+
+    Surface(
+        modifier =
+            modifier,
+
+        shape =
+            RoundedCornerShape(11.dp),
+
+        color =
+            if (selected) {
+                PrimaryGreen
+            } else {
+                Color.White
+            },
+
+        shadowElevation =
+            if (selected) {
+                0.dp
+            } else {
+                1.dp
+            },
+
+        onClick =
+            onClick
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 7.dp,
+                    vertical = 9.dp
+                ),
+
+            horizontalArrangement =
+                Arrangement.Center,
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text =
+                    label,
+
+                fontSize =
+                    10.sp,
+
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Medium
+                    },
+
+                color =
+                    if (selected) {
+                        Color.White
+                    } else {
+                        TextDark
+                    },
+
+                maxLines =
+                    1,
+
+                overflow =
+                    TextOverflow.Ellipsis,
+
+                textAlign =
+                    TextAlign.Center
+            )
         }
     }
 }
@@ -437,14 +896,23 @@ private fun RekapSummaryCard(
 ) {
 
     Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        modifier =
+            modifier,
+
+        shape =
+            RoundedCornerShape(16.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    1.dp
+            )
     ) {
 
         Column(
@@ -454,40 +922,68 @@ private fun RekapSummaryCard(
         ) {
 
             Surface(
-                modifier = Modifier.size(34.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = Color(0xFFE6EEE9)
+                modifier =
+                    Modifier.size(34.dp),
+
+                shape =
+                    RoundedCornerShape(10.dp),
+
+                color =
+                    Color(0xFFE6EEE9)
             ) {
 
                 Box(
-                    contentAlignment = Alignment.Center
+                    contentAlignment =
+                        Alignment.Center
                 ) {
 
                     Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = PrimaryGreen,
-                        modifier = Modifier.size(18.dp)
+                        imageVector =
+                            icon,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.size(18.dp)
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(7.dp)
+                modifier =
+                    Modifier.height(7.dp)
             )
 
             Text(
-                text = title,
-                fontSize = 10.sp,
-                color = TextGray,
-                maxLines = 1
+                text =
+                    title,
+
+                fontSize =
+                    10.sp,
+
+                color =
+                    TextGray,
+
+                maxLines =
+                    1
             )
 
             Text(
-                text = value,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
+                text =
+                    value,
+
+                fontSize =
+                    20.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
             )
         }
     }
@@ -511,14 +1007,23 @@ private fun RekapAttendanceCard(
 
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(17.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(17.dp),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
     ) {
 
         Column(
@@ -532,76 +1037,119 @@ private fun RekapAttendanceCard(
             // ==================================================
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Surface(
-                    modifier = Modifier.size(45.dp),
-                    shape = CircleShape,
-                    color = Color(0xFFE6EEE9)
+                    modifier =
+                        Modifier.size(45.dp),
+
+                    shape =
+                        CircleShape,
+
+                    color =
+                        Color(0xFFE6EEE9)
                 ) {
 
                     Box(
-                        contentAlignment = Alignment.Center
+                        contentAlignment =
+                            Alignment.Center
                     ) {
 
                         Text(
-                            text = getRekapInitials(
-                                data.nama
-                            ),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen
+                            text =
+                                getRekapInitials(
+                                    data.nama
+                                ),
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                PrimaryGreen
                         )
                     }
                 }
 
                 Spacer(
-                    modifier = Modifier.width(11.dp)
+                    modifier =
+                        Modifier.width(11.dp)
                 )
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text = data.nama.ifBlank {
-                            "Tanpa Nama"
-                        },
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text =
+                            data.nama.ifBlank {
+                                "Tanpa Nama"
+                            },
+
+                        fontSize =
+                            15.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark,
+
+                        maxLines =
+                            1,
+
+                        overflow =
+                            TextOverflow.Ellipsis
                     )
 
                     Spacer(
-                        modifier = Modifier.height(3.dp)
+                        modifier =
+                            Modifier.height(3.dp)
                     )
 
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Icon(
                             imageVector =
                                 Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = TextGray,
-                            modifier = Modifier.size(13.dp)
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                TextGray,
+
+                            modifier =
+                                Modifier.size(13.dp)
                         )
 
                         Spacer(
-                            modifier = Modifier.width(4.dp)
+                            modifier =
+                                Modifier.width(4.dp)
                         )
 
                         Text(
-                            text = data.tanggal.ifBlank {
-                                "-"
-                            },
-                            fontSize = 11.sp,
-                            color = TextGray
+                            text =
+                                data.tanggal.ifBlank {
+                                    "-"
+                                },
+
+                            fontSize =
+                                11.sp,
+
+                            color =
+                                TextGray
                         )
                     }
                 }
@@ -609,7 +1157,81 @@ private fun RekapAttendanceCard(
 
 
             Spacer(
-                modifier = Modifier.height(14.dp)
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // KANTOR
+            // ==================================================
+
+            Surface(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                shape =
+                    RoundedCornerShape(10.dp),
+
+                color =
+                    Color(0xFFF3F7F5)
+            ) {
+
+                Row(
+                    modifier =
+                        Modifier.padding(9.dp),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Business,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.size(17.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(7.dp)
+                    )
+
+                    Text(
+                        text =
+                            if (
+                                data.kantor.isBlank() ||
+                                data.kantor ==
+                                "Tidak Diketahui"
+                            ) {
+                                "Kantor tidak diketahui"
+                            } else {
+                                "Kantor ${data.kantor}"
+                            },
+
+                        fontSize =
+                            11.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
+                }
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
             )
 
 
@@ -618,53 +1240,68 @@ private fun RekapAttendanceCard(
             // ==================================================
 
             Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                color = when {
+                modifier =
+                    Modifier.fillMaxWidth(),
 
-                    sudahPulang ->
-                        Color(0xFFE8F5E9)
+                shape =
+                    RoundedCornerShape(10.dp),
 
-                    sudahMasuk ->
-                        Color(0xFFFFF7ED)
+                color =
+                    when {
 
-                    else ->
-                        Color(0xFFF3F4F6)
-                }
+                        sudahPulang ->
+                            Color(0xFFE8F5E9)
+
+                        sudahMasuk ->
+                            Color(0xFFFFF7ED)
+
+                        else ->
+                            Color(0xFFF3F4F6)
+                    }
             ) {
 
                 Text(
-                    text = when {
+                    text =
+                        when {
 
-                        sudahPulang ->
-                            "✓ Absensi Lengkap"
+                            sudahPulang ->
+                                "✓ Absensi Lengkap"
 
-                        sudahMasuk ->
-                            "● Sudah Absen Masuk"
+                            sudahMasuk ->
+                                "● Sudah Absen Masuk"
 
-                        else ->
-                            "Belum Absen"
-                    },
-                    modifier = Modifier.padding(10.dp),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
+                            else ->
+                                "Belum Absen"
+                        },
 
-                        sudahPulang ->
-                            Color(0xFF15803D)
+                    modifier =
+                        Modifier.padding(10.dp),
 
-                        sudahMasuk ->
-                            Color(0xFFC2410C)
+                    fontSize =
+                        11.sp,
 
-                        else ->
-                            TextGray
-                    }
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        when {
+
+                            sudahPulang ->
+                                Color(0xFF15803D)
+
+                            sudahMasuk ->
+                                Color(0xFFC2410C)
+
+                            else ->
+                                TextGray
+                        }
                 )
             }
 
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier =
+                    Modifier.height(10.dp)
             )
 
 
@@ -673,29 +1310,41 @@ private fun RekapAttendanceCard(
             // ==================================================
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier.fillMaxWidth(),
+
                 horizontalArrangement =
                     Arrangement.spacedBy(10.dp)
             ) {
 
                 RekapTimeBox(
-                    modifier = Modifier.weight(1f),
-                    title = "Jam Masuk",
-                    value = if (sudahMasuk) {
-                        data.jamMasuk
-                    } else {
-                        "--:--:--"
-                    }
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        "Jam Masuk",
+
+                    value =
+                        if (sudahMasuk) {
+                            data.jamMasuk
+                        } else {
+                            "--:--:--"
+                        }
                 )
 
                 RekapTimeBox(
-                    modifier = Modifier.weight(1f),
-                    title = "Jam Pulang",
-                    value = if (sudahPulang) {
-                        data.jamPulang
-                    } else {
-                        "--:--:--"
-                    }
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        "Jam Pulang",
+
+                    value =
+                        if (sudahPulang) {
+                            data.jamPulang
+                        } else {
+                            "--:--:--"
+                        }
                 )
             }
 
@@ -704,37 +1353,59 @@ private fun RekapAttendanceCard(
             // CATATAN
             // ==================================================
 
-            if (data.catatan.isNotBlank()) {
+            if (
+                data.catatan.isNotBlank()
+            ) {
 
                 Spacer(
-                    modifier = Modifier.height(10.dp)
+                    modifier =
+                        Modifier.height(10.dp)
                 )
 
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFF8FAF9)
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(10.dp),
+
+                    color =
+                        Color(0xFFF8FAF9)
                 ) {
 
                     Column(
-                        modifier = Modifier.padding(10.dp)
+                        modifier =
+                            Modifier.padding(10.dp)
                     ) {
 
                         Text(
-                            text = "Catatan",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextGray
+                            text =
+                                "Catatan",
+
+                            fontSize =
+                                10.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                TextGray
                         )
 
                         Spacer(
-                            modifier = Modifier.height(3.dp)
+                            modifier =
+                                Modifier.height(3.dp)
                         )
 
                         Text(
-                            text = data.catatan,
-                            fontSize = 12.sp,
-                            color = TextDark
+                            text =
+                                data.catatan,
+
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                TextDark
                         )
                     }
                 }
@@ -756,30 +1427,49 @@ private fun RekapTimeBox(
 ) {
 
     Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(11.dp),
-        color = Color(0xFFF8FAF9)
+        modifier =
+            modifier,
+
+        shape =
+            RoundedCornerShape(11.dp),
+
+        color =
+            Color(0xFFF8FAF9)
     ) {
 
         Column(
-            modifier = Modifier.padding(11.dp)
+            modifier =
+                Modifier.padding(11.dp)
         ) {
 
             Text(
-                text = title,
-                fontSize = 10.sp,
-                color = TextGray
+                text =
+                    title,
+
+                fontSize =
+                    10.sp,
+
+                color =
+                    TextGray
             )
 
             Spacer(
-                modifier = Modifier.height(3.dp)
+                modifier =
+                    Modifier.height(3.dp)
             )
 
             Text(
-                text = value,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
+                text =
+                    value,
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
             )
         }
     }
@@ -806,17 +1496,24 @@ private fun RekapLoading() {
     ) {
 
         CircularProgressIndicator(
-            color = PrimaryGreen
+            color =
+                PrimaryGreen
         )
 
         Spacer(
-            modifier = Modifier.height(10.dp)
+            modifier =
+                Modifier.height(10.dp)
         )
 
         Text(
-            text = "Memuat rekap absensi...",
-            fontSize = 13.sp,
-            color = TextGray
+            text =
+                "Memuat rekap absensi...",
+
+            fontSize =
+                13.sp,
+
+            color =
+                TextGray
         )
     }
 }
@@ -846,58 +1543,94 @@ private fun RekapError(
     ) {
 
         Surface(
-            modifier = Modifier.size(64.dp),
-            shape = CircleShape,
-            color = Color(0xFFFEECEC)
+            modifier =
+                Modifier.size(64.dp),
+
+            shape =
+                CircleShape,
+
+            color =
+                Color(0xFFFEECEC)
         ) {
 
             Box(
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
 
                 Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = Color(0xFFB91C1C),
-                    modifier = Modifier.size(30.dp)
+                    imageVector =
+                        Icons.Default.Warning,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        Color(0xFFB91C1C),
+
+                    modifier =
+                        Modifier.size(30.dp)
                 )
             }
         }
 
         Spacer(
-            modifier = Modifier.height(12.dp)
+            modifier =
+                Modifier.height(12.dp)
         )
 
         Text(
-            text = "Gagal memuat rekap",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextDark
+            text =
+                "Gagal memuat rekap",
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextDark
         )
 
         Spacer(
-            modifier = Modifier.height(6.dp)
+            modifier =
+                Modifier.height(6.dp)
         )
 
         Text(
-            text = message,
-            fontSize = 12.sp,
-            color = Color(0xFFB91C1C),
-            textAlign = TextAlign.Center
+            text =
+                message,
+
+            fontSize =
+                12.sp,
+
+            color =
+                Color(0xFFB91C1C),
+
+            textAlign =
+                TextAlign.Center
         )
 
         Spacer(
-            modifier = Modifier.height(14.dp)
+            modifier =
+                Modifier.height(14.dp)
         )
 
         IconButton(
-            onClick = onRetry
+            onClick =
+                onRetry
         ) {
 
             Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Coba lagi",
-                tint = PrimaryGreen
+                imageVector =
+                    Icons.Default.Refresh,
+
+                contentDescription =
+                    "Coba lagi",
+
+                tint =
+                    PrimaryGreen
             )
         }
     }
@@ -909,7 +1642,9 @@ private fun RekapError(
 // ==========================================================
 
 @Composable
-private fun RekapEmpty() {
+private fun RekapEmpty(
+    filterKantor: FilterKantor
+) {
 
     Column(
         modifier = Modifier
@@ -925,45 +1660,185 @@ private fun RekapEmpty() {
     ) {
 
         Surface(
-            modifier = Modifier.size(70.dp),
-            shape = CircleShape,
-            color = Color(0xFFE6EEE9)
+            modifier =
+                Modifier.size(70.dp),
+
+            shape =
+                CircleShape,
+
+            color =
+                Color(0xFFE6EEE9)
         ) {
 
             Box(
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
 
                 Icon(
-                    imageVector = Icons.Default.Assessment,
-                    contentDescription = null,
-                    tint = TextGray,
-                    modifier = Modifier.size(32.dp)
+                    imageVector =
+                        Icons.Default.Assessment,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        TextGray,
+
+                    modifier =
+                        Modifier.size(32.dp)
                 )
             }
         }
 
         Spacer(
-            modifier = Modifier.height(14.dp)
+            modifier =
+                Modifier.height(14.dp)
         )
 
         Text(
-            text = "Belum Ada Rekap",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextDark
+            text =
+                if (
+                    filterKantor ==
+                    FilterKantor.SEMUA
+                ) {
+                    "Belum Ada Rekap"
+                } else {
+                    "Belum Ada Data"
+                },
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextDark
         )
 
         Spacer(
-            modifier = Modifier.height(5.dp)
+            modifier =
+                Modifier.height(5.dp)
         )
 
         Text(
-            text = "Belum ada data absensi di Firestore.",
-            fontSize = 12.sp,
-            color = TextGray,
-            textAlign = TextAlign.Center
+            text =
+                if (
+                    filterKantor ==
+                    FilterKantor.SEMUA
+                ) {
+                    "Belum ada data absensi di Firestore."
+                } else {
+                    "Belum ada data absensi untuk kantor ${filterKantor.label}."
+                },
+
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray,
+
+            textAlign =
+                TextAlign.Center
         )
+    }
+}
+
+
+// ==========================================================
+// GET KANTOR DARI QR
+// ==========================================================
+
+private fun getKantorFromQr(
+    qrData: String,
+    qrDataPulang: String
+): String {
+
+    fun normalizeQr(
+        value: String
+    ): String {
+
+        return value
+            .trim()
+            .removeSuffix("/")
+            .lowercase()
+    }
+
+
+    val masuk =
+        normalizeQr(qrData)
+
+    val pulang =
+        normalizeQr(qrDataPulang)
+
+
+    // ======================================================
+    // QR KANTOR MALANG
+    // ======================================================
+
+    val qrMalang =
+        normalizeQr(
+            "https://q.me-qr.com/x5ie23mg"
+        )
+
+
+    // ======================================================
+    // QR KANTOR BLITAR
+    // ======================================================
+
+    val qrBlitar =
+        normalizeQr(
+            "https://q.me-qr.com/hbywvgy7"
+        )
+
+
+    // ======================================================
+    // QR KANTOR KEDIRI
+    // ======================================================
+
+    val qrKediri =
+        normalizeQr(
+            "https://q.me-qr.com/14vy2ipr"
+        )
+
+
+    // ======================================================
+    // ABSEN MASUK
+    // ======================================================
+
+    return when {
+
+        masuk == qrMalang ->
+            "Malang"
+
+        masuk == qrBlitar ->
+            "Blitar"
+
+        masuk == qrKediri ->
+            "Kediri"
+
+
+        // ==================================================
+        // JIKA QR MASUK KOSONG, CEK QR PULANG
+        // ==================================================
+
+        pulang == qrMalang ->
+            "Malang"
+
+        pulang == qrBlitar ->
+            "Blitar"
+
+        pulang == qrKediri ->
+            "Kediri"
+
+
+        // ==================================================
+        // QR TIDAK DIKENAL
+        // ==================================================
+
+        else ->
+            "Tidak Diketahui"
     }
 }
 
@@ -976,12 +1851,13 @@ private fun getRekapInitials(
     nama: String
 ): String {
 
-    val parts = nama
-        .trim()
-        .split(" ")
-        .filter {
-            it.isNotBlank()
-        }
+    val parts =
+        nama
+            .trim()
+            .split(" ")
+            .filter {
+                it.isNotBlank()
+            }
 
     return when {
 

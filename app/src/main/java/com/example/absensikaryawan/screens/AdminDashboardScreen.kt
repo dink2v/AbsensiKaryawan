@@ -17,17 +17,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ChevronRight
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -148,7 +145,6 @@ fun AdminDashboardScreen(
                     Date()
                 )
 
-
             coroutineScope {
 
                 // ==========================================
@@ -258,10 +254,6 @@ fun AdminDashboardScreen(
                                 ) ?: ""
 
 
-                            // ======================================
-                            // HADIR
-                            // ======================================
-
                             if (
                                 jamMasuk.isNotBlank()
                             ) {
@@ -269,10 +261,6 @@ fun AdminDashboardScreen(
                                 totalHadir++
                             }
 
-
-                            // ======================================
-                            // PULANG
-                            // ======================================
 
                             if (
                                 jamPulang.isNotBlank()
@@ -337,10 +325,6 @@ fun AdminDashboardScreen(
                                     ?: ""
 
 
-                            // ======================================
-                            // PENGAJUAN HARI INI
-                            // ======================================
-
                             if (
                                 tanggalMulai ==
                                 tanggalHariIni
@@ -349,10 +333,6 @@ fun AdminDashboardScreen(
                                 totalHariIni++
                             }
 
-
-                            // ======================================
-                            // MENUNGGU
-                            // ======================================
 
                             if (
                                 status ==
@@ -396,12 +376,12 @@ fun AdminDashboardScreen(
                     Background
                 )
                 .padding(
-                    horizontal = 20.dp
+                    horizontal = 18.dp
                 ),
 
         verticalArrangement =
             Arrangement.spacedBy(
-                14.dp
+                10.dp
             )
     ) {
 
@@ -413,9 +393,8 @@ fun AdminDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(8.dp)
+                    Modifier.height(6.dp)
             )
-
 
             Row(
                 modifier =
@@ -439,7 +418,7 @@ fun AdminDashboardScreen(
                             "Beranda",
 
                         fontSize =
-                            26.sp,
+                            23.sp,
 
                         fontWeight =
                             FontWeight.Bold,
@@ -448,19 +427,12 @@ fun AdminDashboardScreen(
                             TextDark
                     )
 
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
-
-
                     Text(
                         text =
                             "Kelola aktivitas aplikasi",
 
                         fontSize =
-                            13.sp,
+                            12.sp,
 
                         color =
                             TextGray
@@ -469,548 +441,32 @@ fun AdminDashboardScreen(
 
 
                 // ==========================================
-                // NOTIFIKASI ADMIN
+                // NOTIFIKASI
                 // ==========================================
 
-                Row(
-                    modifier =
-                        Modifier
-                            .size(44.dp)
-                            .background(
-                                color =
-                                    Color.White,
-
-                                shape =
-                                    RoundedCornerShape(
-                                        14.dp
-                                    )
-                            )
-                            .clickable {
-
-                                // ==================================
-                                // BUKA HALAMAN NOTIFIKASI ADMIN
-                                // ==================================
-
-                                onNotification()
-                            },
-
-                    horizontalArrangement =
-                        Arrangement.Center,
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.Notifications,
-
-                        contentDescription =
-                            "Notifikasi Admin",
-
-                        tint =
-                            TextDark,
-
-                        modifier =
-                            Modifier.size(22.dp)
-                    )
-                }
-            }
-        }
-
-
-        // ==================================================
-        // PANEL ADMIN
-        // ==================================================
-
-        item {
-
-            Card(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(
-                        20.dp
-                    ),
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            PrimaryGreen
-                    ),
-
-                elevation =
-                    CardDefaults.cardElevation(
-                        defaultElevation =
-                            2.dp
-                    )
-            ) {
-
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = 20.dp,
-                                vertical = 20.dp
-                            ),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier.weight(1f)
-                    ) {
-
-                        Text(
-                            text =
-                                "Panel Admin",
-
-                            fontSize =
-                                19.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                Color.White
-                        )
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(6.dp)
-                        )
-
-
-                        Text(
-                            text =
-                                "Pantau dan kelola aktivitas karyawan.",
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                Color.White.copy(
-                                    alpha = 0.88f
-                                )
-                        )
-                    }
-
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .size(54.dp)
-                                .background(
-                                    color =
-                                        Color.White.copy(
-                                            alpha = 0.14f
-                                        ),
-
-                                    shape =
-                                        RoundedCornerShape(
-                                            15.dp
-                                        )
-                                ),
-
-                        horizontalArrangement =
-                            Arrangement.Center,
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.Home,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                Color.White,
-
-                            modifier =
-                                Modifier.size(29.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-
-        // ==================================================
-        // STATISTIK UTAMA
-        // ==================================================
-
-        item {
-
-            Text(
-                text =
-                    "Statistik Hari Ini",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark,
-
-                modifier =
-                    Modifier.padding(
-                        top = 2.dp
-                    )
-            )
-        }
-
-
-        // ==================================================
-        // STATISTIK BARIS 1
-        // ==================================================
-
-        item {
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(
-                        12.dp
-                    )
-            ) {
-
-                AdminSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
+                CompactIconButton(
                     icon =
-                        Icons.Default.Groups,
+                        Icons.Default.Notifications,
 
-                    title =
-                        "Karyawan",
+                    contentDescription =
+                        "Notifikasi Admin",
 
-                    value =
-                        jumlahKaryawan.toString()
-                )
-
-
-                AdminSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    icon =
-                        Icons.Default.CheckCircle,
-
-                    title =
-                        "Hadir",
-
-                    value =
-                        jumlahHadir.toString()
+                    onClick =
+                        onNotification
                 )
             }
         }
 
 
         // ==================================================
-        // STATISTIK BARIS 2
+        // STATISTIK HARI INI
         // ==================================================
 
         item {
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(
-                        12.dp
-                    )
-            ) {
-
-                AdminSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    icon =
-                        Icons.Default.Schedule,
-
-                    title =
-                        "Belum Pulang",
-
-                    value =
-                        jumlahBelumPulang.toString()
-                )
-
-
-                AdminSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    icon =
-                        Icons.Default.CheckCircle,
-
-                    title =
-                        "Sudah Pulang",
-
-                    value =
-                        jumlahSudahPulang.toString()
-                )
-            }
-        }
-
-
-        // ==================================================
-        // PENGAJUAN BARU
-        // ==================================================
-
-        item {
-
-            if (
-                jumlahPengajuanMenunggu > 0
-            ) {
-
-                Card(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-
-                                onApproval()
-                            },
-
-                    shape =
-                        RoundedCornerShape(
-                            18.dp
-                        ),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color.White
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation =
-                                2.dp
-                        )
-                ) {
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = 17.dp,
-                                    vertical = 15.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Row(
-                            modifier =
-                                Modifier
-                                    .size(46.dp)
-                                    .background(
-                                        color =
-                                            Color(0xFFFFF3E0),
-
-                                        shape =
-                                            RoundedCornerShape(
-                                                12.dp
-                                            )
-                                    ),
-
-                            horizontalArrangement =
-                                Arrangement.Center,
-
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-
-                            Icon(
-                                imageVector =
-                                    Icons.Default.PendingActions,
-
-                                contentDescription =
-                                    "Pengajuan baru",
-
-                                tint =
-                                    Color(0xFFD97706),
-
-                                modifier =
-                                    Modifier.size(24.dp)
-                            )
-                        }
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(14.dp)
-                        )
-
-
-                        Column(
-                            modifier =
-                                Modifier.weight(1f)
-                        ) {
-
-                            Text(
-                                text =
-                                    "Pengajuan Baru",
-
-                                fontSize =
-                                    15.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(3.dp)
-                            )
-
-
-                            Text(
-                                text =
-                                    "$jumlahPengajuanMenunggu pengajuan menunggu persetujuan",
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.ChevronRight,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                TextGray,
-
-                            modifier =
-                                Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-
-        // ==================================================
-        // RINGKASAN PENGAJUAN
-        // ==================================================
-
-        item {
-
-            Text(
-                text =
-                    "Ringkasan Pengajuan",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark,
-
-                modifier =
-                    Modifier.padding(
-                        top = 2.dp
-                    )
-            )
-        }
-
-
-        item {
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(
-                        12.dp
-                    )
-            ) {
-
-                AdminSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    icon =
-                        Icons.Default.NoteAdd,
-
-                    title =
-                        "Pengajuan Hari Ini",
-
-                    value =
-                        jumlahPengajuanHariIni.toString()
-                )
-
-
-                AdminSummaryCard(
-                    modifier =
-                        Modifier.weight(1f),
-
-                    icon =
-                        Icons.Default.PendingActions,
-
-                    title =
-                        "Menunggu Approval",
-
-                    value =
-                        jumlahPengajuanMenunggu.toString()
-                )
-            }
-        }
-
-
-        // ==================================================
-        // KEHADIRAN HARI INI
-        // ==================================================
-
-        item {
-
-            Text(
-                text =
-                    "Kehadiran Hari Ini",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark,
-
-                modifier =
-                    Modifier.padding(
-                        top = 2.dp
-                    )
+            AdminSectionTitle(
+                title =
+                    "Statistik Hari Ini"
             )
         }
 
@@ -1023,7 +479,7 @@ fun AdminDashboardScreen(
 
                 shape =
                     RoundedCornerShape(
-                        18.dp
+                        16.dp
                     ),
 
                 colors =
@@ -1035,83 +491,80 @@ fun AdminDashboardScreen(
                 elevation =
                     CardDefaults.cardElevation(
                         defaultElevation =
-                            2.dp
+                            1.dp
                     )
             ) {
 
-                Column(
+                Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(
-                                horizontal = 17.dp,
-                                vertical = 17.dp
-                            )
+                                horizontal = 8.dp,
+                                vertical = 13.dp
+                            ),
+
+                    horizontalArrangement =
+                        Arrangement.SpaceEvenly,
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
-                    AdminAttendanceRow(
+                    AdminCompactStat(
+                        icon =
+                            Icons.Default.Groups,
+
+                        title =
+                            "Karyawan",
+
+                        value =
+                            jumlahKaryawan.toString()
+                    )
+
+
+                    AdminVerticalDivider()
+
+
+                    AdminCompactStat(
                         icon =
                             Icons.Default.CheckCircle,
 
                         title =
-                            "Sudah Absen Masuk",
+                            "Hadir",
 
                         value =
                             jumlahHadir.toString()
                     )
 
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
+                    AdminVerticalDivider()
 
 
-                    AdminAttendanceRow(
+                    AdminCompactStat(
                         icon =
                             Icons.Default.Schedule,
 
                         title =
-                            "Belum Absen Pulang",
+                            "Belum Pulang",
 
                         value =
                             jumlahBelumPulang.toString()
                     )
 
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
+                    AdminVerticalDivider()
 
 
-                    AdminAttendanceRow(
+                    AdminCompactStat(
                         icon =
                             Icons.Default.CheckCircle,
 
                         title =
-                            "Sudah Absen Pulang",
+                            "Sudah Pulang",
 
                         value =
                             jumlahSudahPulang.toString()
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(14.dp)
-                    )
-
-
-                    Text(
-                        text =
-                            "Data berdasarkan absensi hari ini.",
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
                     )
                 }
             }
@@ -1119,145 +572,17 @@ fun AdminDashboardScreen(
 
 
         // ==================================================
-        // AKSES CEPAT
+        // PENGAJUAN
         // ==================================================
 
         item {
 
-            Text(
-                text =
-                    "Akses Cepat",
-
-                fontSize =
-                    18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark,
-
-                modifier =
-                    Modifier.padding(
-                        top = 2.dp
-                    )
-            )
-        }
-
-
-        // ==================================================
-        // APPROVAL
-        // ==================================================
-
-        item {
-
-            AdminQuickMenu(
-                icon =
-                    Icons.Default.NoteAdd,
-
+            AdminSectionTitle(
                 title =
-                    "Approval",
-
-                subtitle =
-                    "Kelola pengajuan karyawan",
-
-                onClick =
-                    onApproval
+                    "Pengajuan"
             )
         }
 
-
-        // ==================================================
-        // CHAT
-        // ==================================================
-
-        item {
-
-            AdminQuickMenu(
-                icon =
-                    Icons.Default.Chat,
-
-                title =
-                    "Chat",
-
-                subtitle =
-                    "Hubungi dan balas pesan karyawan",
-
-                onClick =
-                    onChat
-            )
-        }
-
-
-        // ==================================================
-        // KARYAWAN
-        // ==================================================
-
-        item {
-
-            AdminQuickMenu(
-                icon =
-                    Icons.Default.Groups,
-
-                title =
-                    "Karyawan",
-
-                subtitle =
-                    "Kelola data karyawan",
-
-                onClick =
-                    onEmployees
-            )
-        }
-
-
-        // ==================================================
-        // REKAP
-        // ==================================================
-
-        item {
-
-            AdminQuickMenu(
-                icon =
-                    Icons.Default.Assessment,
-
-                title =
-                    "Rekap",
-
-                subtitle =
-                    "Lihat rekap absensi karyawan",
-
-                onClick =
-                    onRecap
-            )
-        }
-
-
-        // ==================================================
-        // SETTING
-        // ==================================================
-
-        item {
-
-            AdminQuickMenu(
-                icon =
-                    Icons.Default.Settings,
-
-                title =
-                    "Setting",
-
-                subtitle =
-                    "Pengaturan akun dan aplikasi",
-
-                onClick =
-                    onSettings
-            )
-        }
-
-
-        // ==================================================
-        // KELUAR
-        // ==================================================
 
         item {
 
@@ -1266,12 +591,12 @@ fun AdminDashboardScreen(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            // Logout utama melalui Setting.
+                            onApproval()
                         },
 
                 shape =
                     RoundedCornerShape(
-                        18.dp
+                        16.dp
                     ),
 
                 colors =
@@ -1283,7 +608,7 @@ fun AdminDashboardScreen(
                 elevation =
                     CardDefaults.cardElevation(
                         defaultElevation =
-                            2.dp
+                            1.dp
                     )
             ) {
 
@@ -1292,54 +617,23 @@ fun AdminDashboardScreen(
                         Modifier
                             .fillMaxWidth()
                             .padding(
-                                horizontal = 18.dp,
-                                vertical = 15.dp
+                                horizontal = 14.dp,
+                                vertical = 12.dp
                             ),
 
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
 
-                    Row(
-                        modifier =
-                            Modifier
-                                .size(46.dp)
-                                .background(
-                                    color =
-                                        Color(0xFFFDECEC),
-
-                                    shape =
-                                        RoundedCornerShape(
-                                            12.dp
-                                        )
-                                ),
-
-                        horizontalArrangement =
-                            Arrangement.Center,
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.Logout,
-
-                            contentDescription =
-                                "Keluar",
-
-                            tint =
-                                Color(0xFFB91C1C),
-
-                            modifier =
-                                Modifier.size(23.dp)
-                        )
-                    }
+                    AdminSmallIconBox(
+                        icon =
+                            Icons.Default.NoteAdd
+                    )
 
 
                     Spacer(
                         modifier =
-                            Modifier.width(14.dp)
+                            Modifier.width(11.dp)
                     )
 
 
@@ -1350,28 +644,26 @@ fun AdminDashboardScreen(
 
                         Text(
                             text =
-                                "Keluar",
+                                "$jumlahPengajuanHariIni Pengajuan Hari Ini",
 
                             fontSize =
-                                15.sp,
+                                13.sp,
 
                             fontWeight =
-                                FontWeight.Bold,
+                                FontWeight.SemiBold,
 
                             color =
-                                Color(0xFFB91C1C)
+                                TextDark
                         )
-
 
                         Spacer(
                             modifier =
-                                Modifier.height(3.dp)
+                                Modifier.height(2.dp)
                         )
-
 
                         Text(
                             text =
-                                "Keluar dari akun Admin",
+                                "$jumlahPengajuanMenunggu menunggu approval",
 
                             fontSize =
                                 11.sp,
@@ -1393,9 +685,120 @@ fun AdminDashboardScreen(
                             TextGray,
 
                         modifier =
-                            Modifier.size(21.dp)
+                            Modifier.size(20.dp)
                     )
                 }
+            }
+        }
+
+
+        // ==================================================
+        // AKSES CEPAT
+        // ==================================================
+
+        item {
+
+            AdminSectionTitle(
+                title =
+                    "Akses Cepat"
+            )
+        }
+
+
+        // ==================================================
+        // ROW 1
+        // REKAP + KARYAWAN
+        // ==================================================
+
+        item {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
+            ) {
+
+                AdminQuickCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Assessment,
+
+                    title =
+                        "Rekap",
+
+                    onClick =
+                        onRecap
+                )
+
+
+                AdminQuickCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Groups,
+
+                    title =
+                        "Karyawan",
+
+                    onClick =
+                        onEmployees
+                )
+            }
+        }
+
+
+        // ==================================================
+        // ROW 2
+        // CHAT + SETTING
+        // ==================================================
+
+        item {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
+            ) {
+
+                AdminQuickCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Chat,
+
+                    title =
+                        "Chat",
+
+                    onClick =
+                        onChat
+                )
+
+
+                AdminQuickCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Settings,
+
+                    title =
+                        "Setting",
+
+                    onClick =
+                        onSettings
+                )
             }
         }
 
@@ -1408,7 +811,7 @@ fun AdminDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(8.dp)
+                    Modifier.height(10.dp)
             )
         }
     }
@@ -1416,202 +819,72 @@ fun AdminDashboardScreen(
 
 
 // ==========================================================
-// SUMMARY CARD
+// SECTION TITLE
 // ==========================================================
 
 @Composable
-private fun AdminSummaryCard(
-    modifier: Modifier,
-    icon: ImageVector,
-    title: String,
-    value: String
+private fun AdminSectionTitle(
+    title: String
 ) {
 
-    Card(
+    Text(
+        text =
+            title,
+
+        fontSize =
+            15.sp,
+
+        fontWeight =
+            FontWeight.Bold,
+
+        color =
+            TextDark,
+
         modifier =
-            modifier,
-
-        shape =
-            RoundedCornerShape(
-                18.dp
-            ),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
+            Modifier.padding(
+                top = 2.dp
             )
-    ) {
-
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 16.dp,
-                        vertical = 16.dp
-                    )
-        ) {
-
-            Row(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .background(
-                            color =
-                                SoftGreen,
-
-                            shape =
-                                RoundedCornerShape(
-                                    11.dp
-                                )
-                        ),
-
-                horizontalArrangement =
-                    Arrangement.Center,
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Icon(
-                    imageVector =
-                        icon,
-
-                    contentDescription =
-                        title,
-
-                    tint =
-                        PrimaryGreen,
-
-                    modifier =
-                        Modifier.size(21.dp)
-                )
-            }
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(11.dp)
-            )
-
-
-            Text(
-                text =
-                    title,
-
-                fontSize =
-                    12.sp,
-
-                color =
-                    TextGray
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(3.dp)
-            )
-
-
-            Text(
-                text =
-                    value,
-
-                fontSize =
-                    22.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
-            )
-        }
-    }
+    )
 }
 
 
 // ==========================================================
-// ATTENDANCE ROW
+// COMPACT STAT
 // ==========================================================
 
 @Composable
-private fun AdminAttendanceRow(
+private fun AdminCompactStat(
     icon: ImageVector,
     title: String,
     value: String
 ) {
 
-    Row(
+    Column(
         modifier =
-            Modifier.fillMaxWidth(),
+            Modifier.width(72.dp),
 
-        verticalAlignment =
-            Alignment.CenterVertically
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
 
-        Row(
+        Icon(
+            imageVector =
+                icon,
+
+            contentDescription =
+                title,
+
+            tint =
+                PrimaryGreen,
+
             modifier =
-                Modifier
-                    .size(40.dp)
-                    .background(
-                        color =
-                            SoftGreen,
-
-                        shape =
-                            RoundedCornerShape(
-                                11.dp
-                            )
-                    ),
-
-            horizontalArrangement =
-                Arrangement.Center,
-
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            Icon(
-                imageVector =
-                    icon,
-
-                contentDescription =
-                    title,
-
-                tint =
-                    PrimaryGreen,
-
-                modifier =
-                    Modifier.size(21.dp)
-            )
-        }
+                Modifier.size(19.dp)
+        )
 
 
         Spacer(
             modifier =
-                Modifier.width(12.dp)
-        )
-
-
-        Text(
-            text =
-                title,
-
-            modifier =
-                Modifier.weight(1f),
-
-            fontSize =
-                13.sp,
-
-            color =
-                TextDark
+                Modifier.height(4.dp)
         )
 
 
@@ -1620,42 +893,128 @@ private fun AdminAttendanceRow(
                 value,
 
             fontSize =
-                17.sp,
+                19.sp,
 
             fontWeight =
                 FontWeight.Bold,
 
             color =
-                PrimaryGreen
+                TextDark
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(1.dp)
+        )
+
+
+        Text(
+            text =
+                title,
+
+            fontSize =
+                9.sp,
+
+            color =
+                TextGray,
+
+            maxLines =
+                1
         )
     }
 }
 
 
 // ==========================================================
-// QUICK MENU
+// VERTICAL DIVIDER
 // ==========================================================
 
 @Composable
-private fun AdminQuickMenu(
+private fun AdminVerticalDivider() {
+
+    Spacer(
+        modifier =
+            Modifier
+                .width(1.dp)
+                .height(40.dp)
+                .background(
+                    color =
+                        Color(0xFFE5E7EB)
+                )
+    )
+}
+
+
+// ==========================================================
+// SMALL ICON BOX
+// ==========================================================
+
+@Composable
+private fun AdminSmallIconBox(
+    icon: ImageVector
+) {
+
+    Row(
+        modifier =
+            Modifier
+                .size(40.dp)
+                .background(
+                    color =
+                        SoftGreen,
+
+                    shape =
+                        RoundedCornerShape(
+                            11.dp
+                        )
+                ),
+
+        horizontalArrangement =
+            Arrangement.Center,
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector =
+                icon,
+
+            contentDescription =
+                null,
+
+            tint =
+                PrimaryGreen,
+
+            modifier =
+                Modifier.size(21.dp)
+        )
+    }
+}
+
+
+// ==========================================================
+// QUICK CARD
+// ==========================================================
+
+@Composable
+private fun AdminQuickCard(
+    modifier: Modifier,
     icon: ImageVector,
     title: String,
-    subtitle: String,
     onClick: () -> Unit
 ) {
 
     Card(
         modifier =
-            Modifier
-                .fillMaxWidth()
+            modifier
                 .clickable {
-
                     onClick()
                 },
 
         shape =
             RoundedCornerShape(
-                18.dp
+                15.dp
             ),
 
         colors =
@@ -1667,7 +1026,7 @@ private fun AdminQuickMenu(
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    2.dp
+                    1.dp
             )
     ) {
 
@@ -1676,8 +1035,8 @@ private fun AdminQuickMenu(
                 Modifier
                     .fillMaxWidth()
                     .padding(
-                        horizontal = 18.dp,
-                        vertical = 15.dp
+                        horizontal = 12.dp,
+                        vertical = 12.dp
                     ),
 
             verticalAlignment =
@@ -1687,14 +1046,14 @@ private fun AdminQuickMenu(
             Row(
                 modifier =
                     Modifier
-                        .size(46.dp)
+                        .size(36.dp)
                         .background(
                             color =
                                 SoftGreen,
 
                             shape =
                                 RoundedCornerShape(
-                                    12.dp
+                                    10.dp
                                 )
                         ),
 
@@ -1716,54 +1075,33 @@ private fun AdminQuickMenu(
                         PrimaryGreen,
 
                     modifier =
-                        Modifier.size(23.dp)
+                        Modifier.size(20.dp)
                 )
             }
 
 
             Spacer(
                 modifier =
-                    Modifier.width(14.dp)
+                    Modifier.width(8.dp)
             )
 
 
-            Column(
+            Text(
+                text =
+                    title,
+
                 modifier =
-                    Modifier.weight(1f)
-            ) {
+                    Modifier.weight(1f),
 
-                Text(
-                    text =
-                        title,
+                fontSize =
+                    12.sp,
 
-                    fontSize =
-                        15.sp,
+                fontWeight =
+                    FontWeight.SemiBold,
 
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-
-                Text(
-                    text =
-                        subtitle,
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-            }
+                color =
+                    TextDark
+            )
 
 
             Icon(
@@ -1777,8 +1115,60 @@ private fun AdminQuickMenu(
                     TextGray,
 
                 modifier =
-                    Modifier.size(22.dp)
+                    Modifier.size(17.dp)
             )
         }
+    }
+}
+
+
+// ==========================================================
+// COMPACT HEADER ICON BUTTON
+// ==========================================================
+
+@Composable
+private fun CompactIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+
+    Row(
+        modifier =
+            Modifier
+                .size(42.dp)
+                .background(
+                    color =
+                        Color.White,
+
+                    shape =
+                        RoundedCornerShape(
+                            13.dp
+                        )
+                )
+                .clickable {
+                    onClick()
+                },
+
+        horizontalArrangement =
+            Arrangement.Center,
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector =
+                icon,
+
+            contentDescription =
+                contentDescription,
+
+            tint =
+                TextDark,
+
+            modifier =
+                Modifier.size(21.dp)
+        )
     }
 }

@@ -32,6 +32,7 @@ import com.example.absensikaryawan.screens.StaffDashboardScreen
 import com.example.absensikaryawan.screens.TampilanScreen
 import com.example.absensikaryawan.screens.TentangAplikasiScreen
 import com.example.absensikaryawan.screens.ThemeMode
+import com.example.absensikaryawan.screens.FilterStatusPengajuan
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -42,6 +43,27 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// ==========================================================
+// TARGET NOTIFIKASI
+// ==========================================================
+
+enum class NotificationTarget {
+
+    NONE,
+
+    RIWAYAT_ABSENSI,
+
+    RIWAYAT_PENGAJUAN,
+
+    PENGAJUAN_DISETUJUI,
+
+    PENGAJUAN_DITOLAK,
+
+    PENGAJUAN_MENUNGGU,
+
+    CHAT_ADMIN
+}
 
 // ==========================================================
 // STAFF NAVIGATION
@@ -100,16 +122,18 @@ fun StaffNavigation(
 
     // ======================================================
     // SCREEN ASAL DETAIL PENGAJUAN
-    //
-    // Supaya tombol kembali dari Detail tetap kembali ke
-    // halaman asal:
-    //
-    // Pengajuan -> Detail -> Pengajuan
-    // Riwayat  -> Detail -> Riwayat
     // ======================================================
 
     var detailReturnScreen by remember {
         mutableStateOf(StaffScreen.Pengajuan)
+    }
+
+    // ======================================================
+    // TARGET NOTIFIKASI
+    // ======================================================
+
+    var notificationTarget by remember {
+        mutableStateOf(NotificationTarget.NONE)
     }
 
     // ======================================================
@@ -163,6 +187,13 @@ fun StaffNavigation(
                                 else ->
                                     StaffScreen.Dashboard
                             }
+
+                        // ==========================================
+                        // RESET TARGET NOTIFIKASI
+                        // ==========================================
+
+                        notificationTarget =
+                            NotificationTarget.NONE
                     }
                 )
             }
@@ -215,6 +246,9 @@ fun StaffNavigation(
                         onHistory = {
 
                             selectedBottomItem = 3
+
+                            notificationTarget =
+                                NotificationTarget.RIWAYAT_ABSENSI
 
                             currentScreen =
                                 StaffScreen.Riwayat
@@ -796,14 +830,36 @@ fun StaffNavigation(
 
                 StaffScreen.Riwayat -> {
 
+                    val filterAwal =
+                        when (notificationTarget) {
+
+                            NotificationTarget.PENGAJUAN_DISETUJUI ->
+                                FilterStatusPengajuan.DISETUJUI
+
+                            NotificationTarget.PENGAJUAN_DITOLAK ->
+                                FilterStatusPengajuan.DITOLAK
+
+                            NotificationTarget.PENGAJUAN_MENUNGGU ->
+                                FilterStatusPengajuan.MENUNGGU
+
+                            else ->
+                                FilterStatusPengajuan.SEMUA
+                        }
+
                     RiwayatScreen(
 
                         refreshKey =
                             refreshKey,
 
+                        filterStatusAwal =
+                            filterAwal,
+
                         onBack = {
 
                             selectedBottomItem = 0
+
+                            notificationTarget =
+                                NotificationTarget.NONE
 
                             currentScreen =
                                 StaffScreen.Dashboard
@@ -901,6 +957,71 @@ fun StaffNavigation(
 
                             currentScreen =
                                 StaffScreen.Dashboard
+                        },
+
+                        onNotificationClick = { target ->
+
+                            Log.d(
+                                "STAFF_NAV",
+                                "NOTIFIKASI DIKLIK = $target"
+                            )
+
+                            notificationTarget =
+                                target
+
+                            when (target) {
+
+                                NotificationTarget.RIWAYAT_ABSENSI -> {
+
+                                    selectedBottomItem = 3
+
+                                    currentScreen =
+                                        StaffScreen.Riwayat
+                                }
+
+                                NotificationTarget.RIWAYAT_PENGAJUAN -> {
+
+                                    selectedBottomItem = 3
+
+                                    currentScreen =
+                                        StaffScreen.Riwayat
+                                }
+
+                                NotificationTarget.PENGAJUAN_DISETUJUI -> {
+
+                                    selectedBottomItem = 3
+
+                                    currentScreen =
+                                        StaffScreen.Riwayat
+                                }
+
+                                NotificationTarget.PENGAJUAN_DITOLAK -> {
+
+                                    selectedBottomItem = 3
+
+                                    currentScreen =
+                                        StaffScreen.Riwayat
+                                }
+
+                                NotificationTarget.PENGAJUAN_MENUNGGU -> {
+
+                                    selectedBottomItem = 3
+
+                                    currentScreen =
+                                        StaffScreen.Riwayat
+                                }
+
+                                NotificationTarget.CHAT_ADMIN -> {
+
+                                    currentScreen =
+                                        StaffScreen.ChatAdmin
+                                }
+
+                                NotificationTarget.NONE -> {
+
+                                    // Tidak melakukan apa-apa.
+                                }
+                            }
                         }
                     )
                 }
