@@ -15,7 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
 import com.example.absensikaryawan.navigation.AppNavigation
-import com.example.absensikaryawan.screens.ThemeMode
+import com.example.absensikaryawan.data.screens.ThemeMode
 import com.example.absensikaryawan.ui.theme.AbsensiKaryawanTheme
 
 import com.google.firebase.auth.FirebaseAuth
@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     if (
-                        SessionManager.shouldRequireLogin()
+                        _root_ide_package_.com.example.absensikaryawan.SessionManager.shouldRequireLogin()
                     ) {
 
                         val firebaseAuth =
@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
             // ==================================================
 
             val themeDataStore =
-                ThemeDataStore(
+                _root_ide_package_.com.example.absensikaryawan.ThemeDataStore(
                     applicationContext
                 )
 
@@ -100,7 +100,7 @@ class MainActivity : ComponentActivity() {
             themeDataStore.themeMode
                 .collectAsState(
                     initial =
-                        ThemeMode.TERANG
+                        _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.TERANG
                 )
 
 
@@ -113,16 +113,20 @@ class MainActivity : ComponentActivity() {
                     selectedThemeMode
                 ) {
 
-                    ThemeMode.TERANG -> {
+                    _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.TERANG -> {
                         false
                     }
 
-                    ThemeMode.GELAP -> {
+                    _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.GELAP -> {
                         true
                     }
 
-                    ThemeMode.SISTEM -> {
+                    _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.SISTEM -> {
                         isSystemInDarkTheme()
+                    }
+
+                    else -> {
+                        false
                     }
                 }
 

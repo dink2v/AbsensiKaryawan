@@ -31,11 +31,12 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.example.absensikaryawan.ThemeDataStore
-
+import com.example.absensikaryawan.data.screens.ThemeMode
 import com.example.absensikaryawan.repository.ChatRoom
 
 import com.example.absensikaryawan.screens.AdminChatDetailScreen
@@ -50,10 +51,7 @@ import com.example.absensikaryawan.screens.ProfileScreen
 import com.example.absensikaryawan.screens.RekapAdminScreen
 import com.example.absensikaryawan.screens.TampilanScreen
 import com.example.absensikaryawan.screens.TentangAplikasiScreen
-import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.screens.AdminQrSettingScreen
-
-import androidx.compose.ui.platform.LocalContext
 
 import kotlinx.coroutines.launch
 
@@ -690,8 +688,8 @@ fun AdminNavigation(
 
 
                 // ==================================================
-// QR KANTOR
-// ==================================================
+                // QR KANTOR
+                // ==================================================
 
                 AdminScreen.QrKantor -> {
 
