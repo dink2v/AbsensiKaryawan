@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.QrCode
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,6 +53,8 @@ fun AdminSettingsScreen(
     onBantuan: () -> Unit,
 
     onTentangAplikasi: () -> Unit,
+
+    onQrKantor: () -> Unit,
 
     onLogout: () -> Unit
 
@@ -152,20 +155,19 @@ fun AdminSettingsScreen(
                     Modifier.height(10.dp)
             )
 
-
             SettingMenuCard(
 
                 icon =
-                    Icons.Default.Palette,
+                    Icons.Default.QrCode,
 
                 title =
-                    "Tampilan",
+                    "QR Kantor",
 
                 subtitle =
-                    "Atur mode tampilan aplikasi",
+                    "Atur QR yang boleh digunakan Staff",
 
                 onClick =
-                    onTampilan
+                    onQrKantor
             )
 
 

@@ -51,6 +51,7 @@ import com.example.absensikaryawan.screens.RekapAdminScreen
 import com.example.absensikaryawan.screens.TampilanScreen
 import com.example.absensikaryawan.screens.TentangAplikasiScreen
 import com.example.absensikaryawan.screens.ThemeMode
+import com.example.absensikaryawan.screens.AdminQrSettingScreen
 
 import androidx.compose.ui.platform.LocalContext
 
@@ -84,6 +85,8 @@ private enum class AdminScreen {
     Rekap,
 
     Settings,
+
+    QrKantor,
 
     Profile,
 
@@ -655,6 +658,11 @@ fun AdminNavigation(
                                 AdminScreen.Tampilan
                         },
 
+                        onQrKantor = {
+
+                            currentScreen =
+                                AdminScreen.QrKantor
+                        },
 
                         onBantuan = {
 
@@ -662,13 +670,11 @@ fun AdminNavigation(
                                 AdminScreen.Bantuan
                         },
 
-
                         onTentangAplikasi = {
 
                             currentScreen =
                                 AdminScreen.TentangAplikasi
                         },
-
 
                         onLogout = {
 
@@ -678,6 +684,23 @@ fun AdminNavigation(
                             )
 
                             onLogout()
+                        }
+                    )
+                }
+
+
+                // ==================================================
+// QR KANTOR
+// ==================================================
+
+                AdminScreen.QrKantor -> {
+
+                    AdminQrSettingScreen(
+
+                        onBack = {
+
+                            currentScreen =
+                                AdminScreen.Settings
                         }
                     )
                 }

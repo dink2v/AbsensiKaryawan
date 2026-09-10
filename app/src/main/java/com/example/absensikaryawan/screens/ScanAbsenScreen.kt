@@ -81,6 +81,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -92,9 +93,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
-import androidx.compose.ui.focus.onFocusChanged
-
 import androidx.core.content.ContextCompat
+
+import com.google.firebase.firestore.FirebaseFirestore
 
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -102,6 +103,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -110,26 +112,6 @@ import kotlin.math.hypot
 
 private const val TAG =
     "ScanAbsenScreen"
-
-
-/*
- * ============================================================
- * QR KANTOR RESMI
- * ============================================================
- *
- * QR INI ADALAH QR FINAL YANG SUDAH DIBUAT.
- *
- * Jangan ubah URL kecuali QR kantor memang diganti.
- */
-
-private const val QR_KANTOR_MALANG =
-    "https://q.me-qr.com/x5ie23mg"
-
-private const val QR_KANTOR_BLITAR =
-    "https://q.me-qr.com/hbywvgy7"
-
-private const val QR_KANTOR_KEDIRI =
-    "https://q.me-qr.com/14vy2ipr"
 
 
 /*
@@ -195,59 +177,50 @@ private data class RegisteredQr(
 )
 
 
-private val registeredQrCodes =
-    listOf(
+/*
+ * ============================================================
+ * NORMALISASI QR
+ * ============================================================
+ */
 
-        RegisteredQr(
-            url =
-                QR_KANTOR_MALANG,
+private fun normalizeQrValue(
+    value: String
+): String {
 
-            officeName =
-                "KANTOR MALANG"
-        ),
-
-        RegisteredQr(
-            url =
-                QR_KANTOR_BLITAR,
-
-            officeName =
-                "KANTOR BLITAR"
-        ),
-
-        RegisteredQr(
-            url =
-                QR_KANTOR_KEDIRI,
-
-            officeName =
-                "KANTOR KEDIRI"
-        )
-    )
+    return value
+        .trim()
+        .removeSuffix("/")
+}
 
 
 /*
  * ============================================================
- * FUNGSI VALIDASI QR
+ * VALIDASI QR
+ *
+ * HANYA MEMBANDINGKAN DENGAN QR YANG AKTIF
+ * DARI FIRESTORE.
  * ============================================================
  */
 
 private fun getRegisteredOffice(
-    qrValue: String
+    qrValue: String,
+    registeredQrCodes: List<RegisteredQr>
 ): RegisteredQr? {
 
     val normalizedValue =
-        qrValue
-            .trim()
-            .removeSuffix("/")
+        normalizeQrValue(
+            qrValue
+        )
 
     return registeredQrCodes
         .firstOrNull { registeredQr ->
 
-            registeredQr.url
-                .removeSuffix("/")
-                .equals(
-                    normalizedValue,
-                    ignoreCase = true
-                )
+            normalizeQrValue(
+                registeredQr.url
+            ).equals(
+                normalizedValue,
+                ignoreCase = true
+            )
         }
 }
 
@@ -266,6 +239,152 @@ fun ScanAbsenScreen(
 
     val context =
         LocalContext.current
+
+
+    // ==========================================================
+    // FIRESTORE QR KANTOR
+    // ==========================================================
+
+    val db = remember {
+        FirebaseFirestore.getInstance()
+    }
+
+
+    // ==========================================================
+    // QR KANTOR YANG TERDAFTAR DAN AKTIF
+    // ==========================================================
+
+    var registeredQrCodes by remember {
+        mutableStateOf<List<RegisteredQr>>(emptyList())
+    }
+
+
+    // ==========================================================
+    // STATUS LOAD QR SETTINGS
+    // ==========================================================
+
+    var qrSettingsLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var qrSettingsError by remember {
+        mutableStateOf("")
+    }
+
+
+    // ==========================================================
+    // LOAD QR KANTOR DARI FIRESTORE
+    // ==========================================================
+
+    LaunchedEffect(Unit) {
+
+        qrSettingsLoading = true
+        qrSettingsError = ""
+
+        try {
+
+            val snapshot =
+                db.collection("qr_settings")
+                    .get()
+                    .await()
+
+            val qrList =
+                snapshot.documents.mapNotNull { document ->
+
+                    val qrData =
+                        document
+                            .getString("qrData")
+                            ?.trim()
+                            .orEmpty()
+
+                    val officeName =
+                        document
+                            .getString("officeName")
+                            ?.trim()
+                            .orEmpty()
+
+                    val aktif =
+                        document
+                            .getBoolean("aktif")
+                            ?: false
+
+                    if (
+                        aktif &&
+                        qrData.isNotBlank()
+                    ) {
+
+                        RegisteredQr(
+                            url = qrData,
+
+                            officeName =
+                                if (
+                                    officeName.isNotBlank()
+                                ) {
+                                    "KANTOR ${officeName.uppercase()}"
+                                } else {
+                                    "KANTOR ${document.id.uppercase()}"
+                                }
+                        )
+
+                    } else {
+
+                        null
+                    }
+                }
+
+            registeredQrCodes =
+                qrList
+
+            if (
+                qrList.isEmpty()
+            ) {
+
+                qrSettingsError =
+                    "Belum ada QR kantor aktif. Hubungi Admin untuk mengatur QR kantor."
+
+                Log.w(
+                    TAG,
+                    "Tidak ada QR kantor aktif di Firestore."
+                )
+
+            } else {
+
+                Log.d(
+                    TAG,
+                    "QR kantor aktif berhasil dimuat: ${qrList.size}"
+                )
+
+                qrList.forEach { qr ->
+
+                    Log.d(
+                        TAG,
+                        "QR AKTIF: ${qr.officeName} -> ${qr.url}"
+                    )
+                }
+            }
+
+        } catch (e: Exception) {
+
+            e.printStackTrace()
+
+            registeredQrCodes =
+                emptyList()
+
+            qrSettingsError =
+                "Gagal mengambil pengaturan QR kantor. Scanner tidak dapat digunakan."
+
+            Log.e(
+                TAG,
+                "Gagal mengambil qr_settings",
+                e
+            )
+
+        } finally {
+
+            qrSettingsLoading =
+                false
+        }
+    }
 
 
     /*
@@ -484,7 +603,9 @@ fun ScanAbsenScreen(
 
             requester.bringIntoView()
 
-            if (extraScroll > 0) {
+            if (
+                extraScroll > 0
+            ) {
 
                 delay(150)
 
@@ -508,7 +629,9 @@ fun ScanAbsenScreen(
         catatan
     ) {
 
-        if (catatanFocused) {
+        if (
+            catatanFocused
+        ) {
 
             scrollToField(
                 requester =
@@ -529,7 +652,9 @@ fun ScanAbsenScreen(
         lokasiLuarKantor
     ) {
 
-        if (lokasiFocused) {
+        if (
+            lokasiFocused
+        ) {
 
             scrollToField(
                 requester =
@@ -550,7 +675,9 @@ fun ScanAbsenScreen(
         alasanLuarKantor
     ) {
 
-        if (alasanFocused) {
+        if (
+            alasanFocused
+        ) {
 
             coroutineScope.launch {
 
@@ -566,14 +693,14 @@ fun ScanAbsenScreen(
 
                 delay(250)
 
-                alasanBringIntoViewRequester
-                    .bringIntoView()
-
-                delay(150)
-
                 scrollState.animateScrollTo(
                     scrollState.maxValue
                 )
+
+                delay(150)
+
+                alasanBringIntoViewRequester
+                    .bringIntoView()
             }
         }
     }
@@ -593,7 +720,9 @@ fun ScanAbsenScreen(
             kameraDiizinkan =
                 granted
 
-            if (!granted) {
+            if (
+                !granted
+            ) {
 
                 Log.w(
                     TAG,
@@ -633,27 +762,39 @@ fun ScanAbsenScreen(
 
     fun resetScanner() {
 
-        qrData = ""
+        qrData =
+            ""
 
-        kantorTerdeteksi = ""
+        kantorTerdeteksi =
+            ""
 
-        qrBoundingBox = null
+        qrBoundingBox =
+            null
 
-        qrCornerPoints = null
+        qrCornerPoints =
+            null
 
-        sudahScan = false
+        sudahScan =
+            false
 
-        sedangKirim = false
+        sedangKirim =
+            false
 
-        validationProgress = 0
+        validationProgress =
+            0
 
-        qrTidakValid = false
+        qrTidakValid =
+            false
 
-        qrErrorMessage = ""
+        qrErrorMessage =
+            ""
 
-        scanLock.set(false)
+        scanLock.set(
+            false
+        )
 
         scannerResetKey++
+
 
         Log.d(
             TAG,
@@ -845,7 +986,9 @@ fun ScanAbsenScreen(
                  * CAMERA
                  */
 
-                if (kameraDiizinkan) {
+                if (
+                    kameraDiizinkan
+                ) {
 
                     QRScannerCamera(
                         scanLock =
@@ -863,6 +1006,15 @@ fun ScanAbsenScreen(
                         scannerResetKey =
                             scannerResetKey,
 
+                        scannerEnabled =
+                            registeredQrCodes.isNotEmpty(),
+
+                        qrSettingsLoading =
+                            qrSettingsLoading,
+
+                        qrSettingsError =
+                            qrSettingsError,
+
                         onValidationProgress = {
                                 progress ->
 
@@ -875,32 +1027,24 @@ fun ScanAbsenScreen(
                                 box,
                                 points ->
 
+
                             /*
                              * =================================
-                             * VALIDASI FINAL QR
+                             * CEK STATUS QR SETTINGS
                              * =================================
                              */
 
-                            val registeredOffice =
-                                getRegisteredOffice(
-                                    value
-                                )
-
-
                             if (
-                                registeredOffice == null
+                                qrSettingsLoading ||
+                                qrSettingsError.isNotBlank() ||
+                                registeredQrCodes.isEmpty()
                             ) {
-
-                                /*
-                                 * QR BUKAN MILIK
-                                 * SISTEM.
-                                 */
 
                                 qrTidakValid =
                                     true
 
                                 qrErrorMessage =
-                                    "QR Code tidak terdaftar sebagai QR kantor."
+                                    "QR kantor belum berhasil diverifikasi. Silakan tunggu atau hubungi Admin."
 
                                 qrData =
                                     ""
@@ -920,11 +1064,69 @@ fun ScanAbsenScreen(
                                 validationProgress =
                                     0
 
-                                /*
-                                 * Buka scanner lagi.
-                                 */
+                                scanLock.set(
+                                    false
+                                )
 
-                                scanLock.set(false)
+                                scannerResetKey++
+
+                                return@QRScannerCamera
+                            }
+
+
+                            /*
+                             * =================================
+                             * VALIDASI FINAL
+                             * =================================
+                             */
+
+                            val registeredOffice =
+                                getRegisteredOffice(
+                                    qrValue =
+                                        value,
+
+                                    registeredQrCodes =
+                                        registeredQrCodes
+                                )
+
+
+                            /*
+                             * =================================
+                             * QR TIDAK TERDAFTAR
+                             * =================================
+                             */
+
+                            if (
+                                registeredOffice == null
+                            ) {
+
+                                qrTidakValid =
+                                    true
+
+                                qrErrorMessage =
+                                    "QR Code tidak terdaftar sebagai QR kantor aktif."
+
+                                qrData =
+                                    ""
+
+                                kantorTerdeteksi =
+                                    ""
+
+                                sudahScan =
+                                    false
+
+                                qrBoundingBox =
+                                    null
+
+                                qrCornerPoints =
+                                    null
+
+                                validationProgress =
+                                    0
+
+                                scanLock.set(
+                                    false
+                                )
 
                                 scannerResetKey++
 
@@ -934,6 +1136,7 @@ fun ScanAbsenScreen(
                                     """
                                     QR TIDAK VALID
                                     value=$value
+                                    alasan=QR tidak ada dalam qr_settings aktif
                                     """.trimIndent()
                                 )
 
@@ -952,6 +1155,11 @@ fun ScanAbsenScreen(
 
                             qrErrorMessage =
                                 ""
+
+
+                            /*
+                             * Gunakan data dari Firestore.
+                             */
 
                             qrData =
                                 registeredOffice.url
@@ -978,6 +1186,7 @@ fun ScanAbsenScreen(
                                 QR VALID
                                 kantor=${registeredOffice.officeName}
                                 value=${registeredOffice.url}
+                                sumber=Firestore
                                 """.trimIndent()
                             )
                         }
@@ -1072,6 +1281,171 @@ fun ScanAbsenScreen(
 
                 /*
                  * =================================================
+                 * QR SETTINGS LOADING
+                 * =================================================
+                 */
+
+                if (
+                    qrSettingsLoading
+                ) {
+
+                    Surface(
+                        modifier =
+                            Modifier
+                                .align(
+                                    Alignment.Center
+                                )
+                                .padding(20.dp),
+
+                        shape =
+                            RoundedCornerShape(16.dp),
+
+                        color =
+                            Color.Black.copy(
+                                alpha = 0.78f
+                            )
+                    ) {
+
+                        Row(
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = 18.dp,
+                                    vertical = 13.dp
+                                ),
+
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(20.dp),
+
+                                color =
+                                    ScannerGreen,
+
+                                strokeWidth =
+                                    2.dp
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.width(10.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "Memuat QR kantor...",
+
+                                color =
+                                    Color.White,
+
+                                fontWeight =
+                                    FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+
+                /*
+                 * =================================================
+                 * QR SETTINGS ERROR
+                 * =================================================
+                 */
+
+                if (
+                    !qrSettingsLoading &&
+                    qrSettingsError.isNotBlank()
+                ) {
+
+                    Surface(
+                        modifier =
+                            Modifier
+                                .align(
+                                    Alignment.Center
+                                )
+                                .padding(20.dp),
+
+                        shape =
+                            RoundedCornerShape(16.dp),
+
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .errorContainer
+                    ) {
+
+                        Column(
+                            modifier =
+                                Modifier.padding(
+                                    18.dp
+                                ),
+
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally
+                        ) {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Warning,
+
+                                contentDescription =
+                                    null,
+
+                                tint =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .error,
+
+                                modifier =
+                                    Modifier.size(32.dp)
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(8.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "QR Kantor Belum Siap",
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .onErrorContainer
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(5.dp)
+                            )
+
+                            Text(
+                                text =
+                                    qrSettingsError,
+
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall,
+
+                                color =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .onErrorContainer
+                            )
+                        }
+                    }
+                }
+
+
+                /*
+                 * =================================================
                  * STATUS PILL
                  * =================================================
                  */
@@ -1100,6 +1474,21 @@ fun ScanAbsenScreen(
                                     .colorScheme
                                     .error
 
+                            qrSettingsLoading ->
+                                Color.Black.copy(
+                                    alpha = 0.65f
+                                )
+
+                            qrSettingsError.isNotBlank() ->
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+
+                            validationProgress > 0 ->
+                                Color.Black.copy(
+                                    alpha = 0.65f
+                                )
+
                             else ->
                                 Color.Black.copy(
                                     alpha = 0.65f
@@ -1125,7 +1514,8 @@ fun ScanAbsenScreen(
                                     sudahScan ->
                                         Icons.Default.CheckCircle
 
-                                    qrTidakValid ->
+                                    qrTidakValid ||
+                                            qrSettingsError.isNotBlank() ->
                                         Icons.Default.Warning
 
                                     else ->
@@ -1153,6 +1543,12 @@ fun ScanAbsenScreen(
 
                                     sudahScan ->
                                         "QR TERKUNCI"
+
+                                    qrSettingsLoading ->
+                                        "MEMUAT QR KANTOR"
+
+                                    qrSettingsError.isNotBlank() ->
+                                        "QR KANTOR TIDAK SIAP"
 
                                     qrTidakValid ->
                                         "QR TIDAK VALID"
@@ -1185,7 +1581,9 @@ fun ScanAbsenScreen(
                  * =================================================
                  */
 
-                if (sudahScan) {
+                if (
+                    sudahScan
+                ) {
 
                     IconButton(
                         onClick = {
@@ -1230,7 +1628,9 @@ fun ScanAbsenScreen(
          * ====================================================
          */
 
-        if (qrTidakValid) {
+        if (
+            qrTidakValid
+        ) {
 
             Spacer(
                 modifier =
@@ -1333,7 +1733,7 @@ fun ScanAbsenScreen(
 
                         Text(
                             text =
-                                "Gunakan QR resmi kantor Malang, Blitar, atau Kediri.",
+                                "Gunakan QR kantor yang sudah diaktifkan oleh Admin.",
 
                             style =
                                 MaterialTheme
@@ -1597,7 +1997,9 @@ fun ScanAbsenScreen(
                 )
         ) {
 
-            if (sedangKirim) {
+            if (
+                sedangKirim
+            ) {
 
                 CircularProgressIndicator(
                     modifier =
@@ -1787,10 +2189,11 @@ fun ScanAbsenScreen(
                             .padding(16.dp)
                 ) {
 
+
                     /*
-                     * =================================================
+                     * ==========================================
                      * HEADER FORM
-                     * =================================================
+                     * ==========================================
                      */
 
                     Row(
@@ -1863,9 +2266,9 @@ fun ScanAbsenScreen(
 
 
                     /*
-                     * =================================================
+                     * ==========================================
                      * LOKASI
-                     * =================================================
+                     * ==========================================
                      */
 
                     Text(
@@ -1950,9 +2353,9 @@ fun ScanAbsenScreen(
 
 
                     /*
-                     * =================================================
+                     * ==========================================
                      * ALASAN / KEPERLUAN
-                     * =================================================
+                     * ==========================================
                      */
 
                     Text(
@@ -2059,9 +2462,9 @@ fun ScanAbsenScreen(
 
 
                     /*
-                     * =================================================
+                     * ==========================================
                      * KIRIM ABSEN
-                     * =================================================
+                     * ==========================================
                      */
 
                     Button(
@@ -2116,9 +2519,9 @@ fun ScanAbsenScreen(
 
 
             /*
-             * =================================================
+             * ================================================
              * EXTRA BOTTOM SPACE
-             * =================================================
+             * ================================================
              */
 
             Spacer(
@@ -2163,6 +2566,9 @@ private fun QRScannerCamera(
     qrBoundingBox: Rect?,
     qrCornerPoints: List<Point>?,
     scannerResetKey: Int,
+    scannerEnabled: Boolean,
+    qrSettingsLoading: Boolean,
+    qrSettingsError: String,
     onValidationProgress: (Int) -> Unit,
     onQrDetected: (
         String,
@@ -2268,7 +2674,8 @@ private fun QRScannerCamera(
         cameraController,
         lifecycleOwner,
         previewView,
-        scannerResetKey
+        scannerResetKey,
+        scannerEnabled
     ) {
 
         var validFrameCount =
@@ -2330,8 +2737,27 @@ private fun QRScannerCamera(
 
             ) { result ->
 
+
                 /*
-                 * Sudah lock.
+                 * =================================================
+                 * QR BELUM SIAP
+                 * =================================================
+                 */
+
+                if (
+                    !scannerEnabled
+                ) {
+
+                    resetValidation()
+
+                    return@MlKitAnalyzer
+                }
+
+
+                /*
+                 * =================================================
+                 * SUDAH LOCK
+                 * =================================================
                  */
 
                 if (
@@ -2343,7 +2769,9 @@ private fun QRScannerCamera(
 
 
                 /*
-                 * Barcode.
+                 * =================================================
+                 * BARCODE
+                 * =================================================
                  */
 
                 val barcodes =
@@ -2385,7 +2813,9 @@ private fun QRScannerCamera(
 
 
                 /*
+                 * =================================================
                  * QR VALUE
+                 * =================================================
                  */
 
                 val value =
@@ -2403,7 +2833,9 @@ private fun QRScannerCamera(
 
 
                 /*
+                 * =================================================
                  * BOUNDING BOX
+                 * =================================================
                  */
 
                 val boundingBox =
@@ -2421,7 +2853,9 @@ private fun QRScannerCamera(
 
 
                 /*
+                 * =================================================
                  * PREVIEW SIZE
+                 * =================================================
                  */
 
                 val previewWidth =
@@ -2447,7 +2881,9 @@ private fun QRScannerCamera(
 
 
                 /*
+                 * =================================================
                  * DENSITY
+                 * =================================================
                  */
 
                 val density =
@@ -2823,7 +3259,9 @@ private fun QRScannerCamera(
 
 
                 /*
+                 * =================================================
                  * FRAME BERIKUTNYA
+                 * =================================================
                  */
 
                 validFrameCount++
@@ -2887,7 +3325,9 @@ private fun QRScannerCamera(
 
 
                 /*
+                 * =================================================
                  * CORNER POINTS
+                 * =================================================
                  */
 
                 val cornerPoints =
@@ -2911,7 +3351,7 @@ private fun QRScannerCamera(
 
                 /*
                  * =================================================
-                 * KIRIM KE VALIDATOR
+                 * KIRIM KE VALIDATOR FIRESTORE
                  * =================================================
                  */
 
@@ -2987,8 +3427,11 @@ private fun QRScannerCamera(
             Modifier.fillMaxSize()
     ) {
 
+
         /*
+         * ====================================================
          * CAMERA PREVIEW
+         * ====================================================
          */
 
         AndroidView(
@@ -3008,11 +3451,15 @@ private fun QRScannerCamera(
 
 
         /*
+         * ====================================================
          * SCANNER FRAME
+         * ====================================================
          */
 
         if (
-            !sudahScan
+            !sudahScan &&
+            !qrSettingsLoading &&
+            qrSettingsError.isBlank()
         ) {
 
             ScannerFrame(
@@ -3024,7 +3471,9 @@ private fun QRScannerCamera(
 
 
             /*
+             * =================================================
              * SCANNER LINE
+             * =================================================
              */
 
             ScannerLine(
@@ -3037,7 +3486,9 @@ private fun QRScannerCamera(
 
 
         /*
+         * ====================================================
          * QR DETECTION OVERLAY
+         * ====================================================
          */
 
         if (
@@ -3114,6 +3565,7 @@ private fun ScannerFrame(
                     SCANNER_FRAME_SIZE_DP.dp
                 )
     ) {
+
 
         /*
          * TOP LEFT
@@ -3285,6 +3737,7 @@ private fun ScannerLine(
                 )
     ) {
 
+
         /*
          * GLOW
          */
@@ -3362,6 +3815,7 @@ private fun QRDetectionOverlay(
         modifier =
             modifier
     ) {
+
 
         /*
          * =================================================
