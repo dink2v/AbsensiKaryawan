@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.example.absensikaryawan.ThemeDataStore
-import com.example.absensikaryawan.data.screens.ThemeMode
+import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.repository.ChatRoom
 
 import com.example.absensikaryawan.screens.AdminChatDetailScreen

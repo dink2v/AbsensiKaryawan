@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 
 import androidx.compose.foundation.isSystemInDarkTheme
-
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 
@@ -15,7 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
 import com.example.absensikaryawan.navigation.AppNavigation
-import com.example.absensikaryawan.data.screens.ThemeMode
+import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.ui.theme.AbsensiKaryawanTheme
 
 import com.google.firebase.auth.FirebaseAuth
@@ -35,21 +34,22 @@ class MainActivity : ComponentActivity() {
         // ======================================================
         // EDGE TO EDGE
         // ======================================================
-        //
-        // Aplikasi boleh menggambar sampai area system bar.
-        //
-        // Padding/inset untuk status bar dan navigation bar
-        // akan ditangani oleh Compose pada masing-masing screen.
-        //
 
         enableEdgeToEdge()
 
 
         // ======================================================
         // SESSION CHECK
+        //
+        // 06:00 - 17:59
+        // Login tetap tersimpan.
+        //
+        // 18:00 - 05:59
+        // User harus login kembali.
         // ======================================================
 
         lifecycle.addObserver(
+
             LifecycleEventObserver { _, event ->
 
                 if (
@@ -58,17 +58,22 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     if (
-                        _root_ide_package_.com.example.absensikaryawan.SessionManager.shouldRequireLogin()
+                        SessionManager
+                            .shouldRequireLogin()
                     ) {
 
                         val firebaseAuth =
-                            FirebaseAuth.getInstance()
+                            FirebaseAuth
+                                .getInstance()
+
 
                         if (
-                            firebaseAuth.currentUser != null
+                            firebaseAuth
+                                .currentUser != null
                         ) {
 
-                            firebaseAuth.signOut()
+                            firebaseAuth
+                                .signOut()
                         }
                     }
                 }
@@ -82,57 +87,68 @@ class MainActivity : ComponentActivity() {
 
         setContent {
 
+
             // ==================================================
-            // THEME DATASTORE
+            // THEME DATA STORE
             // ==================================================
 
             val themeDataStore =
-                _root_ide_package_.com.example.absensikaryawan.ThemeDataStore(
+                ThemeDataStore(
                     applicationContext
                 )
 
 
             // ==================================================
-            // BACA TEMA YANG TERSIMPAN
+            // THEME MODE
             // ==================================================
 
             val selectedThemeMode by
-            themeDataStore.themeMode
+            themeDataStore
+                .themeMode
                 .collectAsState(
+
                     initial =
-                        _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.TERANG
+                        ThemeMode.TERANG
                 )
 
 
             // ==================================================
-            // TENTUKAN DARK MODE
+            // DARK THEME
             // ==================================================
 
             val darkTheme =
+
                 when (
                     selectedThemeMode
                 ) {
 
-                    _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.TERANG -> {
+                    ThemeMode.TERANG -> {
+
                         false
                     }
 
-                    _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.GELAP -> {
+
+                    ThemeMode.GELAP -> {
+
                         true
                     }
 
-                    _root_ide_package_.com.example.absensikaryawan.data.screens.ThemeMode.SISTEM -> {
+
+                    ThemeMode.SISTEM -> {
+
                         isSystemInDarkTheme()
                     }
 
+
                     else -> {
+
                         false
                     }
                 }
 
 
             // ==================================================
-            // THEME APLIKASI
+            // APP THEME
             // ==================================================
 
             AbsensiKaryawanTheme(
@@ -145,9 +161,10 @@ class MainActivity : ComponentActivity() {
 
             ) {
 
-                // ==================================================
+
+                // ==============================================
                 // NAVIGATION
-                // ==================================================
+                // ==============================================
 
                 AppNavigation()
             }

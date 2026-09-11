@@ -1004,20 +1004,16 @@ fun ScanAbsenScreen(
                 if (kameraDiizinkan) {
 
                     QRScannerCamera(
-                        scanLock =
-                            scanLock,
+                        scanLock = scanLock,
+                        sudahScan = sudahScan,
+                        qrBoundingBox = qrBoundingBox,
+                        qrCornerPoints = qrCornerPoints,
+                        scannerResetKey = scannerResetKey,
 
-                        sudahScan =
-                            sudahScan,
-
-                        qrBoundingBox =
-                            qrBoundingBox,
-
-                        qrCornerPoints =
-                            qrCornerPoints,
-
-                        scannerResetKey =
-                            scannerResetKey,
+                        // PERBAIKAN:
+                        // State Firestore diteruskan ke scanner.
+                        qrSettingsLoading = qrSettingsLoading,
+                        qrSettingsError = qrSettingsError,
 
                         scannerEnabled =
                             !qrSettingsLoading &&
@@ -2032,7 +2028,7 @@ fun ScanAbsenScreen(
          * ====================================================
          * BUTTON ABSEN DI LUAR KANTOR
          * ====================================================
- */
+         */
 
         Button(
             onClick = {
@@ -2542,6 +2538,14 @@ private fun QRScannerCamera(
     qrBoundingBox: Rect?,
     qrCornerPoints: List<Point>?,
     scannerResetKey: Int,
+
+    /*
+     * PERBAIKAN:
+     * State QR Firestore sekarang diterima oleh fungsi ini.
+     */
+    qrSettingsLoading: Boolean,
+    qrSettingsError: String,
+
     scannerEnabled: Boolean,
     onValidationProgress: (Int) -> Unit,
     onQrDetected: (
@@ -3340,7 +3344,7 @@ private fun QRScannerCamera(
          * ====================================================
          * BIND CAMERA
          * ====================================================
- */
+         */
 
         cameraController
             .bindToLifecycle(
@@ -3891,3 +3895,4 @@ private fun QRDetectionOverlay(
         }
     }
 }
+
