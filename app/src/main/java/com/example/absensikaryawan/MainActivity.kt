@@ -7,6 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 
@@ -163,10 +166,26 @@ class MainActivity : ComponentActivity() {
 
 
                 // ==============================================
-                // NAVIGATION
+                // SAFE AREA APLIKASI
+                //
+                // Mencegah konten aplikasi masuk ke:
+                // - Status Bar Android
+                // - Navigation Bar Android
                 // ==============================================
 
-                AppNavigation()
+                Box(
+                    modifier = androidx.compose.ui.Modifier
+                        .fillMaxSize()
+                        .safeDrawingPadding()
+                ) {
+
+
+                    // ==========================================
+                    // NAVIGATION
+                    // ==========================================
+
+                    AppNavigation()
+                }
             }
         }
     }
