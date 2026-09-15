@@ -21,7 +21,6 @@ android {
 
         versionName = "1.1"
 
-
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,15 +35,19 @@ android {
 
     compileOptions {
         sourceCompatibility =
-            JavaVersion.VERSION_11
+            JavaVersion.VERSION_17
 
         targetCompatibility =
-            JavaVersion.VERSION_11
+            JavaVersion.VERSION_17
     }
 
     buildFeatures {
         compose = true
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -204,10 +207,10 @@ dependencies {
         "com.google.mlkit:barcode-scanning:17.3.0"
     )
 
-
     implementation(
         "androidx.camera:camera-mlkit-vision:1.4.2"
     )
+
 
     // ==========================================================
     // TEST
