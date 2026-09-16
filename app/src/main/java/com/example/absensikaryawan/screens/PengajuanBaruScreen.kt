@@ -1366,7 +1366,7 @@ private fun InputField(
                     label
             )
         },
-        leadingIcon = {
+        leadingIcon = {]
             Icon(
                 imageVector =
                     icon,
