@@ -1,5 +1,6 @@
 package com.example.absensikaryawan.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
@@ -77,7 +79,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.window.DialogProperties
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -99,6 +100,17 @@ data class DataKaryawan(
 
 
 // ==========================================================
+// FILTER KARYAWAN
+// ==========================================================
+
+private enum class FilterKaryawan {
+    TOTAL,
+    STAFF,
+    ADMIN
+}
+
+
+// ==========================================================
 // KARYAWAN SCREEN
 // ==========================================================
 
@@ -110,8 +122,6 @@ fun KaryawanScreen(
     val db = remember {
         FirebaseFirestore.getInstance()
     }
-
-    val scope = rememberCoroutineScope()
 
     var daftarKaryawan by remember {
         mutableStateOf(emptyList<DataKaryawan>())
@@ -141,6 +151,10 @@ fun KaryawanScreen(
         mutableStateOf(false)
     }
 
+    var selectedFilter by remember {
+        mutableStateOf(FilterKaryawan.TOTAL)
+    }
+
 
     // ======================================================
     // LOAD DATA FIRESTORE
@@ -164,29 +178,25 @@ fun KaryawanScreen(
                     DataKaryawan(
                         id = document.id,
 
-                        nama =
-                            document.getString("nama")
-                                ?: "",
+                        nama = document.getString("nama")
+                            ?: "",
 
-                        email =
-                            document.getString("email")
-                                ?: "",
+                        email = document.getString("email")
+                            ?: "",
 
-                        jabatan =
-                            document.getString("jabatan")
-                                ?: "",
+                        jabatan = document.getString("jabatan")
+                            ?: "",
 
-                        divisi =
-                            document.getString("divisi")
-                                ?: "",
+                        divisi = document.getString("divisi")
+                            ?: "",
 
-                        usernameTele =
-                            document.getString("usernameTele")
-                                ?: "",
+                        usernameTele = document
+                            .getString("usernameTele")
+                            ?: "",
 
-                        isAdmin =
-                            document.getBoolean("isAdmin")
-                                ?: false
+                        isAdmin = document
+                            .getBoolean("isAdmin")
+                            ?: false
                     )
                 }
                 .sortedBy {
@@ -214,8 +224,14 @@ fun KaryawanScreen(
 
         KaryawanDetailScreen(
             karyawan = selectedKaryawan!!,
+
             onBack = {
                 selectedKaryawan = null
+            },
+
+            onDataChanged = {
+                selectedKaryawan = null
+                refreshKey++
             }
         )
 
@@ -236,7 +252,6 @@ fun KaryawanScreen(
             },
 
             onSuccess = {
-
                 showTambahData = false
                 refreshKey++
             }
@@ -261,47 +276,122 @@ fun KaryawanScreen(
 
 
     // ======================================================
-    // SEARCH
+    // FILTER
     // ======================================================
 
-    val hasilPencarian = remember(
-        daftarKaryawan,
-        searchQuery
-    ) {
+    val daftarSesuaiFilter =
+        remember(
+            daftarKaryawan,
+            selectedFilter
+        ) {
 
-        if (searchQuery.isBlank()) {
+            when (selectedFilter) {
 
-            daftarKaryawan
+                FilterKaryawan.TOTAL ->
+                    daftarKaryawan
 
-        } else {
+                FilterKaryawan.STAFF ->
+                    daftarKaryawan.filter {
+                        !it.isAdmin
+                    }
 
-            val query =
-                searchQuery.trim().lowercase()
-
-            daftarKaryawan.filter { karyawan ->
-
-                karyawan.nama
-                    .lowercase()
-                    .contains(query) ||
-
-                        karyawan.email
-                            .lowercase()
-                            .contains(query) ||
-
-                        karyawan.jabatan
-                            .lowercase()
-                            .contains(query) ||
-
-                        karyawan.divisi
-                            .lowercase()
-                            .contains(query) ||
-
-                        karyawan.usernameTele
-                            .lowercase()
-                            .contains(query)
+                FilterKaryawan.ADMIN ->
+                    daftarKaryawan.filter {
+                        it.isAdmin
+                    }
             }
         }
+
+
+    // ======================================================
+    // NORMALISASI SEARCH
+    // ======================================================
+
+    fun normalizeSearchText(
+        value: String
+    ): String {
+
+        return value
+            .trim()
+            .lowercase()
+            .replace(
+                Regex("\\s+"),
+                " "
+            )
     }
+
+
+    // ======================================================
+    // HASIL PENCARIAN
+    // ======================================================
+
+    val hasilPencarian =
+        remember(
+            daftarSesuaiFilter,
+            searchQuery
+        ) {
+
+            val query =
+                normalizeSearchText(
+                    searchQuery
+                )
+
+            if (query.isBlank()) {
+
+                daftarSesuaiFilter
+
+            } else {
+
+                daftarSesuaiFilter.filter { karyawan ->
+
+                    normalizeSearchText(
+                        karyawan.nama
+                    ).contains(query) ||
+
+                            normalizeSearchText(
+                                karyawan.email
+                            ).contains(query) ||
+
+                            normalizeSearchText(
+                                karyawan.jabatan
+                            ).contains(query) ||
+
+                            normalizeSearchText(
+                                karyawan.divisi
+                            ).contains(query) ||
+
+                            normalizeSearchText(
+                                karyawan.usernameTele
+                            ).contains(query)
+                }
+            }
+        }
+
+
+    // ======================================================
+    // LABEL FILTER AKTIF
+    // ======================================================
+
+    val filterAktifText =
+        when (selectedFilter) {
+
+            FilterKaryawan.TOTAL ->
+                "Semua Karyawan"
+
+            FilterKaryawan.STAFF ->
+                "Staff"
+
+            FilterKaryawan.ADMIN ->
+                "Admin"
+        }
+
+
+    // ======================================================
+    // JUMLAH HASIL
+    // ======================================================
+
+    val jumlahHasil =
+        hasilPencarian.size
 
 
     // ======================================================
@@ -309,16 +399,12 @@ fun KaryawanScreen(
     // ======================================================
 
     Surface(
-        modifier =
-            Modifier.fillMaxSize(),
-
-        color =
-            Background
+        modifier = Modifier.fillMaxSize(),
+        color = Background
     ) {
 
         Column(
-            modifier =
-                Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
 
             // ==================================================
@@ -326,21 +412,19 @@ fun KaryawanScreen(
             // ==================================================
 
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 12.dp
-                        ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 12.dp
+                    ),
 
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
                 IconButton(
-                    onClick =
-                        onBack
+                    onClick = onBack
                 ) {
 
                     Icon(
@@ -419,6 +503,7 @@ fun KaryawanScreen(
                     Text(
                         text =
                             when {
+
                                 loading ->
                                     "Memuat data karyawan..."
 
@@ -474,7 +559,7 @@ fun KaryawanScreen(
 
 
             // ==================================================
-            // ADD BUTTON
+            // TAMBAH
             // ==================================================
 
             Button(
@@ -485,7 +570,9 @@ fun KaryawanScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                        .padding(
+                            horizontal = 20.dp
+                        ),
 
                 shape =
                     RoundedCornerShape(14.dp),
@@ -545,7 +632,9 @@ fun KaryawanScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                        .padding(
+                            horizontal = 20.dp
+                        ),
 
                 horizontalArrangement =
                     Arrangement.spacedBy(9.dp)
@@ -565,7 +654,17 @@ fun KaryawanScreen(
                         totalKaryawan.toString(),
 
                     iconColor =
-                        PrimaryGreen
+                        PrimaryGreen,
+
+                    selected =
+                        selectedFilter ==
+                                FilterKaryawan.TOTAL,
+
+                    onClick = {
+
+                        selectedFilter =
+                            FilterKaryawan.TOTAL
+                    }
                 )
 
                 KaryawanSummaryCard(
@@ -582,7 +681,17 @@ fun KaryawanScreen(
                         totalStaff.toString(),
 
                     iconColor =
-                        PrimaryGreen
+                        PrimaryGreen,
+
+                    selected =
+                        selectedFilter ==
+                                FilterKaryawan.STAFF,
+
+                    onClick = {
+
+                        selectedFilter =
+                            FilterKaryawan.STAFF
+                    }
                 )
 
                 KaryawanSummaryCard(
@@ -599,7 +708,17 @@ fun KaryawanScreen(
                         totalAdmin.toString(),
 
                     iconColor =
-                        Color(0xFF7C3AED)
+                        Color(0xFF7C3AED),
+
+                    selected =
+                        selectedFilter ==
+                                FilterKaryawan.ADMIN,
+
+                    onClick = {
+
+                        selectedFilter =
+                            FilterKaryawan.ADMIN
+                    }
                 )
             }
 
@@ -626,7 +745,9 @@ fun KaryawanScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                        .padding(
+                            horizontal = 20.dp
+                        ),
 
                 singleLine =
                     true,
@@ -638,7 +759,17 @@ fun KaryawanScreen(
 
                     Text(
                         text =
-                            "Cari nama, email, jabatan, atau divisi",
+                            when (selectedFilter) {
+
+                                FilterKaryawan.TOTAL ->
+                                    "Cari nama, email, jabatan, atau divisi"
+
+                                FilterKaryawan.STAFF ->
+                                    "Cari staff berdasarkan nama, email, atau divisi"
+
+                                FilterKaryawan.ADMIN ->
+                                    "Cari admin berdasarkan nama, email, atau divisi"
+                            },
 
                         fontSize =
                             12.sp,
@@ -709,7 +840,127 @@ fun KaryawanScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // HASIL FILTER + SEARCH
+            // ==================================================
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            when {
+
+                                jumlahHasil == 1 ->
+                                    "1 karyawan ditemukan"
+
+                                else ->
+                                    "$jumlahHasil karyawan ditemukan"
+                            },
+
+                        fontSize =
+                            12.sp,
+
+                        fontWeight =
+                            FontWeight.SemiBold,
+
+                        color =
+                            TextDark
+                    )
+
+                    if (searchQuery.isNotBlank()) {
+
+                        Text(
+                            text =
+                                "Pencarian: \"${searchQuery.trim()}\"",
+
+                            fontSize =
+                                10.sp,
+
+                            color =
+                                TextGray,
+
+                            maxLines =
+                                1,
+
+                            overflow =
+                                TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Surface(
+                    shape =
+                        RoundedCornerShape(20.dp),
+
+                    color =
+                        when (selectedFilter) {
+
+                            FilterKaryawan.ADMIN ->
+                                Color(0xFFF3E8FF)
+
+                            FilterKaryawan.STAFF ->
+                                Color(0xFFE8F5E9)
+
+                            FilterKaryawan.TOTAL ->
+                                Color(0xFFE6EEE9)
+                        }
+                ) {
+
+                    Text(
+                        text =
+                            filterAktifText,
+
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 10.dp,
+                                vertical = 5.dp
+                            ),
+
+                        fontSize =
+                            9.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            when (selectedFilter) {
+
+                                FilterKaryawan.ADMIN ->
+                                    Color(0xFF7C3AED)
+
+                                FilterKaryawan.STAFF ->
+                                    PrimaryGreen
+
+                                FilterKaryawan.TOTAL ->
+                                    PrimaryGreen
+                            }
+                    )
+                }
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(8.dp)
             )
 
 
@@ -718,6 +969,10 @@ fun KaryawanScreen(
             // ==================================================
 
             when {
+
+                // ==================================================
+                // LOADING
+                // ==================================================
 
                 loading -> {
 
@@ -734,34 +989,16 @@ fun KaryawanScreen(
                             Arrangement.Center
                     ) {
 
-                        Surface(
+                        CircularProgressIndicator(
                             modifier =
-                                Modifier.size(64.dp),
-
-                            shape =
-                                CircleShape,
+                                Modifier.size(30.dp),
 
                             color =
-                                Color(0xFFE6EEE9)
-                        ) {
+                                PrimaryGreen,
 
-                            Box(
-                                contentAlignment =
-                                    Alignment.Center
-                            ) {
-
-                                CircularProgressIndicator(
-                                    modifier =
-                                        Modifier.size(28.dp),
-
-                                    color =
-                                        PrimaryGreen,
-
-                                    strokeWidth =
-                                        3.dp
-                                )
-                            }
-                        }
+                            strokeWidth =
+                                3.dp
+                        )
 
                         Spacer(
                             modifier =
@@ -775,31 +1012,16 @@ fun KaryawanScreen(
                             fontSize =
                                 13.sp,
 
-                            fontWeight =
-                                FontWeight.Medium,
-
                             color =
                                 TextDark
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(3.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Mohon tunggu sebentar",
-
-                            fontSize =
-                                11.sp,
-
-                            color =
-                                TextGray
                         )
                     }
                 }
 
+
+                // ==================================================
+                // ERROR
+                // ==================================================
 
                 errorMessage.isNotBlank() -> {
 
@@ -817,41 +1039,23 @@ fun KaryawanScreen(
                             Arrangement.Center
                     ) {
 
-                        Surface(
+                        Icon(
+                            imageVector =
+                                Icons.Default.Group,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                Color(0xFFB91C1C),
+
                             modifier =
-                                Modifier.size(70.dp),
-
-                            shape =
-                                CircleShape,
-
-                            color =
-                                Color(0xFFFFEBEE)
-                        ) {
-
-                            Box(
-                                contentAlignment =
-                                    Alignment.Center
-                            ) {
-
-                                Icon(
-                                    imageVector =
-                                        Icons.Default.Group,
-
-                                    contentDescription =
-                                        null,
-
-                                    tint =
-                                        Color(0xFFB91C1C),
-
-                                    modifier =
-                                        Modifier.size(34.dp)
-                                )
-                            }
-                        }
+                                Modifier.size(45.dp)
+                        )
 
                         Spacer(
                             modifier =
-                                Modifier.height(14.dp)
+                                Modifier.height(12.dp)
                         )
 
                         Text(
@@ -922,15 +1126,16 @@ fun KaryawanScreen(
 
                             Text(
                                 text =
-                                    "Coba Lagi",
-
-                                fontSize =
-                                    13.sp
+                                    "Coba Lagi"
                             )
                         }
                     }
                 }
 
+
+                // ==================================================
+                // EMPTY
+                // ==================================================
 
                 hasilPencarian.isEmpty() -> {
 
@@ -991,10 +1196,21 @@ fun KaryawanScreen(
 
                         Text(
                             text =
-                                if (searchQuery.isBlank()) {
-                                    "Belum ada karyawan"
-                                } else {
-                                    "Karyawan tidak ditemukan"
+                                when {
+
+                                    searchQuery.isNotBlank() ->
+                                        "Karyawan tidak ditemukan"
+
+                                    selectedFilter ==
+                                            FilterKaryawan.STAFF ->
+                                        "Belum ada Staff"
+
+                                    selectedFilter ==
+                                            FilterKaryawan.ADMIN ->
+                                        "Belum ada Admin"
+
+                                    else ->
+                                        "Belum ada karyawan"
                                 },
 
                             fontSize =
@@ -1006,152 +1222,53 @@ fun KaryawanScreen(
                             color =
                                 TextDark
                         )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(6.dp)
-                        )
-
-                        Text(
-                            text =
-                                if (searchQuery.isBlank()) {
-                                    "Tambahkan data karyawan menggunakan\n tombol di atas."
-                                } else {
-                                    "Coba gunakan kata kunci pencarian lain."
-                                },
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray,
-
-                            textAlign =
-                                TextAlign.Center
-                        )
                     }
                 }
 
 
+                // ==================================================
+                // LIST DATA
+                // ==================================================
+
                 else -> {
 
-                    Column(
+                    LazyColumn(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .weight(1f)
+                                .weight(1f),
+
+                        verticalArrangement =
+                            Arrangement.spacedBy(10.dp),
+
+                        contentPadding =
+                            PaddingValues(
+                                start = 20.dp,
+                                top = 0.dp,
+                                end = 20.dp,
+                                bottom = 24.dp
+                            )
                     ) {
 
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(
-                                        horizontal = 20.dp,
-                                        vertical = 2.dp
-                                    ),
+                        items(
+                            items =
+                                hasilPencarian,
 
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-
-                            Text(
-                                text =
-                                    if (searchQuery.isBlank()) {
-                                        "Daftar Karyawan"
-                                    } else {
-                                        "Hasil Pencarian"
-                                    },
-
-                                fontSize =
-                                    15.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.width(6.dp)
-                            )
-
-                            Surface(
-                                shape =
-                                    RoundedCornerShape(20.dp),
-
-                                color =
-                                    Color(0xFFE6EEE9)
-                            ) {
-
-                                Text(
-                                    text =
-                                        hasilPencarian.size.toString(),
-
-                                    modifier =
-                                        Modifier.padding(
-                                            horizontal = 8.dp,
-                                            vertical = 3.dp
-                                        ),
-
-                                    fontSize =
-                                        10.sp,
-
-                                    fontWeight =
-                                        FontWeight.Bold,
-
-                                    color =
-                                        PrimaryGreen
-                                )
+                            key = {
+                                it.id
                             }
-                        }
+                        ) { karyawan ->
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(8.dp)
-                        )
+                            KaryawanCard(
+                                karyawan =
+                                    karyawan,
 
-                        LazyColumn(
+                                onClick = {
 
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-
-                            verticalArrangement =
-                                Arrangement.spacedBy(10.dp),
-
-                            contentPadding =
-                                PaddingValues(
-                                    start = 20.dp,
-                                    top = 0.dp,
-                                    end = 20.dp,
-                                    bottom = 24.dp
-                                )
-                        ) {
-
-                            items(
-                                items =
-                                    hasilPencarian,
-
-                                key = {
-                                    it.id
+                                    selectedKaryawan =
+                                        karyawan
                                 }
-                            ) { karyawan ->
-
-                                KaryawanCard(
-                                    karyawan =
-                                        karyawan,
-
-                                    onClick = {
-
-                                        selectedKaryawan =
-                                            karyawan
-                                    }
-                                )
-                            }
+                            )
                         }
                     }
                 }
@@ -1171,12 +1288,42 @@ private fun KaryawanSummaryCard(
     icon: ImageVector,
     title: String,
     value: String,
-    iconColor: Color
+    iconColor: Color,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
+
+    val backgroundColor =
+        if (selected) {
+
+            if (title == "Admin") {
+                Color(0xFFF3E8FF)
+            } else {
+                Color(0xFFE8F5E9)
+            }
+
+        } else {
+            Color.White
+        }
+
+    val borderColor =
+        if (selected) {
+
+            if (title == "Admin") {
+                Color(0xFF7C3AED)
+            } else {
+                PrimaryGreen
+            }
+
+        } else {
+            Color.Transparent
+        }
 
     Card(
         modifier =
-            modifier,
+            modifier.clickable {
+                onClick()
+            },
 
         shape =
             RoundedCornerShape(16.dp),
@@ -1184,13 +1331,30 @@ private fun KaryawanSummaryCard(
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    Color.White
+                    backgroundColor
+            ),
+
+        border =
+            BorderStroke(
+                width =
+                    if (selected) {
+                        1.5.dp
+                    } else {
+                        0.dp
+                    },
+
+                color =
+                    borderColor
             ),
 
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    1.dp
+                    if (selected) {
+                        3.dp
+                    } else {
+                        1.dp
+                    }
             )
     ) {
 
@@ -1209,7 +1373,17 @@ private fun KaryawanSummaryCard(
                     RoundedCornerShape(10.dp),
 
                 color =
-                    Color(0xFFE6EEE9)
+                    if (selected) {
+
+                        if (title == "Admin") {
+                            Color(0xFFE9D5FF)
+                        } else {
+                            Color.White
+                        }
+
+                    } else {
+                        Color(0xFFE6EEE9)
+                    }
             ) {
 
                 Box(
@@ -1245,8 +1419,19 @@ private fun KaryawanSummaryCard(
                 fontSize =
                     10.sp,
 
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Normal
+                    },
+
                 color =
-                    TextGray
+                    if (selected) {
+                        iconColor
+                    } else {
+                        TextGray
+                    }
             )
 
             Spacer(
@@ -1316,10 +1501,6 @@ private fun KaryawanCard(
                 Alignment.CenterVertically
         ) {
 
-            // ==================================================
-            // INITIAL
-            // ==================================================
-
             Surface(
                 modifier =
                     Modifier.size(50.dp),
@@ -1362,16 +1543,10 @@ private fun KaryawanCard(
                 }
             }
 
-
             Spacer(
                 modifier =
                     Modifier.width(12.dp)
             )
-
-
-            // ==================================================
-            // INFORMATION
-            // ==================================================
 
             Column(
                 modifier =
@@ -1400,7 +1575,6 @@ private fun KaryawanCard(
                         TextOverflow.Ellipsis
                 )
 
-
                 if (karyawan.email.isNotBlank()) {
 
                     Spacer(
@@ -1426,7 +1600,6 @@ private fun KaryawanCard(
                     )
                 }
 
-
                 if (
                     karyawan.jabatan.isNotBlank() ||
                     karyawan.divisi.isNotBlank()
@@ -1438,16 +1611,11 @@ private fun KaryawanCard(
                     )
 
                     Row(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-
                         verticalAlignment =
                             Alignment.CenterVertically
                     ) {
 
-                        if (
-                            karyawan.jabatan.isNotBlank()
-                        ) {
+                        if (karyawan.jabatan.isNotBlank()) {
 
                             Icon(
                                 imageVector =
@@ -1486,10 +1654,7 @@ private fun KaryawanCard(
                             )
                         }
 
-
-                        if (
-                            karyawan.divisi.isNotBlank()
-                        ) {
+                        if (karyawan.divisi.isNotBlank()) {
 
                             Text(
                                 text =
@@ -1505,29 +1670,17 @@ private fun KaryawanCard(
                                     10.sp,
 
                                 color =
-                                    TextGray,
-
-                                maxLines =
-                                    1,
-
-                                overflow =
-                                    TextOverflow.Ellipsis
+                                    TextGray
                             )
                         }
                     }
                 }
             }
 
-
             Spacer(
                 modifier =
                     Modifier.width(8.dp)
             )
-
-
-            // ==================================================
-            // ROLE
-            // ==================================================
 
             Surface(
                 shape =
@@ -1541,66 +1694,33 @@ private fun KaryawanCard(
                     }
             ) {
 
-                Row(
+                Text(
+                    text =
+                        if (karyawan.isAdmin) {
+                            "Admin"
+                        } else {
+                            "Staff"
+                        },
+
                     modifier =
                         Modifier.padding(
                             horizontal = 9.dp,
                             vertical = 6.dp
                         ),
 
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
+                    fontSize =
+                        9.sp,
 
-                    Icon(
-                        imageVector =
-                            if (karyawan.isAdmin) {
-                                Icons.Default.AdminPanelSettings
-                            } else {
-                                Icons.Default.Person
-                            },
+                    fontWeight =
+                        FontWeight.Bold,
 
-                        contentDescription =
-                            null,
-
-                        tint =
-                            if (karyawan.isAdmin) {
-                                Color(0xFF7C3AED)
-                            } else {
-                                PrimaryGreen
-                            },
-
-                        modifier =
-                            Modifier.size(14.dp)
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(4.dp)
-                    )
-
-                    Text(
-                        text =
-                            if (karyawan.isAdmin) {
-                                "Admin"
-                            } else {
-                                "Staff"
-                            },
-
-                        fontSize =
-                            9.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            if (karyawan.isAdmin) {
-                                Color(0xFF7C3AED)
-                            } else {
-                                PrimaryGreen
-                            }
-                    )
-                }
+                    color =
+                        if (karyawan.isAdmin) {
+                            Color(0xFF7C3AED)
+                        } else {
+                            PrimaryGreen
+                        }
+                )
             }
         }
     }
@@ -1614,8 +1734,342 @@ private fun KaryawanCard(
 @Composable
 private fun KaryawanDetailScreen(
     karyawan: DataKaryawan,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDataChanged: () -> Unit
 ) {
+
+    val db =
+        remember {
+            FirebaseFirestore.getInstance()
+        }
+
+    val scope =
+        rememberCoroutineScope()
+
+    var showEditEmail by remember {
+        mutableStateOf(false)
+    }
+
+    var showDeleteConfirm by remember {
+        mutableStateOf(false)
+    }
+
+    var isProcessing by remember {
+        mutableStateOf(false)
+    }
+
+    var actionMessage by remember {
+        mutableStateOf("")
+    }
+
+
+    // ======================================================
+    // EDIT EMAIL
+    // ======================================================
+
+    if (showEditEmail) {
+
+        EditEmailDialog(
+
+            karyawan =
+                karyawan,
+
+            isSaving =
+                isProcessing,
+
+            onDismiss = {
+
+                if (!isProcessing) {
+                    showEditEmail = false
+                }
+            },
+
+            onSave = { newEmail ->
+
+                isProcessing = true
+                actionMessage = ""
+
+                scope.launch {
+
+                    try {
+
+                        db.collection("users")
+                            .document(karyawan.id)
+                            .update(
+                                "email",
+                                newEmail
+                            )
+                            .await()
+
+                        showEditEmail = false
+                        isProcessing = false
+
+                        onDataChanged()
+
+                    } catch (e: Exception) {
+
+                        isProcessing = false
+
+                        actionMessage =
+                            e.message
+                                ?: "Gagal mengubah email."
+                    }
+                }
+            }
+        )
+    }
+
+
+    // ======================================================
+    // DELETE CONFIRM
+    // ======================================================
+
+    if (showDeleteConfirm) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                if (!isProcessing) {
+                    showDeleteConfirm = false
+                }
+            },
+
+            title = {
+
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Surface(
+                        modifier =
+                            Modifier.size(40.dp),
+
+                        shape =
+                            RoundedCornerShape(11.dp),
+
+                        color =
+                            Color(0xFFFFEBEE)
+                    ) {
+
+                        Box(
+                            contentAlignment =
+                                Alignment.Center
+                        ) {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Delete,
+
+                                contentDescription =
+                                    null,
+
+                                tint =
+                                    Color(0xFFC62828)
+                            )
+                        }
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(10.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Hapus Data Karyawan?"
+                    )
+                }
+            },
+
+            text = {
+
+                Column {
+
+                    Text(
+                        text =
+                            "Data karyawan berikut akan dihapus dari Firestore:"
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(10.dp)
+                    )
+
+                    Text(
+                        text =
+                            karyawan.nama,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            TextDark
+                    )
+
+                    Text(
+                        text =
+                            karyawan.email,
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+                    Surface(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        shape =
+                            RoundedCornerShape(10.dp),
+
+                        color =
+                            Color(0xFFFFF8E1)
+                    ) {
+
+                        Text(
+                            text =
+                                "Catatan: akun Firebase Authentication tidak ikut terhapus. Jika akun login tersebut sudah tidak diperlukan, hapus secara manual dari Firebase Console.",
+
+                            modifier =
+                                Modifier.padding(12.dp),
+
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                Color(0xFF8D6E00)
+                        )
+                    }
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+
+                    enabled =
+                        !isProcessing,
+
+                    onClick = {
+
+                        isProcessing = true
+                        actionMessage = ""
+
+                        scope.launch {
+
+                            try {
+
+                                db.collection("users")
+                                    .document(karyawan.id)
+                                    .delete()
+                                    .await()
+
+                                showDeleteConfirm = false
+                                isProcessing = false
+
+                                onDataChanged()
+
+                            } catch (e: Exception) {
+
+                                isProcessing = false
+
+                                actionMessage =
+                                    e.message
+                                        ?: "Gagal menghapus data karyawan."
+                            }
+                        }
+                    },
+
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor =
+                                Color(0xFFC62828)
+                        ),
+
+                    shape =
+                        RoundedCornerShape(10.dp)
+                ) {
+
+                    if (isProcessing) {
+
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(17.dp),
+
+                            color =
+                                Color.White,
+
+                            strokeWidth =
+                                2.dp
+                        )
+
+                    } else {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Delete,
+
+                            contentDescription =
+                                null,
+
+                            modifier =
+                                Modifier.size(17.dp)
+                        )
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(6.dp)
+                    )
+
+                    Text(
+                        text =
+                            if (isProcessing) {
+                                "Menghapus..."
+                            } else {
+                                "Hapus Data"
+                            }
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+
+                    enabled =
+                        !isProcessing,
+
+                    onClick = {
+                        showDeleteConfirm = false
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "Batal",
+
+                        color =
+                            TextGray
+                    )
+                }
+            }
+        )
+    }
+
+
+    // ======================================================
+    // DETAIL UI
+    // ======================================================
 
     Surface(
         modifier =
@@ -1629,10 +2083,6 @@ private fun KaryawanDetailScreen(
             modifier =
                 Modifier.fillMaxSize()
         ) {
-
-            // ==================================================
-            // HEADER
-            // ==================================================
 
             Row(
                 modifier =
@@ -1702,10 +2152,6 @@ private fun KaryawanDetailScreen(
             }
 
 
-            // ==================================================
-            // DETAIL CONTENT
-            // ==================================================
-
             LazyColumn(
 
                 modifier =
@@ -1722,10 +2168,6 @@ private fun KaryawanDetailScreen(
                 verticalArrangement =
                     Arrangement.spacedBy(14.dp)
             ) {
-
-                // ==================================================
-                // PROFILE HEADER
-                // ==================================================
 
                 item {
 
@@ -1822,13 +2264,7 @@ private fun KaryawanDetailScreen(
                                     TextDark,
 
                                 textAlign =
-                                    TextAlign.Center,
-
-                                maxLines =
-                                    2,
-
-                                overflow =
-                                    TextOverflow.Ellipsis
+                                    TextAlign.Center
                             )
 
                             Spacer(
@@ -1881,18 +2317,12 @@ private fun KaryawanDetailScreen(
                 }
 
 
-                // ==================================================
-                // PERSONAL
-                // ==================================================
-
                 item {
-
                     SectionTitle(
                         title =
                             "Informasi Pribadi"
                     )
                 }
-
 
                 item {
 
@@ -1932,18 +2362,12 @@ private fun KaryawanDetailScreen(
                 }
 
 
-                // ==================================================
-                // PEKERJAAN
-                // ==================================================
-
                 item {
-
                     SectionTitle(
                         title =
                             "Informasi Pekerjaan"
                     )
                 }
-
 
                 item {
 
@@ -2003,18 +2427,12 @@ private fun KaryawanDetailScreen(
                 }
 
 
-                // ==================================================
-                // KONTAK
-                // ==================================================
-
                 item {
-
                     SectionTitle(
                         title =
                             "Informasi Kontak"
                     )
                 }
-
 
                 item {
 
@@ -2034,9 +2452,493 @@ private fun KaryawanDetailScreen(
                         )
                     }
                 }
+
+
+                item {
+                    SectionTitle(
+                        title =
+                            "Kelola Akun"
+                    )
+                }
+
+                item {
+
+                    Card(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        shape =
+                            RoundedCornerShape(18.dp),
+
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Color.White
+                            ),
+
+                        elevation =
+                            CardDefaults.cardElevation(
+                                defaultElevation =
+                                    1.dp
+                            )
+                    ) {
+
+                        Column(
+                            modifier =
+                                Modifier.padding(16.dp)
+                        ) {
+
+                            OutlinedButton(
+
+                                enabled =
+                                    !isProcessing,
+
+                                onClick = {
+                                    showEditEmail = true
+                                },
+
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+
+                                shape =
+                                    RoundedCornerShape(12.dp),
+
+                                border =
+                                    BorderStroke(
+                                        1.dp,
+                                        PrimaryGreen
+                                    )
+                            ) {
+
+                                Icon(
+                                    imageVector =
+                                        Icons.Default.Email,
+
+                                    contentDescription =
+                                        null,
+
+                                    tint =
+                                        PrimaryGreen
+                                )
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.width(8.dp)
+                                )
+
+                                Text(
+                                    text =
+                                        "Edit Email",
+
+                                    color =
+                                        PrimaryGreen,
+
+                                    fontWeight =
+                                        FontWeight.SemiBold
+                                )
+                            }
+
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(10.dp)
+                            )
+
+
+                            Button(
+
+                                enabled =
+                                    !isProcessing,
+
+                                onClick = {
+                                    showDeleteConfirm = true
+                                },
+
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+
+                                shape =
+                                    RoundedCornerShape(12.dp),
+
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor =
+                                            Color(0xFFFFEBEE),
+
+                                        contentColor =
+                                            Color(0xFFC62828)
+                                    )
+                            ) {
+
+                                Icon(
+                                    imageVector =
+                                        Icons.Default.Delete,
+
+                                    contentDescription =
+                                        null
+                                )
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.width(8.dp)
+                                )
+
+                                Text(
+                                    text =
+                                        "Hapus Data Karyawan",
+
+                                    fontWeight =
+                                        FontWeight.SemiBold
+                                )
+                            }
+
+
+                            if (actionMessage.isNotBlank()) {
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.height(12.dp)
+                                )
+
+                                Surface(
+                                    modifier =
+                                        Modifier.fillMaxWidth(),
+
+                                    shape =
+                                        RoundedCornerShape(10.dp),
+
+                                    color =
+                                        Color(0xFFFFEBEE)
+                                ) {
+
+                                    Text(
+                                        text =
+                                            actionMessage,
+
+                                        modifier =
+                                            Modifier.padding(12.dp),
+
+                                        fontSize =
+                                            12.sp,
+
+                                        color =
+                                            Color(0xFFC62828)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+
+// ==========================================================
+// EDIT EMAIL DIALOG
+// ==========================================================
+
+@Composable
+private fun EditEmailDialog(
+    karyawan: DataKaryawan,
+    isSaving: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+
+    var email by remember {
+        mutableStateOf(karyawan.email)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf("")
+    }
+
+    AlertDialog(
+
+        onDismissRequest =
+            onDismiss,
+
+        properties =
+            DialogProperties(
+                dismissOnClickOutside = false
+            ),
+
+        title = {
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Surface(
+                    modifier =
+                        Modifier.size(40.dp),
+
+                    shape =
+                        RoundedCornerShape(11.dp),
+
+                    color =
+                        Color(0xFFE8F5E9)
+                ) {
+
+                    Box(
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Email,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                PrimaryGreen
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(10.dp)
+                )
+
+                Column {
+
+                    Text(
+                        text =
+                            "Edit Email",
+
+                        fontSize =
+                            19.sp,
+
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+
+                    Text(
+                        text =
+                            karyawan.nama,
+
+                        fontSize =
+                            11.sp,
+
+                        color =
+                            TextGray
+                    )
+                }
+            }
+        },
+
+        text = {
+
+            Column {
+
+                OutlinedTextField(
+
+                    value =
+                        email,
+
+                    onValueChange = {
+
+                        email = it
+                        errorMessage = ""
+                    },
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    enabled =
+                        !isSaving,
+
+                    singleLine =
+                        true,
+
+                    label = {
+                        Text("Email Baru")
+                    },
+
+                    leadingIcon = {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Email,
+
+                            contentDescription =
+                                null
+                        )
+                    },
+
+                    keyboardOptions =
+                        androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType =
+                                KeyboardType.Email,
+
+                            imeAction =
+                                ImeAction.Done
+                        ),
+
+                    shape =
+                        RoundedCornerShape(12.dp),
+
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor =
+                                PrimaryGreen,
+
+                            cursorColor =
+                                PrimaryGreen
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(8.dp)
+                )
+
+                Text(
+                    text =
+                        "Email profil yang tersimpan di data Firestore akan diperbarui. Email login Firebase Authentication tidak berubah.",
+
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
+
+                if (errorMessage.isNotBlank()) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text =
+                            errorMessage,
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            Color(0xFFC62828)
+                    )
+                }
+            }
+        },
+
+        confirmButton = {
+
+            Button(
+
+                enabled =
+                    !isSaving,
+
+                onClick = {
+
+                    val emailClean =
+                        email.trim()
+
+                    when {
+
+                        emailClean.isBlank() -> {
+
+                            errorMessage =
+                                "Email wajib diisi."
+                        }
+
+                        !android.util.Patterns.EMAIL_ADDRESS
+                            .matcher(emailClean)
+                            .matches() -> {
+
+                            errorMessage =
+                                "Format email tidak valid."
+                        }
+
+                        emailClean.equals(
+                            karyawan.email.trim(),
+                            ignoreCase = true
+                        ) -> {
+
+                            errorMessage =
+                                "Email baru sama dengan email lama."
+                        }
+
+                        else -> {
+
+                            onSave(emailClean)
+                        }
+                    }
+                },
+
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            PrimaryGreen
+                    ),
+
+                shape =
+                    RoundedCornerShape(10.dp)
+            ) {
+
+                if (isSaving) {
+
+                    CircularProgressIndicator(
+                        modifier =
+                            Modifier.size(17.dp),
+
+                        color =
+                            Color.White,
+
+                        strokeWidth =
+                            2.dp
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(6.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Menyimpan..."
+                    )
+
+                } else {
+
+                    Text(
+                        text =
+                            "Simpan"
+                    )
+                }
+            }
+        },
+
+        dismissButton = {
+
+            TextButton(
+
+                enabled =
+                    !isSaving,
+
+                onClick =
+                    onDismiss
+            ) {
+
+                Text(
+                    text =
+                        "Batal",
+
+                    color =
+                        TextGray
+                )
+            }
+        }
+    )
 }
 
 
@@ -2060,12 +2962,7 @@ private fun SectionTitle(
             FontWeight.Bold,
 
         color =
-            TextDark,
-
-        modifier =
-            Modifier.padding(
-                horizontal = 2.dp
-            )
+            TextDark
     )
 }
 
@@ -2237,11 +3134,6 @@ private fun TambahKaryawanDialog(
     val focusManager =
         LocalFocusManager.current
 
-
-    // ======================================================
-    // FOCUS REQUESTER
-    // ======================================================
-
     val namaFocusRequester =
         remember {
             FocusRequester()
@@ -2272,18 +3164,8 @@ private fun TambahKaryawanDialog(
             FocusRequester()
         }
 
-
-    // ======================================================
-    // FORM LIST STATE
-    // ======================================================
-
     val formListState =
         rememberLazyListState()
-
-
-    // ======================================================
-    // DATA FORM
-    // ======================================================
 
     var nama by remember {
         mutableStateOf("")
@@ -2325,54 +3207,35 @@ private fun TambahKaryawanDialog(
         mutableStateOf("")
     }
 
-
-    // ======================================================
-    // FIELD FOCUS
-    // ======================================================
-
     var focusedField by remember {
         mutableStateOf<String?>(null)
     }
 
 
-    // ======================================================
-    // AUTO SCROLL
-    // ======================================================
-
     LaunchedEffect(focusedField) {
 
         when (focusedField) {
 
-            "nama" -> {
+            "nama" ->
                 formListState.scrollToItem(1)
-            }
 
-            "email" -> {
+            "email" ->
                 formListState.scrollToItem(2)
-            }
 
-            "password" -> {
+            "password" ->
                 formListState.scrollToItem(3)
-            }
 
-            "jabatan" -> {
+            "jabatan" ->
                 formListState.scrollToItem(5)
-            }
 
-            "divisi" -> {
+            "divisi" ->
                 formListState.scrollToItem(6)
-            }
 
-            "telegram" -> {
+            "telegram" ->
                 formListState.scrollToItem(7)
-            }
         }
     }
 
-
-    // ======================================================
-    // ALERT DIALOG
-    // ======================================================
 
     AlertDialog(
 
@@ -2471,10 +3334,6 @@ private fun TambahKaryawanDialog(
                     Arrangement.spacedBy(10.dp)
             ) {
 
-                // ==================================================
-                // DATA AKUN
-                // ==================================================
-
                 item {
 
                     FormSectionLabel(
@@ -2482,11 +3341,6 @@ private fun TambahKaryawanDialog(
                             "Data Akun"
                     )
                 }
-
-
-                // ==================================================
-                // NAMA
-                // ==================================================
 
                 item {
 
@@ -2508,7 +3362,8 @@ private fun TambahKaryawanDialog(
                                 .onFocusChanged {
 
                                     if (it.isFocused) {
-                                        focusedField = "nama"
+                                        focusedField =
+                                            "nama"
                                     }
                                 },
 
@@ -2516,10 +3371,7 @@ private fun TambahKaryawanDialog(
                             true,
 
                         label = {
-
-                            Text(
-                                "Nama Lengkap"
-                            )
+                            Text("Nama Lengkap")
                         },
 
                         leadingIcon = {
@@ -2535,7 +3387,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardOptions =
                             androidx.compose.foundation.text.KeyboardOptions(
-
                                 keyboardType =
                                     KeyboardType.Text,
 
@@ -2545,9 +3396,9 @@ private fun TambahKaryawanDialog(
 
                         keyboardActions =
                             androidx.compose.foundation.text.KeyboardActions(
-
                                 onNext = {
-                                    emailFocusRequester.requestFocus()
+                                    emailFocusRequester
+                                        .requestFocus()
                                 }
                             ),
 
@@ -2564,11 +3415,6 @@ private fun TambahKaryawanDialog(
                             )
                     )
                 }
-
-
-                // ==================================================
-                // EMAIL
-                // ==================================================
 
                 item {
 
@@ -2590,7 +3436,8 @@ private fun TambahKaryawanDialog(
                                 .onFocusChanged {
 
                                     if (it.isFocused) {
-                                        focusedField = "email"
+                                        focusedField =
+                                            "email"
                                     }
                                 },
 
@@ -2598,10 +3445,7 @@ private fun TambahKaryawanDialog(
                             true,
 
                         label = {
-
-                            Text(
-                                "Email"
-                            )
+                            Text("Email")
                         },
 
                         leadingIcon = {
@@ -2617,7 +3461,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardOptions =
                             androidx.compose.foundation.text.KeyboardOptions(
-
                                 keyboardType =
                                     KeyboardType.Email,
 
@@ -2627,9 +3470,9 @@ private fun TambahKaryawanDialog(
 
                         keyboardActions =
                             androidx.compose.foundation.text.KeyboardActions(
-
                                 onNext = {
-                                    passwordFocusRequester.requestFocus()
+                                    passwordFocusRequester
+                                        .requestFocus()
                                 }
                             ),
 
@@ -2646,11 +3489,6 @@ private fun TambahKaryawanDialog(
                             )
                     )
                 }
-
-
-                // ==================================================
-                // PASSWORD
-                // ==================================================
 
                 item {
 
@@ -2672,7 +3510,8 @@ private fun TambahKaryawanDialog(
                                 .onFocusChanged {
 
                                     if (it.isFocused) {
-                                        focusedField = "password"
+                                        focusedField =
+                                            "password"
                                     }
                                 },
 
@@ -2680,10 +3519,7 @@ private fun TambahKaryawanDialog(
                             true,
 
                         label = {
-
-                            Text(
-                                "Password"
-                            )
+                            Text("Password")
                         },
 
                         leadingIcon = {
@@ -2701,7 +3537,8 @@ private fun TambahKaryawanDialog(
 
                             IconButton(
                                 onClick = {
-                                    showPassword = !showPassword
+                                    showPassword =
+                                        !showPassword
                                 }
                             ) {
 
@@ -2714,11 +3551,7 @@ private fun TambahKaryawanDialog(
                                         },
 
                                     contentDescription =
-                                        if (showPassword) {
-                                            "Sembunyikan password"
-                                        } else {
-                                            "Tampilkan password"
-                                        }
+                                        null
                                 )
                             }
                         },
@@ -2732,7 +3565,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardOptions =
                             androidx.compose.foundation.text.KeyboardOptions(
-
                                 keyboardType =
                                     KeyboardType.Password,
 
@@ -2742,9 +3574,9 @@ private fun TambahKaryawanDialog(
 
                         keyboardActions =
                             androidx.compose.foundation.text.KeyboardActions(
-
                                 onNext = {
-                                    jabatanFocusRequester.requestFocus()
+                                    jabatanFocusRequester
+                                        .requestFocus()
                                 }
                             ),
 
@@ -2762,28 +3594,13 @@ private fun TambahKaryawanDialog(
                     )
                 }
 
-
-                // ==================================================
-                // DATA PEKERJAAN
-                // ==================================================
-
                 item {
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
 
                     FormSectionLabel(
                         text =
                             "Data Pekerjaan"
                     )
                 }
-
-
-                // ==================================================
-                // JABATAN
-                // ==================================================
 
                 item {
 
@@ -2805,7 +3622,8 @@ private fun TambahKaryawanDialog(
                                 .onFocusChanged {
 
                                     if (it.isFocused) {
-                                        focusedField = "jabatan"
+                                        focusedField =
+                                            "jabatan"
                                     }
                                 },
 
@@ -2813,10 +3631,7 @@ private fun TambahKaryawanDialog(
                             true,
 
                         label = {
-
-                            Text(
-                                "Jabatan"
-                            )
+                            Text("Jabatan")
                         },
 
                         leadingIcon = {
@@ -2832,7 +3647,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardOptions =
                             androidx.compose.foundation.text.KeyboardOptions(
-
                                 keyboardType =
                                     KeyboardType.Text,
 
@@ -2842,9 +3656,9 @@ private fun TambahKaryawanDialog(
 
                         keyboardActions =
                             androidx.compose.foundation.text.KeyboardActions(
-
                                 onNext = {
-                                    divisiFocusRequester.requestFocus()
+                                    divisiFocusRequester
+                                        .requestFocus()
                                 }
                             ),
 
@@ -2861,11 +3675,6 @@ private fun TambahKaryawanDialog(
                             )
                     )
                 }
-
-
-                // ==================================================
-                // DIVISI
-                // ==================================================
 
                 item {
 
@@ -2887,7 +3696,8 @@ private fun TambahKaryawanDialog(
                                 .onFocusChanged {
 
                                     if (it.isFocused) {
-                                        focusedField = "divisi"
+                                        focusedField =
+                                            "divisi"
                                     }
                                 },
 
@@ -2895,10 +3705,7 @@ private fun TambahKaryawanDialog(
                             true,
 
                         label = {
-
-                            Text(
-                                "Divisi"
-                            )
+                            Text("Divisi")
                         },
 
                         leadingIcon = {
@@ -2914,7 +3721,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardOptions =
                             androidx.compose.foundation.text.KeyboardOptions(
-
                                 keyboardType =
                                     KeyboardType.Text,
 
@@ -2924,9 +3730,9 @@ private fun TambahKaryawanDialog(
 
                         keyboardActions =
                             androidx.compose.foundation.text.KeyboardActions(
-
                                 onNext = {
-                                    telegramFocusRequester.requestFocus()
+                                    telegramFocusRequester
+                                        .requestFocus()
                                 }
                             ),
 
@@ -2943,11 +3749,6 @@ private fun TambahKaryawanDialog(
                             )
                     )
                 }
-
-
-                // ==================================================
-                // TELEGRAM
-                // ==================================================
 
                 item {
 
@@ -2969,7 +3770,8 @@ private fun TambahKaryawanDialog(
                                 .onFocusChanged {
 
                                     if (it.isFocused) {
-                                        focusedField = "telegram"
+                                        focusedField =
+                                            "telegram"
                                     }
                                 },
 
@@ -2977,10 +3779,7 @@ private fun TambahKaryawanDialog(
                             true,
 
                         label = {
-
-                            Text(
-                                "Username Telegram"
-                            )
+                            Text("Username Telegram")
                         },
 
                         leadingIcon = {
@@ -2996,7 +3795,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardOptions =
                             androidx.compose.foundation.text.KeyboardOptions(
-
                                 keyboardType =
                                     KeyboardType.Text,
 
@@ -3006,7 +3804,6 @@ private fun TambahKaryawanDialog(
 
                         keyboardActions =
                             androidx.compose.foundation.text.KeyboardActions(
-
                                 onDone = {
                                     focusManager.clearFocus()
                                 }
@@ -3026,24 +3823,13 @@ private fun TambahKaryawanDialog(
                     )
                 }
 
-
-                // ==================================================
-                // HAK AKSES
-                // ==================================================
-
                 item {
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
 
                     FormSectionLabel(
                         text =
                             "Hak Akses"
                     )
                 }
-
 
                 item {
 
@@ -3062,139 +3848,70 @@ private fun TambahKaryawanDialog(
                             )
                     ) {
 
-                        Column(
+                        Row(
                             modifier =
-                                Modifier.padding(8.dp)
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
 
-                            Row(
-                                modifier =
-                                    Modifier.fillMaxWidth(),
+                            RadioButton(
+                                selected =
+                                    !isAdmin,
 
-                                verticalAlignment =
-                                    Alignment.CenterVertically
-                            ) {
-
-                                RadioButton(
-
-                                    selected =
-                                        !isAdmin,
-
-                                    onClick = {
-                                        isAdmin = false
-                                    }
-                                )
-
-                                Text(
-                                    text =
-                                        "Staff",
-
-                                    fontSize =
-                                        13.sp,
-
-                                    fontWeight =
-                                        if (!isAdmin) {
-                                            FontWeight.SemiBold
-                                        } else {
-                                            FontWeight.Normal
-                                        },
-
-                                    color =
-                                        TextDark
-                                )
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.width(18.dp)
-                                )
-
-                                RadioButton(
-
-                                    selected =
-                                        isAdmin,
-
-                                    onClick = {
-                                        isAdmin = true
-                                    }
-                                )
-
-                                Text(
-                                    text =
-                                        "Admin",
-
-                                    fontSize =
-                                        13.sp,
-
-                                    fontWeight =
-                                        if (isAdmin) {
-                                            FontWeight.SemiBold
-                                        } else {
-                                            FontWeight.Normal
-                                        },
-
-                                    color =
-                                        TextDark
-                                )
-                            }
-                        }
-                    }
-                }
-
-
-                // ==================================================
-                // ERROR
-                // ==================================================
-
-                if (errorMessage.isNotBlank()) {
-
-                    item {
-
-                        Surface(
-                            modifier =
-                                Modifier.fillMaxWidth(),
-
-                            shape =
-                                RoundedCornerShape(10.dp),
-
-                            color =
-                                Color(0xFFFFEBEE)
-                        ) {
+                                onClick = {
+                                    isAdmin = false
+                                }
+                            )
 
                             Text(
                                 text =
-                                    errorMessage,
+                                    "Staff"
+                            )
 
+                            Spacer(
                                 modifier =
-                                    Modifier.padding(12.dp),
+                                    Modifier.width(18.dp)
+                            )
 
-                                fontSize =
-                                    12.sp,
+                            RadioButton(
+                                selected =
+                                    isAdmin,
 
-                                color =
-                                    Color(0xFFC62828)
+                                onClick = {
+                                    isAdmin = true
+                                }
+                            )
+
+                            Text(
+                                text =
+                                    "Admin"
                             )
                         }
                     }
                 }
 
+                if (errorMessage.isNotBlank()) {
 
-                // ==================================================
-                // BOTTOM SPACER
-                // ==================================================
+                    item {
 
-                item {
+                        Text(
+                            text =
+                                errorMessage,
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(20.dp)
-                    )
+                            fontSize =
+                                12.sp,
+
+                            color =
+                                Color(0xFFC62828)
+                        )
+                    }
                 }
             }
         },
-
-        // ======================================================
-        // CONFIRM BUTTON
-        // ======================================================
 
         confirmButton = {
 
@@ -3214,7 +3931,6 @@ private fun TambahKaryawanDialog(
                     val passwordClean =
                         password.trim()
 
-
                     if (
                         namaClean.isBlank() ||
                         emailClean.isBlank() ||
@@ -3227,10 +3943,7 @@ private fun TambahKaryawanDialog(
                         return@Button
                     }
 
-
-                    if (
-                        passwordClean.length < 6
-                    ) {
+                    if (passwordClean.length < 6) {
 
                         errorMessage =
                             "Password minimal 6 karakter."
@@ -3238,10 +3951,8 @@ private fun TambahKaryawanDialog(
                         return@Button
                     }
 
-
                     isSaving = true
                     errorMessage = ""
-
 
                     scope.launch {
 
@@ -3255,7 +3966,6 @@ private fun TambahKaryawanDialog(
 
                             val options =
                                 primaryApp.options
-
 
                             secondaryApp =
                                 try {
@@ -3275,12 +3985,11 @@ private fun TambahKaryawanDialog(
                                     )
                                 }
 
-
                             val secondaryAuth =
-                                FirebaseAuth.getInstance(
-                                    secondaryApp
-                                )
-
+                                com.google.firebase.auth.FirebaseAuth
+                                    .getInstance(
+                                        secondaryApp
+                                    )
 
                             val result =
                                 secondaryAuth
@@ -3290,45 +3999,35 @@ private fun TambahKaryawanDialog(
                                     )
                                     .await()
 
-
                             val newUid =
                                 result.user?.uid
                                     ?: throw Exception(
                                         "UID akun tidak ditemukan."
                                     )
 
-
                             val userData =
                                 hashMapOf(
 
-                                    "uid" to
-                                            newUid,
+                                    "uid" to newUid,
 
-                                    "nama" to
-                                            namaClean,
+                                    "nama" to namaClean,
 
-                                    "email" to
-                                            emailClean,
+                                    "email" to emailClean,
 
-                                    "jabatan" to
-                                            jabatan.trim(),
+                                    "jabatan" to jabatan.trim(),
 
-                                    "divisi" to
-                                            divisi.trim(),
+                                    "divisi" to divisi.trim(),
 
                                     "usernameTele" to
                                             usernameTele.trim(),
 
-                                    "isAdmin" to
-                                            isAdmin
+                                    "isAdmin" to isAdmin
                                 )
-
 
                             db.collection("users")
                                 .document(newUid)
                                 .set(userData)
                                 .await()
-
 
                             secondaryAuth.signOut()
 
@@ -3360,7 +4059,6 @@ private fun TambahKaryawanDialog(
                 if (isSaving) {
 
                     CircularProgressIndicator(
-
                         modifier =
                             Modifier.size(17.dp),
 
@@ -3406,10 +4104,6 @@ private fun TambahKaryawanDialog(
                 }
             }
         },
-
-        // ======================================================
-        // DISMISS BUTTON
-        // ======================================================
 
         dismissButton = {
 

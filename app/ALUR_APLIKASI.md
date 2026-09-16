@@ -1,6 +1,8 @@
+# MASTER DOCUMENTATION
+
 # ALUR APLIKASI ABSENSI KARYAWAN
 
-Dokumentasi master mengenai alur aplikasi, struktur project, fitur, database, navigasi, sistem absensi, QR Scanner, pengajuan, approval, chat, notifikasi, session, theme, testing, dan roadmap pengembangan aplikasi **Absensi Karyawan** berbasis Android.
+Dokumentasi master mengenai alur aplikasi, struktur project, fitur, database, navigasi, sistem absensi, QR Scanner, QR Generator, pengajuan, approval, chat, notifikasi, session, theme, testing, dan roadmap pengembangan aplikasi **Absensi Karyawan** berbasis Android.
 
 Dokumen ini menjadi **patokan utama pengembangan project** agar setiap perubahan tetap mempertahankan fitur yang sudah berjalan dan tidak merusak struktur aplikasi.
 
@@ -56,6 +58,12 @@ Cloud Firestore
 Firebase Authentication
 ```
 
+**QR Generator:**
+
+```text
+ZXing
+```
+
 **QR Scanner:**
 
 ```text
@@ -74,7 +82,7 @@ DataStore Preferences
 Enum-based Navigation
 ```
 
-**Version Aplikasi:**
+**Version Name:**
 
 ```text
 1.1
@@ -83,13 +91,49 @@ Enum-based Navigation
 **Version Code:**
 
 ```text
-1
+2
 ```
 
 **Tahun:**
 
 ```text
 2026
+```
+
+**Gradle:**
+
+```text
+9.7.1
+```
+
+**Android Gradle Plugin:**
+
+```text
+9.4.0
+```
+
+**Kotlin:**
+
+```text
+2.2.10
+```
+
+**Compile SDK:**
+
+```text
+37
+```
+
+**Target SDK:**
+
+```text
+37
+```
+
+**Minimum SDK:**
+
+```text
+24
 ```
 
 ---
@@ -108,7 +152,7 @@ LOGIN
   └── STAFF
 ```
 
-## Admin
+## ADMIN
 
 Admin digunakan untuk:
 
@@ -123,7 +167,7 @@ Melihat notifikasi
 Mengatur aplikasi
 ```
 
-## Staff
+## STAFF
 
 Staff digunakan untuk:
 
@@ -147,12 +191,12 @@ Mengatur aplikasi
 
 ```text
                     ┌──────────────┐
-                    │    APLIKASI  │
+                    │   APLIKASI   │
                     └──────┬───────┘
                            │
                            ▼
                   ┌──────────────────┐
-                  │ Cek Session       │
+                  │  Cek Session     │
                   └────────┬─────────┘
                            │
                            ▼
@@ -161,7 +205,7 @@ Mengatur aplikasi
                     └──────┬──────┘
                            │
                            ▼
-                  Firebase Authentication
+              Firebase Authentication
                            │
                            ▼
                     Ambil Data User
@@ -347,23 +391,17 @@ File:
 SessionManager.kt
 ```
 
-Package:
-
-```text
-com.example.absensikaryawan
-```
-
 Session menggunakan waktu perangkat.
 
-## Jam Session Persisten
+## SESSION PERSISTEN
 
 ```text
 06:00 - 17:59
 ```
 
-Pada rentang ini session Firebase tetap dipertahankan.
+Pada rentang ini session Firebase dipertahankan.
 
-## Jam Session Tidak Persisten
+## SESSION LOGIN ULANG
 
 ```text
 18:00 - 05:59
@@ -373,7 +411,7 @@ Pada rentang ini aplikasi meminta login kembali ketika aplikasi masuk foreground
 
 ---
 
-# 8. SESSION PERSISTENT
+# 8. SESSION PERSISTEN
 
 Pada:
 
@@ -389,7 +427,7 @@ Berpindah aplikasi
 Aplikasi dibuka kembali
 ```
 
-Contoh:
+Alur:
 
 ```text
 07:00
@@ -401,7 +439,7 @@ Login
 Dashboard
   │
   ▼
-Tutup / pindah aplikasi
+Pindah / tutup aplikasi
   │
   ▼
 Buka kembali
@@ -412,7 +450,7 @@ Tetap Login
 
 ---
 
-# 9. SESSION NON-PERSISTENT
+# 9. SESSION MALAM
 
 Pada:
 
@@ -429,10 +467,13 @@ MainActivity
 Lifecycle ON_START
       │
       ▼
-SessionManager.shouldRequireLogin()
+SessionManager
       │
       ▼
-true
+Cek waktu
+      │
+      ▼
+Perlu login kembali
       │
       ▼
 FirebaseAuth.signOut()
@@ -441,7 +482,7 @@ FirebaseAuth.signOut()
 Login Screen
 ```
 
-Yang dihapus hanya session login:
+Yang dihapus hanya session login.
 
 ```text
 FirebaseAuth.signOut()
@@ -449,15 +490,15 @@ FirebaseAuth.signOut()
 
 Akun Firebase tidak dihapus.
 
-Data Firestore juga tidak dihapus.
+Data Firestore tidak dihapus.
+
+Data absensi juga tidak dihapus.
 
 ---
 
 # 10. LOGOUT MANUAL
 
-Logout manual tersedia melalui Settings.
-
-Alur:
+Logout tersedia melalui Settings.
 
 ```text
 Dashboard
@@ -475,8 +516,6 @@ FirebaseAuth.signOut()
 Login Screen
 ```
 
-Logout manual dapat dilakukan kapan saja.
-
 ---
 
 # 11. MAIN ACTIVITY
@@ -487,22 +526,15 @@ File:
 MainActivity.kt
 ```
 
-MainActivity bertanggung jawab terhadap:
+Tanggung jawab:
 
 ```text
-Theme aplikasi
+Menjalankan Theme
+Menjalankan Session
 Lifecycle aplikasi
-Session berdasarkan waktu
-Menjalankan AppNavigation()
+Edge-to-edge
+Menjalankan AppNavigation
 ```
-
-Lifecycle:
-
-```text
-ON_START
-```
-
-digunakan untuk mengecek apakah user harus login kembali.
 
 Alur:
 
@@ -528,19 +560,7 @@ File:
 AppNavigation.kt
 ```
 
-Navigation menggunakan:
-
-```text
-Enum-based Navigation
-```
-
-Tidak menggunakan:
-
-```text
-NavHost
-```
-
-Role:
+Navigation menggunakan enum:
 
 ```text
 AppRole.NONE
@@ -557,38 +577,17 @@ NONE
 LOGIN
  │
  ├── ADMIN
- │
- │     ▼
+ │     ↓
  │ AdminNavigation
  │
  └── STAFF
-       ▼
-     StaffNavigation
-```
-
----
-
-# 13. STRUKTUR NAVIGATION
-
-```text
-AppNavigation
-│
-├── AppRole.NONE
-│      ↓
-│    Login / Forgot Password
-│
-├── AppRole.ADMIN
-│      ↓
-│    AdminNavigation
-│
-└── AppRole.STAFF
        ↓
      StaffNavigation
 ```
 
 ---
 
-# 14. ADMIN NAVIGATION
+# 13. ADMIN NAVIGATION
 
 File:
 
@@ -604,7 +603,7 @@ Bottom navigation:
 └──────────┴──────────┴──────────┴──────────┴──────────┘
 ```
 
-Menu utama:
+Menu:
 
 ```text
 Beranda
@@ -614,9 +613,17 @@ Rekap
 Setting
 ```
 
+Fitur tambahan:
+
+```text
+QR Kantor
+Chat Staff
+Notifikasi
+```
+
 ---
 
-# 15. STAFF NAVIGATION
+# 14. STAFF NAVIGATION
 
 File:
 
@@ -632,7 +639,7 @@ Bottom navigation:
 └──────────┴────────────┴────────┴──────────┴──────────┘
 ```
 
-Menu utama:
+Menu:
 
 ```text
 Beranda
@@ -644,9 +651,9 @@ Setting
 
 ---
 
-# 16. SCREEN ADMIN
+# 15. SCREEN ADMIN
 
-Screen utama Admin:
+Screen Admin:
 
 ```text
 AdminDashboardScreen
@@ -660,21 +667,27 @@ AdminBantuan
 AdminTentangAplikasi
 AdminChatListScreen
 AdminChatDetailScreen
+AdminQrSettingScreen
 ```
 
-Fitur tambahan Admin:
+Fitur:
 
 ```text
-QR Settings
+Dashboard
+Approval
+Karyawan
+Rekap
+QR Kantor
+Chat
 Notifikasi
-Chat Staff
+Settings
 ```
 
 ---
 
-# 17. SCREEN STAFF
+# 16. SCREEN STAFF
 
-Screen utama Staff:
+Screen Staff:
 
 ```text
 StaffDashboardScreen
@@ -686,9 +699,9 @@ DetailPengajuan
 RiwayatPengajuan
 RiwayatScreen
 Settings
-Tampilan
 Notifikasi
 ChatAdmin
+Tampilan
 Bantuan
 TentangAplikasi
 Profile
@@ -696,15 +709,13 @@ Profile
 
 ---
 
-# 18. ADMIN DASHBOARD
+# 17. ADMIN DASHBOARD
 
 Screen:
 
 ```text
 AdminDashboardScreen
 ```
-
-Dashboard menjadi pusat aktivitas Admin.
 
 Fungsi:
 
@@ -713,24 +724,15 @@ Ringkasan aplikasi
 Akses Approval
 Akses Karyawan
 Akses Rekap
+Akses QR Kantor
+Akses Chat
+Akses Notifikasi
 Akses Settings
-Akses notifikasi
-Akses chat
-```
-
-Dashboard tidak menampilkan informasi versi sebagai elemen utama.
-
-Informasi versi berada pada:
-
-```text
-Login
-Settings
-Tentang Aplikasi
 ```
 
 ---
 
-# 19. ADMIN APPROVAL
+# 18. ADMIN APPROVAL
 
 Screen:
 
@@ -762,23 +764,14 @@ ADMIN APPROVAL
 Status:
 
 ```text
-Menunggu
-Disetujui
-Ditolak
-```
-
-Setelah Admin mengambil keputusan:
-
-```text
-Status Pengajuan
-       │
-       ▼
-Notification Staff
+menunggu
+disetujui
+ditolak
 ```
 
 ---
 
-# 20. ADMIN KARYAWAN
+# 19. ADMIN KARYAWAN
 
 Screen:
 
@@ -794,13 +787,7 @@ Menambah karyawan
 Mengelola data karyawan
 ```
 
-Dialog:
-
-```text
-TambahKaryawanDialog
-```
-
-Data user berada di:
+Data berada pada:
 
 ```text
 users
@@ -808,7 +795,7 @@ users
 
 ---
 
-# 21. DATA KARYAWAN
+# 20. DATA USERS
 
 Collection:
 
@@ -825,31 +812,11 @@ email
 isAdmin
 ```
 
-Field dapat berkembang sesuai kebutuhan project.
+`isAdmin` menentukan role aplikasi.
 
 ---
 
-# 22. PASSWORD KARYAWAN
-
-Password Firebase Authentication tidak dapat dibaca atau ditampilkan kembali oleh Admin.
-
-Password dikelola oleh:
-
-```text
-Firebase Authentication
-```
-
-Jika lupa:
-
-```text
-ForgotPasswordScreen
-```
-
-Aplikasi tidak menyediakan fitur melihat password asli.
-
----
-
-# 23. ADMIN REKAP
+# 21. ADMIN REKAP
 
 Screen:
 
@@ -857,27 +824,28 @@ Screen:
 AdminRekapScreen
 ```
 
-Sumber data:
+Sumber:
 
 ```text
 attendance
 ```
 
-Data dapat meliputi:
+Data:
 
 ```text
 Nama
 Tanggal
 Jam Masuk
 Jam Pulang
-QR / Kantor
+QR
+Kantor
 Status
 Catatan
 ```
 
 ---
 
-# 24. ADMIN SETTINGS
+# 22. ADMIN SETTINGS
 
 Screen:
 
@@ -898,9 +866,23 @@ Keluar
 
 ---
 
-# 25. ADMIN QR SETTINGS
+# 23. ADMIN QR SETTINGS
 
-Admin memiliki pengaturan QR kantor.
+Screen:
+
+```text
+AdminQrSettingScreen
+```
+
+Fungsi:
+
+```text
+Mengatur QR kantor
+Generate QR Code
+Mengaktifkan QR
+Menonaktifkan QR
+Menyimpan QR ke Firestore
+```
 
 Collection:
 
@@ -929,130 +911,14 @@ qr_settings
     └── aktif
 ```
 
-Admin dapat mengatur:
-
-```text
-QR aktif
-QR nonaktif
-Nama kantor
-Data QR
-```
-
-Scanner Staff membaca konfigurasi ini dari Firestore.
-
 ---
 
-# 26. QR KANTOR RESMI
+# 24. GENERATE QR CODE
 
-QR kantor yang digunakan project saat ini:
-
-## Malang
+Generator menggunakan:
 
 ```text
-https://q.me-qr.com/x5ie23mg
-```
-
-## Blitar
-
-```text
-https://q.me-qr.com/hbywvgy7
-```
-
-## Kediri
-
-```text
-https://q.me-qr.com/14vy2ipr
-```
-
-QR tersebut menjadi data QR kantor yang dapat didaftarkan pada:
-
-```text
-qr_settings
-```
-
-Status:
-
-```text
-aktif = true
-```
-
-menentukan apakah QR dapat digunakan scanner.
-
----
-
-# 27. ADMIN PROFILE
-
-Screen:
-
-```text
-AdminProfile
-```
-
-Digunakan untuk menampilkan informasi profile Admin.
-
----
-
-# 28. ADMIN TAMPILAN
-
-Screen:
-
-```text
-AdminTampilan
-```
-
-Pilihan:
-
-```text
-TERANG
-GELAP
-SISTEM
-```
-
-Penyimpanan:
-
-```text
-ThemeDataStore
-```
-
----
-
-# 29. ADMIN BANTUAN
-
-Screen:
-
-```text
-AdminBantuan
-```
-
-Berisi informasi bantuan penggunaan aplikasi untuk Admin.
-
----
-
-# 30. ADMIN TENTANG
-
-Screen:
-
-```text
-AdminTentangAplikasi
-```
-
-Informasi versi:
-
-```text
-© 2026 Absensi Karyawan • Versi 1.1
-```
-
----
-
-# 31. ADMIN CHAT
-
-Admin memiliki sistem chat dengan Staff.
-
-Screen:
-
-```text
-AdminChatListScreen
-AdminChatDetailScreen
+ZXing
 ```
 
 Alur:
@@ -1061,24 +927,116 @@ Alur:
 Admin
   │
   ▼
-Daftar Chat Staff
+QR Kantor
   │
   ▼
-Pilih Staff
+Pilih Kantor
   │
   ▼
-Chat Detail
+QR Data
   │
   ▼
-Balas Pesan
+Generate QR
   │
   ▼
-Firestore
+Bitmap QR
+  │
+  ▼
+Preview QR
+```
+
+Data QR yang dibuat bukan data random.
+
+Data QR menggunakan URL kantor yang sudah ditentukan.
+
+---
+
+# 25. QR KANTOR RESMI
+
+## MALANG
+
+```text
+https://q.me-qr.com/x5ie23mg
+```
+
+## BLITAR
+
+```text
+https://q.me-qr.com/hbywvgy7
+```
+
+## KEDIRI
+
+```text
+https://q.me-qr.com/14vy2ipr
+```
+
+QR tersebut disimpan pada:
+
+```text
+qr_settings
+```
+
+dengan:
+
+```text
+aktif = true
+```
+
+jika QR tersebut boleh digunakan.
+
+---
+
+# 26. DATA QR_SETTINGS
+
+Field:
+
+```text
+officeName
+qrData
+aktif
+```
+
+Contoh:
+
+```text
+officeName : Malang
+qrData     : https://q.me-qr.com/x5ie23mg
+aktif      : true
 ```
 
 ---
 
-# 32. STAFF DASHBOARD
+# 27. ALUR GENERATE DAN SAVE QR
+
+```text
+ADMIN
+   │
+   ▼
+QR Settings
+   │
+   ▼
+Masukkan / cek QR Data
+   │
+   ▼
+Generate QR
+   │
+   ▼
+QR Preview
+   │
+   ▼
+Save
+   │
+   ▼
+Firestore
+   │
+   ▼
+qr_settings
+```
+
+---
+
+# 28. STAFF DASHBOARD
 
 Screen:
 
@@ -1086,26 +1044,24 @@ Screen:
 StaffDashboardScreen
 ```
 
-Dashboard menampilkan informasi utama Staff:
+Dashboard menampilkan:
 
 ```text
-Nama
+Nama Staff
 Tanggal
-Jam real-time
-Status absensi
-Jam masuk
-Jam pulang
+Jam Real-Time
+Status Absensi
+Jam Masuk
+Jam Pulang
 Akses Scan
 Akses Absen Luar Kantor
 Notifikasi
 Profile
 ```
 
-Dashboard menjadi pusat aktivitas Staff.
-
 ---
 
-# 33. JAM REAL-TIME
+# 29. JAM REAL-TIME
 
 Format:
 
@@ -1119,13 +1075,13 @@ Contoh:
 07:35:21
 ```
 
-Jam diperbarui secara berkala sehingga Staff dapat melihat waktu terkini.
+Jam diperbarui secara berkala.
 
 ---
 
-# 34. STATUS KEHADIRAN
+# 30. STATUS KEHADIRAN
 
-Status utama:
+Status:
 
 ```text
 BELUM ABSEN
@@ -1135,12 +1091,10 @@ BELUM ABSEN
 SUDAH ABSEN
 ```
 
-Dashboard mengecek data:
+Identifikasi berdasarkan:
 
 ```text
-uid
-+
-tanggal hari ini
+uid + tanggal
 ```
 
 Alur:
@@ -1152,7 +1106,7 @@ Dashboard
 Firestore attendance
     │
     ▼
-Cek uid + tanggal
+Cek UID + tanggal
     │
     ├── Tidak ditemukan
     │       ↓
@@ -1165,84 +1119,7 @@ Cek uid + tanggal
 
 ---
 
-# 35. NOTIFIKASI STAFF
-
-Staff memiliki screen:
-
-```text
-Notifikasi
-```
-
-Notifikasi dapat berasal dari:
-
-```text
-Admin membalas chat
-Pengajuan disetujui
-Pengajuan ditolak
-```
-
-Alur:
-
-```text
-Event
- │
- ▼
-NotificationRepository
- │
- ▼
-Firestore notifications
- │
- ▼
-Notifikasi Staff
-```
-
-Notifikasi yang belum dibaca memiliki indikator:
-
-```text
-Baru
-```
-
-Ketika notifikasi dibuka:
-
-```text
-read = true
-```
-
----
-
-# 36. NOTIFIKASI ADMIN
-
-Admin juga memiliki notifikasi.
-
-Event yang dapat menghasilkan notifikasi:
-
-```text
-Staff mengirim chat
-Staff membuat pengajuan
-Staff melakukan absensi
-```
-
-Alur:
-
-```text
-Staff
-  │
-  ├── Chat
-  │
-  ├── Pengajuan
-  │
-  └── Absensi
-       │
-       ▼
-NotificationRepository
-       │
-       ▼
-Notifikasi Admin
-```
-
----
-
-# 37. SCAN QR
+# 31. QR SCANNER
 
 Screen:
 
@@ -1258,28 +1135,29 @@ CameraX
 ML Kit Barcode Scanning
 ```
 
-Scanner hanya memproses:
+Scanner difokuskan pada:
 
 ```text
 QR_CODE
 ```
 
-Scanner memiliki:
+Komponen scanner:
 
 ```text
+Camera
+Scanner Frame
 QR Detection
 Bounding Box
 Corner Points
-Scanner Frame
 Scanner Line
 Validation Progress
 QR Lock
-Reset Scanner
+QR Reset
 ```
 
 ---
 
-# 38. ALUR QR SCANNER
+# 32. ALUR SCAN QR
 
 ```text
 Staff
@@ -1294,82 +1172,97 @@ Load qr_settings
   │
   ├── Error
   │
-  └── Data berhasil
+  └── Berhasil
           │
           ▼
-     Scanner Aktif
+      Scanner Aktif
           │
           ▼
-       Kamera
+        Kamera
           │
           ▼
-     ML Kit QR Detection
+     ML Kit Detection
           │
           ▼
-     Validasi Posisi QR
+     Deteksi QR
           │
           ▼
-     Validasi Ukuran QR
-          │
-          ▼
-     Validasi Overlap Frame
-          │
-          ▼
-     Validasi Multi Frame
-          │
-          ▼
-        QR LOCK
-          │
-          ▼
-    Cocokkan qrData
-          │
-       ┌──┴──┐
-       │     │
-    INVALID VALID
-       │     │
-       ▼     ▼
-     Tolak  Lanjut
+     Validasi QR
 ```
 
 ---
 
-# 39. QR SETTINGS FIRESTORE
+# 33. QR SETTINGS SEBAGAI WHITELIST
 
-Scanner tidak menggunakan daftar QR hard-coded sebagai satu-satunya sumber validasi.
-
-Scanner membaca:
+Scanner mengambil daftar QR aktif dari:
 
 ```text
 qr_settings
 ```
 
-Setiap data harus:
+Scanner hanya menerima QR yang:
 
 ```text
 qrData tidak kosong
-officeName tersedia
 aktif = true
 ```
 
-Jika tidak ada QR aktif:
+Jika QR tidak terdaftar:
+
+```text
+QR Code tidak terdaftar sebagai QR kantor aktif.
+```
+
+QR tersebut tidak boleh digunakan untuk absensi.
+
+---
+
+# 34. LOAD QR SETTINGS
+
+Alur:
+
+```text
+ScanAbsenScreen
+       │
+       ▼
+Firestore
+       │
+       ▼
+qr_settings
+       │
+       ▼
+Ambil dokumen
+       │
+       ▼
+Filter aktif = true
+       │
+       ▼
+registeredQrCodes
+       │
+       ▼
+Scanner Aktif
+```
+
+Jika tidak ada:
 
 ```text
 Belum ada QR kantor aktif.
 Hubungi Admin untuk mengatur QR kantor.
 ```
 
-Jika Firestore gagal:
+Jika gagal:
 
 ```text
 Gagal mengambil pengaturan QR kantor.
-Scanner tidak dapat digunakan.
 ```
 
 ---
 
-# 40. NORMALISASI QR
+# 35. NORMALISASI QR
 
-Sebelum dibandingkan:
+Sebelum dibandingkan, QR dinormalisasi.
+
+Proses:
 
 ```text
 Trim
@@ -1383,48 +1276,47 @@ Contoh:
 https://q.me-qr.com/x5ie23mg/
 ```
 
-dinormalisasi menjadi:
+menjadi:
 
 ```text
 https://q.me-qr.com/x5ie23mg
 ```
 
-Tujuannya agar perbedaan kecil pada format URL tidak menyebabkan QR valid ditolak.
+Tujuannya menghindari perbedaan format kecil menyebabkan QR valid ditolak.
 
 ---
 
-# 41. VALIDASI UKURAN QR
+# 36. VALIDASI UKURAN QR
 
-Scanner menggunakan batas ukuran minimum:
+Scanner menggunakan batas:
 
 ```text
 QR_MIN_SIZE_DP = 45
 ```
 
-QR yang terlalu kecil tidak langsung diproses.
-
-Scanner juga memiliki batas ukuran maksimum relatif terhadap frame scanner.
+Scanner juga membatasi ukuran maksimum QR terhadap frame.
 
 Tujuan:
 
 ```text
-QR harus cukup jelas
-QR harus berada dalam area scanner
+QR cukup jelas
 QR tidak terlalu jauh
+QR tidak terlalu besar
 ```
 
 ---
 
-# 42. VALIDASI POSISI QR
+# 37. VALIDASI POSISI QR
 
-QR harus berada pada area scanner.
+QR harus berada di area scanner.
 
-Scanner melakukan pemeriksaan:
+Pemeriksaan:
 
 ```text
-Center QR
 Bounding Box
-Overlap dengan scanner frame
+Center QR
+Scanner Frame
+Overlap
 ```
 
 Minimum overlap:
@@ -1436,22 +1328,22 @@ Minimum overlap:
 Jika QR terlalu keluar dari frame:
 
 ```text
-Belum valid
+QR belum valid
 ```
 
 ---
 
-# 43. MULTI-FRAME VALIDATION
+# 38. MULTI-FRAME VALIDATION
 
 Scanner tidak langsung mengunci QR pada satu frame.
 
-Jumlah frame yang dibutuhkan:
+Jumlah frame:
 
 ```text
 3 frame valid
 ```
 
-Konsep:
+Alur:
 
 ```text
 Frame 1
@@ -1463,7 +1355,7 @@ Frame 3
 QR LOCK
 ```
 
-Scanner juga memeriksa perpindahan posisi QR agar QR relatif stabil.
+Scanner juga memeriksa kestabilan posisi QR.
 
 Tracking distance:
 
@@ -1471,17 +1363,17 @@ Tracking distance:
 40dp
 ```
 
-Tujuannya:
+Tujuan:
 
 ```text
 Mengurangi false detection
-Mengurangi QR yang terbaca sesaat
+Mengurangi scan sesaat
 Membuat scanner lebih stabil
 ```
 
 ---
 
-# 44. QR LOCK
+# 39. QR LOCK
 
 Setelah QR valid:
 
@@ -1489,39 +1381,47 @@ Setelah QR valid:
 scanLock = true
 ```
 
-Scanner tidak memproses QR yang sama berkali-kali secara bersamaan.
+Scanner menghentikan proses QR yang sama agar tidak terjadi double processing.
 
-Status:
-
-```text
-QR TERKUNCI
-```
-
-Setelah berhasil atau user melakukan reset:
+Alur:
 
 ```text
-scanLock = false
+QR valid
+   ↓
+3 frame valid
+   ↓
+scanLock
+   ↓
+QR terkunci
+   ↓
+Konfirmasi
 ```
 
 ---
 
-# 45. QR INVALID
+# 40. QR INVALID
 
-Jika QR terbaca tetapi tidak ada pada daftar QR aktif:
+Jika QR terbaca tetapi tidak terdaftar:
 
 ```text
 QR Code tidak terdaftar sebagai QR kantor aktif.
 ```
 
-State scan di-reset sehingga user dapat mencoba QR lain.
+QR invalid:
 
-QR invalid tidak disimpan sebagai absensi.
+```text
+Tidak disimpan
+Tidak menghasilkan absensi
+Tidak masuk attendance
+```
+
+Scanner dapat di-reset untuk mencoba kembali.
 
 ---
 
-# 46. QR VALID
+# 41. QR VALID
 
-Jika QR cocok dengan `qr_settings` aktif:
+Jika cocok:
 
 ```text
 QR VALID
@@ -1534,7 +1434,7 @@ qrData
 officeName
 ```
 
-Kemudian menampilkan:
+Kemudian kantor terdeteksi:
 
 ```text
 KANTOR MALANG
@@ -1554,34 +1454,30 @@ KANTOR KEDIRI
 
 ---
 
-# 47. RESET SCANNER
-
-Scanner memiliki mekanisme reset.
+# 42. RESET SCANNER
 
 Reset digunakan ketika:
 
 ```text
 QR invalid
 User ingin scan ulang
-Proses scan perlu diulang
+Proses scan selesai
 ```
 
-Reset mengembalikan:
+State yang dikembalikan:
 
 ```text
-Validation Progress
-Bounding Box
-Corner Points
-Scan Lock
+validationProgress
+qrBoundingBox
+qrCornerPoints
+scanLock
 ```
 
 ke kondisi siap scan.
 
 ---
 
-# 48. ABSEN MASUK
-
-Alur utama:
+# 43. ALUR ABSEN MASUK
 
 ```text
 Staff Dashboard
@@ -1599,7 +1495,7 @@ QR Detection
 QR Validation
       │
       ▼
-Office Detection
+Deteksi Kantor
       │
       ▼
 Konfirmasi
@@ -1608,7 +1504,7 @@ Konfirmasi
 Cek Attendance Hari Ini
       │
       ▼
-Belum Absen
+Belum Ada
       │
       ▼
 Simpan Jam Masuk
@@ -1617,15 +1513,12 @@ Simpan Jam Masuk
 Firestore
       │
       ▼
-DataStore
-      │
-      ▼
 Dashboard Refresh
 ```
 
 ---
 
-# 49. DATA ABSEN MASUK
+# 44. DATA ABSEN MASUK
 
 Collection:
 
@@ -1633,7 +1526,7 @@ Collection:
 attendance
 ```
 
-Field utama:
+Data:
 
 ```text
 uid
@@ -1641,7 +1534,9 @@ nama
 tanggal
 jamMasuk
 jamPulang
+status
 qrData
+kantor
 catatan
 ```
 
@@ -1650,18 +1545,50 @@ Contoh:
 ```text
 uid       : UID USER
 nama      : Nama Staff
-tanggal   : 2026-09-11
+tanggal   : 2026-09-15
 jamMasuk  : 07:30:12
 jamPulang : ""
+status    : Hadir
 qrData    : https://q.me-qr.com/x5ie23mg
+kantor    : KANTOR MALANG
 catatan   : ""
 ```
 
 ---
 
-# 50. CEK ABSENSI HARI INI
+# 45. DATA QR PADA LOG ABSENSI
 
-Identifikasi absensi:
+Setiap absensi QR menyimpan data QR yang digunakan.
+
+Contoh:
+
+```text
+qrData:
+https://q.me-qr.com/x5ie23mg
+```
+
+dan kantor:
+
+```text
+kantor:
+KANTOR MALANG
+```
+
+Dengan demikian Admin dapat mengetahui:
+
+```text
+Staff siapa
+Tanggal berapa
+Jam berapa
+Menggunakan QR apa
+Dari kantor mana
+```
+
+---
+
+# 46. CEK ABSENSI HARI INI
+
+Query berdasarkan:
 
 ```text
 uid
@@ -1673,85 +1600,89 @@ Contoh:
 
 ```text
 uid = ABC123
-tanggal = 2026-09-11
+tanggal = 2026-09-15
 ```
 
-Data ini digunakan untuk:
+Digunakan untuk:
 
 ```text
 Dashboard
 Absen Masuk
 Absen Pulang
 Riwayat
-Admin Rekap
+Rekap Admin
 ```
 
 ---
 
-# 51. ABSEN PULANG
+# 47. ABSEN PULANG
 
-Setelah Staff memiliki absensi masuk:
+Jika attendance hari ini sudah memiliki:
 
 ```text
-SUDAH ABSEN
+jamMasuk
 ```
 
-Staff dapat melakukan absensi pulang.
+tetapi:
+
+```text
+jamPulang = kosong
+```
+
+maka scan berikutnya dapat digunakan sebagai absensi pulang.
 
 Alur:
 
 ```text
-Dashboard
-    │
-    ▼
-Scan Absen Pulang
-    │
-    ▼
-Scanner
-    │
-    ▼
+Scan QR
+   │
+   ▼
 QR Valid
-    │
-    ▼
-Konfirmasi
-    │
-    ▼
-Cari Attendance Hari Ini
-    │
-    ▼
+   │
+   ▼
+Attendance Hari Ini
+   │
+   ▼
+Jam Masuk Ada
+   │
+   ▼
+Jam Pulang Kosong
+   │
+   ▼
 Update jamPulang
-    │
-    ▼
-Firestore
-    │
-    ▼
-Dashboard Refresh
 ```
 
 ---
 
-# 52. DATA ABSEN PULANG
+# 48. DATA ABSEN PULANG
 
-Data yang diperbarui:
+Field tambahan:
 
 ```text
 jamPulang
+qrDataPulang
+kantorPulang
+catatanPulang
 ```
 
 Contoh:
 
 ```text
-jamMasuk  : 07:30:12
-jamPulang : 16:05:21
+jamMasuk       : 07:30:12
+jamPulang      : 16:05:21
+qrData         : https://q.me-qr.com/x5ie23mg
+qrDataPulang   : https://q.me-qr.com/x5ie23mg
+kantor         : KANTOR MALANG
+kantorPulang   : KANTOR MALANG
 ```
 
-Absensi pulang memperbarui data attendance yang sudah ada.
+Absensi pulang melakukan update terhadap attendance yang sudah ada.
 
 Tidak boleh membuat attendance baru secara tidak sengaja.
 
 ---
 
-# 53. ABSEN DI LUAR KANTOR
+# 49. ABSEN LUAR KANTOR
 
 Screen:
 
@@ -1759,7 +1690,7 @@ Screen:
 AbsenLuarKantorScreen
 ```
 
-Digunakan ketika Staff tidak melakukan absensi menggunakan QR kantor.
+Digunakan ketika Staff melakukan absensi di luar kantor.
 
 Alur:
 
@@ -1770,10 +1701,7 @@ Staff
 Absen Luar Kantor
   │
   ▼
-Validasi User
-  │
-  ▼
-Ambil Nama User
+Ambil User
   │
   ▼
 Tanggal + Waktu
@@ -1800,30 +1728,33 @@ Cek Attendance Hari Ini
 
 ---
 
-# 54. DATA ABSEN LUAR KANTOR
+# 50. DATA ABSEN LUAR KANTOR
 
-Untuk absensi luar kantor:
+Data:
+
+```text
+uid
+nama
+tanggal
+jamMasuk
+jamPulang
+status
+qrData
+lokasi
+alasan
+```
+
+Untuk luar kantor:
 
 ```text
 qrData = LUAR_KANTOR
 ```
 
-Catatan dapat berisi:
-
-```text
-Lokasi: ...
-Alasan: ...
-```
-
-Data tetap mengikuti identifikasi:
-
-```text
-uid + tanggal
-```
+Catatan lokasi dan alasan disimpan sebagai data absensi luar kantor.
 
 ---
 
-# 55. DATASTORE ABSENSI
+# 51. DATASTORE ABSENSI
 
 File:
 
@@ -1831,9 +1762,7 @@ File:
 AbsensiDataStore.kt
 ```
 
-Digunakan untuk kebutuhan lokal aplikasi.
-
-Key yang digunakan antara lain:
+Key:
 
 ```text
 sudah_absen
@@ -1844,13 +1773,13 @@ qr_absen
 catatan_absen
 ```
 
-Firestore tetap menjadi sumber utama data cloud.
+DataStore digunakan untuk state lokal.
 
-DataStore digunakan sebagai pendukung state lokal aplikasi.
+Firestore tetap menjadi sumber utama data cloud.
 
 ---
 
-# 56. DASHBOARD MEMBACA ABSENSI
+# 52. DASHBOARD ABSENSI
 
 Dashboard melakukan:
 
@@ -1860,33 +1789,40 @@ uid
 tanggal hari ini
 ```
 
-Kemudian:
+Kemudian membaca:
 
 ```text
-Firestore attendance
+attendance
 ```
 
 Jika ditemukan:
 
 ```text
-sudahAbsen = true
+SUDAH ABSEN
 ```
 
-Kemudian membaca:
+Jika:
 
 ```text
-jamMasuk
-jamPulang
+jamMasuk terisi
+jamPulang kosong
 ```
 
-Jika `jamPulang` kosong:
+maka:
 
 ```text
 Sudah Absen Masuk
 Belum Absen Pulang
 ```
 
-Jika `jamPulang` terisi:
+Jika:
+
+```text
+jamMasuk terisi
+jamPulang terisi
+```
+
+maka:
 
 ```text
 Absensi Lengkap
@@ -1894,28 +1830,7 @@ Absensi Lengkap
 
 ---
 
-# 57. RESET ABSENSI HARIAN
-
-Status absensi mengikuti tanggal.
-
-```text
-Tanggal Lama
-     │
-     ▼
-Tanggal Baru
-     │
-     ▼
-Cek attendance tanggal baru
-     │
-     ▼
-Status absensi baru
-```
-
-Data tanggal sebelumnya tetap tersimpan di Firestore.
-
----
-
-# 58. RIWAYAT STAFF
+# 53. RIWAYAT STAFF
 
 Screen:
 
@@ -1923,14 +1838,14 @@ Screen:
 RiwayatScreen
 ```
 
-Tab/jenis data:
+Tab:
 
 ```text
 Absensi
 Pengajuan
 ```
 
-Data absensi dapat menampilkan:
+Riwayat absensi menampilkan:
 
 ```text
 Tanggal
@@ -1941,17 +1856,9 @@ Status
 Catatan
 ```
 
-Data pengajuan dapat menampilkan:
-
-```text
-Tanggal
-Jenis
-Status
-```
-
 ---
 
-# 59. PENGAJUAN STAFF
+# 54. PENGAJUAN STAFF
 
 Screen:
 
@@ -1975,7 +1882,7 @@ Daftar Pengajuan
 
 ---
 
-# 60. PENGAJUAN BARU
+# 55. PENGAJUAN BARU
 
 Screen:
 
@@ -1983,7 +1890,7 @@ Screen:
 PengajuanBaruScreen
 ```
 
-Jenis pengajuan dapat meliputi:
+Jenis pengajuan dapat berupa:
 
 ```text
 Sakit
@@ -2014,12 +1921,12 @@ Submit
 Firestore
    │
    ▼
-Status = Menunggu
+Status = menunggu
 ```
 
 ---
 
-# 61. DATA PENGAJUAN
+# 56. DATA PENGAJUAN
 
 Collection:
 
@@ -2053,7 +1960,7 @@ ditolak
 
 ---
 
-# 62. DETAIL PENGAJUAN
+# 57. DETAIL PENGAJUAN
 
 Screen:
 
@@ -2061,7 +1968,7 @@ Screen:
 DetailPengajuan
 ```
 
-Data yang ditampilkan:
+Menampilkan:
 
 ```text
 Jenis
@@ -2073,7 +1980,7 @@ Status
 
 ---
 
-# 63. RIWAYAT PENGAJUAN
+# 58. RIWAYAT PENGAJUAN
 
 Screen:
 
@@ -2081,11 +1988,11 @@ Screen:
 RiwayatPengajuan
 ```
 
-Digunakan untuk melihat pengajuan yang pernah dibuat Staff.
+Digunakan untuk melihat seluruh pengajuan yang pernah dibuat Staff.
 
 ---
 
-# 64. ALUR APPROVAL
+# 59. ALUR APPROVAL
 
 ```text
 Staff
@@ -2115,55 +2022,85 @@ Disetujui        Ditolak
  └───────┬────────┘
          ▼
    Notification Staff
-         │
-         ▼
-      Staff App
 ```
 
 ---
 
-# 65. NOTIFICATION REPOSITORY
+# 60. NOTIFIKASI STAFF
 
-File:
+Screen:
 
 ```text
-NotificationRepository.kt
+Notifikasi
 ```
 
-Repository digunakan sebagai perantara pengelolaan notifikasi.
+Event:
 
-Konsep:
+```text
+Admin membalas chat
+Pengajuan disetujui
+Pengajuan ditolak
+```
+
+Alur:
 
 ```text
 Event
-  │
-  ▼
+ │
+ ▼
 NotificationRepository
-  │
-  ▼
+ │
+ ▼
 Firestore
-  │
-  ▼
-Notification Screen
+ │
+ ▼
+Notifikasi Staff
 ```
 
 ---
 
-# 66. CHAT STAFF ↔ ADMIN
+# 61. NOTIFIKASI ADMIN
+
+Event:
+
+```text
+Staff mengirim chat
+Staff membuat pengajuan
+Staff melakukan absensi
+```
+
+Alur:
+
+```text
+Staff
+  │
+  ├── Chat
+  ├── Pengajuan
+  └── Absensi
+       │
+       ▼
+NotificationRepository
+       │
+       ▼
+Firestore
+       │
+       ▼
+Notifikasi Admin
+```
+
+---
+
+# 62. CHAT STAFF ↔ ADMIN
 
 Sistem chat mendukung komunikasi dua arah.
 
-## Staff
-
-Screen:
+Staff:
 
 ```text
 ChatAdminScreen
 ```
 
-## Admin
-
-Screen:
+Admin:
 
 ```text
 AdminChatListScreen
@@ -2172,7 +2109,7 @@ AdminChatDetailScreen
 
 ---
 
-# 67. DATA CHAT
+# 63. MODEL CHAT
 
 Model:
 
@@ -2191,10 +2128,18 @@ message
 timestamp
 ```
 
-Data disimpan pada struktur:
+---
+
+# 64. STRUKTUR CHAT
+
+Struktur yang digunakan project:
 
 ```text
-chatRooms/{uid}/messages
+chatRooms
+   │
+   └── {staffUid}
+        │
+        └── messages
 ```
 
 Pesan diurutkan berdasarkan:
@@ -2205,7 +2150,7 @@ timestamp
 
 ---
 
-# 68. ALUR CHAT STAFF
+# 65. ALUR CHAT STAFF
 
 ```text
 Staff
@@ -2231,7 +2176,7 @@ Admin
 
 ---
 
-# 69. ALUR CHAT ADMIN
+# 66. ALUR CHAT ADMIN
 
 ```text
 Admin
@@ -2243,13 +2188,10 @@ Admin Chat List
 Pilih Staff
   │
   ▼
-Admin Chat Detail
+Chat Detail
   │
   ▼
-Tulis Balasan
-  │
-  ▼
-Kirim
+Balas
   │
   ▼
 ChatRepository
@@ -2263,49 +2205,46 @@ Staff
 
 ---
 
-# 70. NOTIFIKASI CHAT
+# 67. WHATSAPP
 
-Jika Admin membalas pesan Staff:
+Untuk kebutuhan komunikasi WhatsApp, project tidak perlu membuat sistem chat WhatsApp sendiri.
 
-```text
-Admin
-  │
-  ▼
-Kirim Chat
-  │
-  ▼
-Firestore
-  │
-  ▼
-Notification
-  │
-  ▼
-Staff
-```
-
-Jika Staff mengirim chat:
+Jika nantinya diperlukan:
 
 ```text
-Staff
-  │
-  ▼
-Kirim Chat
-  │
-  ▼
-Firestore
-  │
-  ▼
-Notification
-  │
-  ▼
-Admin
+api.whatsapp.com
 ```
+
+dapat digunakan untuk membuka percakapan WhatsApp.
+
+Konsep:
+
+```text
+Aplikasi
+   │
+   ▼
+Tombol WhatsApp
+   │
+   ▼
+api.whatsapp.com
+   │
+   ▼
+WhatsApp
+```
+
+Fitur ini tidak menggantikan:
+
+```text
+Chat Staff ↔ Admin
+```
+
+Chat internal Firebase tetap menjadi sistem chat aplikasi.
 
 ---
 
-# 71. THEME SYSTEM
+# 68. THEME SYSTEM
 
-Theme utama:
+Theme:
 
 ```text
 AbsensiKaryawanTheme
@@ -2317,12 +2256,6 @@ Mode:
 TERANG
 GELAP
 SISTEM
-```
-
-`ThemeMode` berada pada:
-
-```text
-com.example.absensikaryawan.screens
 ```
 
 Penyimpanan:
@@ -2348,95 +2281,43 @@ AbsensiKaryawanTheme
 
 ---
 
-# 72. PROFILE STAFF
+# 69. WARNA UTAMA
 
-Profile dapat diakses dari Dashboard.
-
-Screen:
+Warna yang digunakan project:
 
 ```text
-Profile
+Background
+#F7F9FC
 ```
 
-Profile tidak menjadi menu utama bottom navigation.
-
----
-
-# 73. STAFF SETTINGS
-
-Screen:
-
 ```text
-Settings
+Primary Green
+#16A34A
 ```
 
-Menu:
-
 ```text
-Notifikasi
-Tampilan
-Bantuan
-Tentang Aplikasi
-Keluar
+Soft Green
+#E8F5E9
 ```
 
-Profile tetap berada pada area Dashboard.
-
----
-
-# 74. STAFF TAMPILAN
-
-Screen:
-
 ```text
-Tampilan
+Text Dark
+#1F2937
 ```
 
-Pilihan:
-
 ```text
-Terang
-Gelap
-Sistem
+Text Gray
+#6B7280
 ```
 
-Disimpan melalui:
-
 ```text
-ThemeDataStore
+Bottom Navigation Green
+#2E7D32
 ```
 
 ---
 
-# 75. STAFF BANTUAN
-
-Screen:
-
-```text
-Bantuan
-```
-
-Berisi informasi penggunaan aplikasi untuk Staff.
-
----
-
-# 76. STAFF TENTANG APLIKASI
-
-Screen:
-
-```text
-TentangAplikasi
-```
-
-Footer:
-
-```text
-© 2026 Absensi Karyawan • Versi 1.1
-```
-
----
-
-# 77. FIREBASE
+# 70. FIREBASE
 
 Firebase digunakan untuk:
 
@@ -2464,7 +2345,7 @@ Firebase
 
 ---
 
-# 78. FIREBASE AUTHENTICATION
+# 71. FIREBASE AUTHENTICATION
 
 Digunakan untuk:
 
@@ -2475,7 +2356,7 @@ Forgot Password
 Session
 ```
 
-Fungsi utama:
+Fungsi:
 
 ```text
 signInWithEmailAndPassword()
@@ -2485,28 +2366,7 @@ sendPasswordResetEmail()
 
 ---
 
-# 79. USERS
-
-Collection:
-
-```text
-users
-```
-
-Field utama:
-
-```text
-uid
-nama
-email
-isAdmin
-```
-
-`isAdmin` menentukan role.
-
----
-
-# 80. ATTENDANCE
+# 72. ATTENDANCE
 
 Collection:
 
@@ -2522,45 +2382,28 @@ nama
 tanggal
 jamMasuk
 jamPulang
+status
 qrData
+kantor
 catatan
 ```
 
-Digunakan oleh:
+Field tambahan untuk pulang:
 
 ```text
-Staff Dashboard
-Scan
-Absen
-Riwayat
-Admin Rekap
-Notifikasi Admin
+qrDataPulang
+kantorPulang
+catatanPulang
 ```
 
 ---
 
-# 81. PENGAJUAN
+# 73. PENGAJUAN
 
 Collection:
 
 ```text
 pengajuan
-```
-
-Field:
-
-```text
-uid
-nama
-jenis
-tanggal
-jamPulang
-jamKeluar
-jamKembali
-tanggalMulai
-tanggalSelesai
-alasan
-status
 ```
 
 Digunakan oleh:
@@ -2574,7 +2417,7 @@ Riwayat
 
 ---
 
-# 82. QR_SETTINGS
+# 74. QR_SETTINGS
 
 Collection:
 
@@ -2594,14 +2437,15 @@ Digunakan oleh:
 
 ```text
 Admin QR Settings
-ScanAbsenScreen
+QR Generator
+QR Scanner
 Validasi QR
 Deteksi Kantor
 ```
 
 ---
 
-# 83. CHATROOMS
+# 75. CHATROOMS
 
 Struktur:
 
@@ -2626,15 +2470,20 @@ timestamp
 
 ---
 
-# 84. NOTIFICATIONS
+# 76. NOTIFICATIONS
 
-Collection konseptual:
+Collection:
 
 ```text
 notifications
 ```
 
-Digunakan untuk menyimpan informasi notifikasi user.
+Digunakan untuk:
+
+```text
+Notifikasi Staff
+Notifikasi Admin
+```
 
 Event:
 
@@ -2644,11 +2493,9 @@ Pengajuan
 Absensi
 ```
 
-Notifikasi memiliki status baca/tidak baca.
-
 ---
 
-# 85. USER REPOSITORY
+# 77. USER REPOSITORY
 
 File:
 
@@ -2656,7 +2503,13 @@ File:
 UserRepository.kt
 ```
 
-Digunakan untuk mengambil data user yang sedang login.
+Fungsi:
+
+```text
+Mengambil data user
+Mengambil nama user
+Mengambil data profile
+```
 
 Alur:
 
@@ -2678,7 +2531,7 @@ User Data
 
 ---
 
-# 86. FIRESTORE REPOSITORY
+# 78. FIRESTORE REPOSITORY
 
 File:
 
@@ -2686,15 +2539,13 @@ File:
 FirestoreRepository.kt
 ```
 
-Repository menjadi perantara antara UI dan Firestore.
-
-Contoh fungsi:
+Fungsi utama:
 
 ```text
-getAbsenHariIni()
 simpanAbsenMasuk()
-updateAbsenPulang()
+getAbsenHariIni()
 simpanAbsenLuarKantor()
+simpanAbsenPulang()
 simpanPengajuan()
 getPengajuan()
 ```
@@ -2713,7 +2564,7 @@ Firestore
 
 ---
 
-# 87. CHAT REPOSITORY
+# 79. CHAT REPOSITORY
 
 File:
 
@@ -2727,24 +2578,12 @@ Digunakan untuk:
 Mengirim pesan
 Membaca pesan
 Listen pesan
-Mengelola chat room
-```
-
-Alur:
-
-```text
-Screen
-  │
-  ▼
-ChatRepository
-  │
-  ▼
-Firestore
+Mengelola chat
 ```
 
 ---
 
-# 88. NOTIFICATION REPOSITORY
+# 80. NOTIFICATION REPOSITORY
 
 File:
 
@@ -2757,13 +2596,13 @@ Digunakan untuk:
 ```text
 Membuat notifikasi
 Membaca notifikasi
-Menandai notifikasi sebagai dibaca
-Mendengarkan perubahan notifikasi
+Menandai notifikasi dibaca
+Mendengarkan perubahan
 ```
 
 ---
 
-# 89. STRUKTUR FILE UTAMA
+# 81. STRUKTUR PROJECT
 
 ```text
 app/
@@ -2799,11 +2638,14 @@ app/
         │       │   ├── RiwayatPengajuan.kt
         │       │   ├── Notifikasi.kt
         │       │   ├── ChatAdmin.kt
+        │       │   ├── AdminQrSettingScreen.kt
         │       │   └── ...
+        │       │
+        │       ├── data/
+        │       │   └── FirestoreRepository.kt
         │       │
         │       ├── repository/
         │       │   ├── UserRepository.kt
-        │       │   ├── FirestoreRepository.kt
         │       │   ├── ChatRepository.kt
         │       │   └── NotificationRepository.kt
         │       │
@@ -2824,70 +2666,216 @@ app/
 
 ---
 
-# 90. STRUKTUR NAVIGASI ADMIN
+# 82. SYSTEM BAR DAN EDGE-TO-EDGE
+
+Aplikasi menggunakan:
+
+```text
+enableEdgeToEdge()
+```
+
+Target:
+
+```text
+Header tidak tertutup Status Bar
+Content tidak tertimpa area Android
+Bottom Navigation tidak tertutup Navigation Bar
+```
+
+Screen harus memperhatikan:
+
+```text
+WindowInsets.statusBars
+WindowInsets.navigationBars
+```
+
+Perbaikan dilakukan berdasarkan screen yang bermasalah agar screen yang sudah stabil tidak ikut rusak.
+
+---
+
+# 83. UI/UX
+
+Target:
+
+```text
+Simple
+Modern
+Responsive
+Konsisten
+Mudah digunakan
+```
+
+Perhatian:
+
+```text
+Spacing
+Padding
+Margin
+Typography
+Icon
+Button
+Card
+Alignment
+Header
+Bottom Navigation
+Status Bar
+Navigation Bar
+Dialog
+Popup
+Scanner
+```
+
+Desain yang sudah stabil tidak diubah tanpa kebutuhan.
+
+---
+
+# 84. FIRESTORE SECURITY RULES
+
+Aturan dasar project harus memastikan user login sebelum mengakses data aplikasi.
+
+Contoh rules yang digunakan sebagai dasar:
+
+```firestore
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /pengajuan/{pengajuanId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /chatRooms/{staffUid} {
+      allow read, write: if request.auth != null;
+
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    match /qr_settings/{qrId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+Rules tersebut adalah dasar pengembangan dan masih dapat diperketat lagi sebelum production.
+
+---
+
+# 85. ALUR DATA QR SAMPAI LOG
+
+Ini merupakan salah satu alur utama project:
 
 ```text
 ADMIN
- │
- ├── Beranda
- │
- ├── Approval
- │
- ├── Karyawan
- │
- ├── Rekap
- │
- └── Setting
-       │
-       ├── Profile
-       ├── Tampilan
-       ├── QR Kantor
-       ├── Bantuan
-       ├── Tentang Aplikasi
-       └── Keluar
-```
-
-Fitur tambahan:
-
-```text
-Notifikasi
-Chat Staff
-```
-
----
-
-# 91. STRUKTUR NAVIGASI STAFF
-
-```text
+   │
+   ▼
+Generate QR
+   │
+   ▼
+QR Data
+   │
+   ▼
+qr_settings
+   │
+   ▼
 STAFF
- │
- ├── Beranda
- │     ├── Profile
- │     └── Notifikasi
- │
- ├── Pengajuan
- │     ├── Pengajuan Baru
- │     ├── Riwayat Pengajuan
- │     └── Detail Pengajuan
- │
- ├── Scan
- │     ├── Absen Masuk
- │     ├── Absen Pulang
- │     └── Absen Luar Kantor
- │
- ├── Riwayat
- │
- └── Setting
-       ├── Notifikasi
-       ├── Tampilan
-       ├── Bantuan
-       ├── Tentang Aplikasi
-       └── Keluar
+   │
+   ▼
+Scan QR
+   │
+   ▼
+ML Kit
+   │
+   ▼
+QR terbaca
+   │
+   ▼
+Validasi Firestore
+   │
+   ├── INVALID
+   │      ↓
+   │     DITOLAK
+   │
+   └── VALID
+          │
+          ▼
+     Deteksi Kantor
+          │
+          ▼
+     Konfirmasi
+          │
+          ▼
+     attendance
+          │
+          ├── qrData
+          ├── kantor
+          ├── tanggal
+          ├── jamMasuk
+          └── uid
 ```
 
 ---
 
-# 92. ALUR ABSENSI LENGKAP
+# 86. HASIL GENERATE QR DAN SCAN QR
+
+Status pekerjaan:
+
+```text
+GENERATE QR CODE
+        ↓
+       ✅
+        ↓
+SIMPAN QR SETTINGS
+        ↓
+       ✅
+        ↓
+SCAN QR CODE
+        ↓
+       ✅
+        ↓
+VALIDASI QR
+        ↓
+       ✅
+        ↓
+DETEKSI KANTOR
+        ↓
+       ✅
+        ↓
+SIMPAN QR DATA KE ABSENSI
+        ↓
+       ✅
+```
+
+Dengan demikian:
+
+```text
+Generate QR Code
++
+Scan QR Code
++
+Data tersimpan sesuai QR
+```
+
+sudah menjadi bagian dari alur aplikasi.
+
+---
+
+# 87. ALUR ABSENSI LENGKAP
 
 ```text
 LOGIN
@@ -2923,7 +2911,7 @@ VALIDASI 3 FRAME
 QR LOCK
   │
   ▼
-VALIDASI QR FIRESTORE
+VALIDASI FIRESTORE
   │
   ├── INVALID
   │     ↓
@@ -2935,7 +2923,7 @@ VALIDASI QR FIRESTORE
    DETEKSI KANTOR
         │
         ▼
-   CEK ABSENSI HARI INI
+ CEK ATTENDANCE HARI INI
         │
         ├── BELUM ADA
         │      ↓
@@ -2955,7 +2943,7 @@ VALIDASI QR FIRESTORE
 
 ---
 
-# 93. ALUR PENGAJUAN LENGKAP
+# 88. ALUR PENGAJUAN LENGKAP
 
 ```text
 STAFF
@@ -2989,7 +2977,7 @@ Admin Approval
 Setujui         Tolak
  │               │
  ▼               ▼
-Approved        Rejected
+Disetujui       Ditolak
  │               │
  └──────┬────────┘
         ▼
@@ -3001,7 +2989,7 @@ Staff melihat status
 
 ---
 
-# 94. ALUR CHAT LENGKAP
+# 89. ALUR CHAT LENGKAP
 
 ```text
                     CHAT
@@ -3024,7 +3012,7 @@ Staff melihat status
                ChatRepository
                      │
                      ▼
-             Pesan tersinkron
+             Pesan Tersinkron
                      │
           ┌──────────┴──────────┐
           ▼                     ▼
@@ -3033,7 +3021,7 @@ Staff melihat status
 
 ---
 
-# 95. ALUR NOTIFIKASI LENGKAP
+# 90. ALUR NOTIFIKASI
 
 ```text
                          EVENT
@@ -3058,12 +3046,12 @@ Staff melihat status
            Notifikasi            Notifikasi
                  │                   │
                  ▼                   ▼
-             Read/Unread          Read/Unread
+              Read/Unread        Read/Unread
 ```
 
 ---
 
-# 96. ALUR DATA APLIKASI
+# 91. ALUR DATA APLIKASI
 
 ```text
                      ANDROID
@@ -3073,12 +3061,11 @@ Staff melihat status
         ▼               ▼                ▼
     Firebase        Firestore        DataStore
       Auth              │                │
-        │               │                │
         │          ┌────┼────┐           │
         │          │    │    │           │
         │          ▼    ▼    ▼           │
         │        users attendance        │
-        │               │    │           │
+        │               │                │
         │          pengajuan             │
         │          qr_settings           │
         │          chatRooms             │
@@ -3091,84 +3078,7 @@ Staff melihat status
 
 ---
 
-# 97. STATUS BAR DAN SYSTEM UI
-
-Aplikasi menggunakan:
-
-```text
-enableEdgeToEdge()
-```
-
-Karena itu setiap screen harus memperhatikan:
-
-```text
-Status Bar
-Content
-Navigation Bar
-```
-
-Target:
-
-```text
-Content tidak tertutup status bar Android.
-Header tidak bertabrakan dengan status bar.
-Bottom navigation tidak tertutup navigation bar.
-```
-
-Jika diperlukan digunakan:
-
-```text
-WindowInsets
-```
-
-Contoh:
-
-```text
-WindowInsets.statusBars
-WindowInsets.navigationBars
-```
-
-Perbaikan system bar harus dilakukan secara hati-hati agar tidak merusak desain screen yang sudah stabil.
-
----
-
-# 98. UI/UX
-
-Target UI:
-
-```text
-Simple
-Modern
-Responsive
-Konsisten
-Mudah digunakan
-```
-
-Yang diperhatikan:
-
-```text
-Spacing
-Padding
-Margin
-Typography
-Icon
-Button
-Card
-Alignment
-Header
-Bottom Navigation
-Status Bar
-Navigation Bar
-Dialog
-Popup
-Scanner
-```
-
-Perubahan desain tidak dilakukan tanpa permintaan.
-
----
-
-# 99. TESTING LOGIN
+# 92. TESTING LOGIN
 
 ```text
 [ ] Login Admin berhasil
@@ -3182,7 +3092,7 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 
 ---
 
-# 100. TESTING SESSION
+# 93. TESTING SESSION
 
 ```text
 [ ] 06:00 session persisten
@@ -3190,12 +3100,28 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 [ ] 18:00 login kembali diperlukan
 [ ] 05:59 login kembali diperlukan
 [ ] Firebase account tidak dihapus
+[ ] Data Firestore tidak dihapus
 [ ] Login kembali berhasil
 ```
 
 ---
 
-# 101. TESTING QR SCANNER
+# 94. TESTING GENERATE QR
+
+```text
+[ ] QR Malang dapat dibuat
+[ ] QR Blitar dapat dibuat
+[ ] QR Kediri dapat dibuat
+[ ] Preview QR tampil
+[ ] QR Data benar
+[ ] QR dapat disimpan
+[ ] Firestore qr_settings terisi
+[ ] Status aktif tersimpan
+```
+
+---
+
+# 95. TESTING QR SCANNER
 
 ```text
 [ ] Permission kamera muncul
@@ -3204,20 +3130,19 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 [ ] QR Blitar valid
 [ ] QR Kediri valid
 [ ] QR tidak terdaftar ditolak
-[ ] QR invalid ditolak
+[ ] QR nonaktif ditolak
 [ ] QR terlalu kecil ditolak
 [ ] QR terlalu keluar frame ditolak
 [ ] QR tidak stabil tidak langsung lock
 [ ] 3 frame valid menghasilkan lock
 [ ] Scanner tidak double process
 [ ] Reset scanner berjalan
-[ ] Popup valid tampil
-[ ] Popup invalid tampil
+[ ] Kantor terdeteksi
 ```
 
 ---
 
-# 102. TESTING ABSEN MASUK
+# 96. TESTING ABSEN MASUK
 
 ```text
 [ ] Staff belum absen
@@ -3228,52 +3153,53 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 [ ] Tanggal tersimpan
 [ ] UID tersimpan
 [ ] Nama tersimpan
+[ ] QR Data tersimpan
+[ ] Kantor tersimpan
 [ ] Data masuk Firestore
 [ ] Dashboard berubah menjadi SUDAH ABSEN
 ```
 
 ---
 
-# 103. TESTING ABSEN PULANG
+# 97. TESTING ABSEN PULANG
 
 ```text
 [ ] Staff sudah absen masuk
-[ ] Scan pulang tersedia
 [ ] Scanner dapat digunakan kembali
 [ ] QR valid
 [ ] Jam pulang tersimpan
+[ ] QR pulang tersimpan
+[ ] Kantor pulang tersimpan
 [ ] Attendance hari ini diperbarui
-[ ] Tidak membuat data attendance baru
+[ ] Tidak membuat attendance baru
 [ ] Dashboard menampilkan jam pulang
 ```
 
 ---
 
-# 104. TESTING ABSEN LUAR KANTOR
+# 98. TESTING ABSEN LUAR KANTOR
 
 ```text
 [ ] User terdeteksi
-[ ] Nama user tersedia
+[ ] Nama tersedia
 [ ] Tanggal benar
 [ ] Waktu benar
 [ ] Attendance hari ini dicek
 [ ] Jika sudah absen → ditolak
 [ ] Lokasi dapat diisi
 [ ] Alasan dapat diisi
-[ ] Data tersimpan
-[ ] Firestore tersimpan
+[ ] Data Firestore tersimpan
 [ ] DataStore tersimpan
 ```
 
 ---
 
-# 105. TESTING PENGAJUAN
+# 99. TESTING PENGAJUAN
 
 ```text
 [ ] Pengajuan dapat dibuka
 [ ] Pengajuan Baru dapat dibuka
 [ ] Form dapat diisi
-[ ] Data valid
 [ ] Submit berhasil
 [ ] Data masuk Firestore
 [ ] Status Menunggu
@@ -3285,21 +3211,7 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 
 ---
 
-# 106. TESTING NOTIFIKASI
-
-```text
-[ ] Notifikasi Staff tampil
-[ ] Notifikasi Admin tampil
-[ ] Chat menghasilkan notifikasi
-[ ] Pengajuan menghasilkan notifikasi
-[ ] Absensi menghasilkan notifikasi Admin
-[ ] Badge unread tampil
-[ ] Membuka notifikasi mengubah read
-```
-
----
-
-# 107. TESTING CHAT
+# 100. TESTING CHAT
 
 ```text
 [ ] Staff dapat membuka chat
@@ -3314,7 +3226,22 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 
 ---
 
-# 108. TESTING NAVIGATION STAFF
+# 101. TESTING NOTIFIKASI
+
+```text
+[ ] Notifikasi Staff tampil
+[ ] Notifikasi Admin tampil
+[ ] Chat menghasilkan notifikasi
+[ ] Pengajuan menghasilkan notifikasi
+[ ] Absensi menghasilkan notifikasi Admin
+[ ] Badge unread tampil
+[ ] Notifikasi dapat dibuka
+[ ] Status read berubah
+```
+
+---
+
+# 102. TESTING NAVIGATION STAFF
 
 ```text
 [ ] Beranda
@@ -3337,7 +3264,7 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 
 ---
 
-# 109. TESTING NAVIGATION ADMIN
+# 103. TESTING NAVIGATION ADMIN
 
 ```text
 [ ] Beranda
@@ -3357,7 +3284,25 @@ Perubahan desain tidak dilakukan tanpa permintaan.
 
 ---
 
-# 110. FINAL BUILD
+# 104. TESTING FIRESTORE
+
+```text
+[ ] users dapat dibaca
+[ ] attendance dapat disimpan
+[ ] attendance dapat diperbarui
+[ ] pengajuan dapat disimpan
+[ ] approval dapat diperbarui
+[ ] qr_settings dapat dibaca
+[ ] qr_settings dapat disimpan Admin
+[ ] chat dapat dikirim
+[ ] chat dapat dibaca
+[ ] notification dapat dibuat
+[ ] notification dapat dibaca
+```
+
+---
+
+# 105. FINAL BUILD
 
 Urutan:
 
@@ -3394,7 +3339,7 @@ BUILD SUCCESSFUL
 
 ---
 
-# 111. BACKUP PROJECT
+# 106. BACKUP PROJECT
 
 Setelah versi stabil:
 
@@ -3414,6 +3359,12 @@ Push
 GitHub
 ```
 
+Repository:
+
+```text
+AbsensiKaryawan
+```
+
 Tujuan:
 
 ```text
@@ -3423,19 +3374,11 @@ Riwayat Perubahan
 Recovery
 ```
 
-Repository:
-
-```text
-AbsensiKaryawan
-```
-
 ---
 
-# 112. CHANGELOG
+# 107. CHANGELOG
 
-Setiap perubahan besar dicatat.
-
-Format:
+Setiap perubahan besar dicatat:
 
 ```text
 Tanggal:
@@ -3448,18 +3391,18 @@ Status:
 Contoh:
 
 ```text
-11-09-2026
-10:00
-Scan QR
-Perbaikan parameter QR Settings dan scanner validation
-Status: BUILD SUCCESSFUL
+15-09-2026
+17:00
+QR Scanner
+Validasi QR kantor dan penyimpanan qrData + kantor
+Status: Testing
 ```
 
 ---
 
-# 113. STATUS FITUR TERKINI
+# 108. STATUS FITUR TERKINI
 
-## Core System
+## CORE
 
 ```text
 ✅ Login Firebase
@@ -3473,7 +3416,7 @@ Status: BUILD SUCCESSFUL
 ✅ SessionManager
 ```
 
-## Admin
+## ADMIN
 
 ```text
 ✅ Admin Dashboard
@@ -3486,11 +3429,12 @@ Status: BUILD SUCCESSFUL
 ✅ Bantuan
 ✅ Tentang Aplikasi
 ✅ QR Settings
+✅ Generate QR Code
 ✅ Chat Staff
 ✅ Notifikasi
 ```
 
-## Staff
+## STAFF
 
 ```text
 ✅ Staff Dashboard
@@ -3512,7 +3456,7 @@ Status: BUILD SUCCESSFUL
 ✅ Chat Admin
 ```
 
-## Backend
+## BACKEND
 
 ```text
 ✅ Firebase Authentication
@@ -3525,20 +3469,23 @@ Status: BUILD SUCCESSFUL
 ✅ notifications
 ```
 
-## Local Storage
+## LOCAL STORAGE
 
 ```text
 ✅ AbsensiDataStore
 ✅ ThemeDataStore
 ```
 
-## QR Scanner
+## QR SYSTEM
 
 ```text
+✅ Generate QR
+✅ QR Settings
+✅ QR Firestore
 ✅ CameraX
 ✅ ML Kit
 ✅ QR-only scanning
-✅ QR whitelist Firestore
+✅ QR whitelist
 ✅ Active QR validation
 ✅ Office detection
 ✅ Bounding Box
@@ -3549,43 +3496,39 @@ Status: BUILD SUCCESSFUL
 ✅ QR Lock
 ✅ QR Reset
 ✅ Invalid QR rejection
+✅ qrData logging
+✅ Office logging
 ```
 
 ---
 
-# 114. POSISI PROJECT SAAT INI
-
-Project sudah memiliki fondasi aplikasi utama:
+# 109. POSISI PROJECT SAAT INI
 
 ```text
-                    ABSENSI KARYAWAN
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
-           ADMIN                        STAFF
-             │                           │
-       ┌─────┼─────┐             ┌───────┼────────┐
-       │     │     │             │       │        │
-   Approval Karyawan Rekap    Scan  Pengajuan Riwayat
-       │     │     │             │       │
-       └─────┴─────┘             │       │
-             │                   │       │
-          QR Settings            │       │
-             │                   │       │
-          Chat/Notif             │       │
-             │                   │       │
-          Settings               │       │
-                                 │       │
-                         Chat / Notifikasi
-                                 │
-                              Settings
+                 ABSENSI KARYAWAN
+                         │
+             ┌───────────┴───────────┐
+             │                       │
+           ADMIN                   STAFF
+             │                       │
+       ┌─────┼─────┐         ┌───────┼────────┐
+       │     │     │         │       │        │
+   Approval QR    Rekap     Scan  Pengajuan Riwayat
+       │    │      │         │       │
+       │    │      │         │       │
+       └────┴──────┘         │       │
+             │               │       │
+         Chat/Notif           │       │
+             │               │       │
+          Settings        Attendance
+                             │
+                             ▼
+                       Firestore
 ```
 
 ---
 
-# 115. FITUR YANG SUDAH STABIL
-
-Fitur yang sudah memiliki fondasi dan tidak boleh dirusak:
+# 110. FITUR YANG TIDAK BOLEH RUSAK
 
 ```text
 Login
@@ -3598,8 +3541,10 @@ DataStore
 Theme
 Session
 QR Settings
+QR Generator
 QR Scanner
 QR Validation
+Office Detection
 Absensi
 Pengajuan
 Approval
@@ -3608,43 +3553,45 @@ Notifikasi
 Settings
 ```
 
-Setiap perubahan berikutnya harus mempertahankan fitur tersebut.
-
 ---
 
-# 116. PRIORITAS PENGEMBANGAN BERIKUTNYA
+# 111. PRIORITAS PENGEMBANGAN
 
-Karena fitur utama sudah tersedia, tahap berikutnya berfokus pada:
+Karena core system sudah tersedia:
 
 ```text
-1. Testing menyeluruh
+1. Testing
         ↓
-2. Fix bug yang ditemukan
+2. Temukan Bug
         ↓
-3. Sinkronisasi data Firestore
+3. Fix Bug
         ↓
-4. Validasi edge case absensi
+4. Testing Firestore
         ↓
-5. Validasi notifikasi
+5. Testing QR
         ↓
-6. Validasi chat
+6. Testing Absensi
         ↓
-7. UI/UX final
+7. Testing Pengajuan
         ↓
-8. System Bar / Android compatibility
+8. Testing Chat
         ↓
-9. Final Testing
+9. Testing Notifikasi
         ↓
-10. Build APK
+10. UI/UX Final
         ↓
-11. Backup GitHub
+11. Android Compatibility
+        ↓
+12. Final QA
+        ↓
+13. Build APK
+        ↓
+14. Backup GitHub
 ```
 
 ---
 
-# 117. POLA PENGEMBANGAN
-
-Setiap fitur menggunakan pola:
+# 112. POLA PENGEMBANGAN
 
 ```text
 ANALISIS
@@ -3678,26 +3625,26 @@ TEST
 
 ---
 
-# 118. PRINSIP PENGEMBANGAN UTAMA
+# 113. PRINSIP PENGEMBANGAN
 
 ```text
 JANGAN HAPUS YANG SUDAH BERJALAN.
 ```
 
 ```text
-JANGAN MERUSAK FITUR LAMA.
+JANGAN RUSAK FITUR LAMA.
 ```
 
 ```text
-JANGAN MERUSAK NAVIGASI.
+JANGAN RUSAK NAVIGASI.
 ```
 
 ```text
-JANGAN MENGUBAH DESAIN TANPA PERMINTAAN.
+JANGAN UBAH DESAIN TANPA PERMINTAAN.
 ```
 
 ```text
-JANGAN MENGGANTI STRUKTUR YANG SUDAH STABIL TANPA ALASAN.
+JANGAN MENGGANTI STRUKTUR STABIL TANPA ALASAN.
 ```
 
 ```text
@@ -3714,12 +3661,12 @@ BUILD → TEST → FIX → BUILD → TEST
 
 ---
 
-# 119. CHECKLIST SEBELUM CODING
+# 114. CHECKLIST SEBELUM CODING
 
 ```text
-[ ] Tentukan fitur yang akan dikerjakan
-[ ] Tentukan screen terkait
-[ ] Tentukan file terkait
+[ ] Tentukan fitur
+[ ] Tentukan screen
+[ ] Tentukan file
 [ ] Cek callback
 [ ] Cek navigation
 [ ] Cek repository
@@ -3732,7 +3679,7 @@ BUILD → TEST → FIX → BUILD → TEST
 
 ---
 
-# 120. CHECKLIST SETELAH CODING
+# 115. CHECKLIST SETELAH CODING
 
 ```text
 [ ] Build Project
@@ -3743,6 +3690,7 @@ BUILD → TEST → FIX → BUILD → TEST
 [ ] Firebase normal
 [ ] Firestore normal
 [ ] Scanner normal
+[ ] QR validation normal
 [ ] Notifikasi normal
 [ ] Chat normal
 [ ] UI tidak rusak
@@ -3753,9 +3701,7 @@ BUILD → TEST → FIX → BUILD → TEST
 
 ---
 
-# 121. FINAL TESTING END-TO-END
-
-Testing dilakukan dari awal hingga akhir:
+# 116. FINAL TESTING END-TO-END
 
 ```text
 Buka Aplikasi
@@ -3767,6 +3713,12 @@ Login
 Role Detection
       ↓
 Dashboard
+      ↓
+Generate / Settings QR
+      ↓
+Scan QR
+      ↓
+Validasi QR
       ↓
 Absensi
       ↓
@@ -3791,7 +3743,7 @@ Login kembali
 
 ---
 
-# 122. TESTING ROLE
+# 117. TESTING ROLE
 
 ```text
 LOGIN
@@ -3805,7 +3757,7 @@ LOGIN
         STAFF
 ```
 
-Tidak boleh terjadi:
+Tidak boleh:
 
 ```text
 Staff masuk Admin
@@ -3814,23 +3766,23 @@ Admin masuk Staff
 
 ---
 
-# 123. TESTING QR KANTOR
+# 118. TESTING QR KANTOR
 
 ```text
 QR MALANG
    ↓
-Jika aktif → VALID
-Jika nonaktif → DITOLAK
+aktif = true → VALID
+aktif = false → DITOLAK
 
 QR BLITAR
    ↓
-Jika aktif → VALID
-Jika nonaktif → DITOLAK
+aktif = true → VALID
+aktif = false → DITOLAK
 
 QR KEDIRI
    ↓
-Jika aktif → VALID
-Jika nonaktif → DITOLAK
+aktif = true → VALID
+aktif = false → DITOLAK
 
 QR LAIN
    ↓
@@ -3839,16 +3791,16 @@ DITOLAK
 
 ---
 
-# 124. TESTING DATA ABSENSI
+# 119. TESTING DATA ABSENSI
 
-Setiap absensi harus dapat ditelusuri berdasarkan:
+Setiap absensi dapat ditelusuri berdasarkan:
 
 ```text
 uid
 tanggal
 ```
 
-Data minimal:
+Data utama:
 
 ```text
 uid
@@ -3856,7 +3808,9 @@ nama
 tanggal
 jamMasuk
 jamPulang
+status
 qrData
+kantor
 catatan
 ```
 
@@ -3868,35 +3822,33 @@ Tidak terjadi duplikasi absensi harian.
 
 ---
 
-# 125. TESTING PERGANTIAN HARI
+# 120. TESTING PERGANTIAN HARI
 
 Contoh:
 
 ```text
-11 September
+15 September
    │
    ▼
-Absensi 11 September
+Absensi 15 September
 ```
 
 Kemudian:
 
 ```text
-12 September
+16 September
    │
    ▼
-Cek attendance 12 September
+Cek attendance 16 September
 ```
 
-Absensi tanggal 11 tetap tersimpan.
+Absensi tanggal 15 tetap tersimpan.
 
-Status tanggal 12 tidak boleh mengambil status tanggal 11.
+Status tanggal 16 tidak boleh mengambil status tanggal 15.
 
 ---
 
-# 126. UI/UX FINAL
-
-Tahap UI/UX dilakukan setelah fungsi stabil.
+# 121. UI/UX FINAL
 
 Prioritas:
 
@@ -3915,9 +3867,15 @@ Prioritas:
 
 ---
 
-# 127. SYSTEM BAR FINAL
+# 122. SYSTEM BAR FINAL
 
-Karena aplikasi menggunakan edge-to-edge:
+Karena aplikasi menggunakan:
+
+```text
+enableEdgeToEdge()
+```
+
+maka:
 
 ```text
 Status Bar Android
@@ -3935,7 +3893,7 @@ Judul tertimpa status bar
 Tombol bawah tertutup navigation bar
 ```
 
-Jika ditemukan masalah:
+Jika terjadi:
 
 ```text
 Cek screen
@@ -3949,11 +3907,9 @@ Cek enableEdgeToEdge
 Perbaiki sumber masalah
 ```
 
-Tidak langsung menambal semua screen satu per satu tanpa analisis.
-
 ---
 
-# 128. FINAL BUILD
+# 123. FINAL BUILD
 
 ```text
 Clean Project
@@ -3971,7 +3927,7 @@ Final QA
 
 ---
 
-# 129. BACKUP FINAL
+# 124. BACKUP FINAL
 
 Setelah versi stabil:
 
@@ -3985,13 +3941,11 @@ Git Push
 GitHub
 ```
 
-Backup harus dilakukan setelah perubahan besar yang sudah lolos testing.
+Backup dilakukan setelah perubahan besar yang sudah lolos testing.
 
 ---
 
-# 130. VERSI APLIKASI
-
-Saat ini:
+# 125. VERSI APLIKASI
 
 ```text
 Version Name:
@@ -4000,7 +3954,7 @@ Version Name:
 
 ```text
 Version Code:
-1
+2
 ```
 
 ```text
@@ -4016,9 +3970,9 @@ Footer:
 
 ---
 
-# 131. ROADMAP PROJECT
+# 126. ROADMAP PROJECT
 
-## Tahap 1 — Core
+## TAHAP 1 — CORE
 
 ```text
 ✅ Login
@@ -4027,7 +3981,7 @@ Footer:
 ✅ Navigation
 ```
 
-## Tahap 2 — Staff
+## TAHAP 2 — STAFF
 
 ```text
 ✅ Dashboard
@@ -4038,7 +3992,7 @@ Footer:
 ✅ Riwayat
 ```
 
-## Tahap 3 — Pengajuan
+## TAHAP 3 — PENGAJUAN
 
 ```text
 ✅ Pengajuan
@@ -4047,16 +4001,17 @@ Footer:
 ✅ Riwayat Pengajuan
 ```
 
-## Tahap 4 — Admin
+## TAHAP 4 — ADMIN
 
 ```text
 ✅ Approval
 ✅ Karyawan
 ✅ Rekap
 ✅ QR Settings
+✅ Generate QR
 ```
 
-## Tahap 5 — Communication
+## TAHAP 5 — COMMUNICATION
 
 ```text
 ✅ Chat Staff ↔ Admin
@@ -4064,7 +4019,7 @@ Footer:
 ✅ Notifikasi Admin
 ```
 
-## Tahap 6 — Settings
+## TAHAP 6 — SETTINGS
 
 ```text
 ✅ Profile
@@ -4074,24 +4029,26 @@ Footer:
 ✅ Logout
 ```
 
-## Tahap 7 — Finalization
+## TAHAP 7 — FINALIZATION
 
 ```text
 🔄 Testing menyeluruh
 🔄 Bug Fix
+🔄 Sinkronisasi Firestore
 🔄 UI/UX Final
 🔄 System Bar Final
 🔄 Final QA
 🔄 Build APK
+🔄 GitHub Backup
 ```
 
 ---
 
-# 132. ALUR BESAR FINAL
+# 127. ALUR BESAR FINAL
 
 ```text
                          ┌──────────────┐
-                         │    APLIKASI  │
+                         │   APLIKASI   │
                          └──────┬───────┘
                                 │
                                 ▼
@@ -4133,7 +4090,16 @@ Footer:
                  │                    └────┬───┘
                  │                         │
                  ▼                         ▼
-            Chat / Notif              Notifikasi
+            Generate QR              Notifikasi
+                 │                         │
+                 ▼                         │
+            QR Firestore                    │
+                 │                         │
+                 ▼                         │
+            QR Scanner                     │
+                 │                         │
+                 ▼                         │
+             Absensi                       │
                  │                         │
                  └──────────┬──────────────┘
                             ▼
@@ -4156,7 +4122,7 @@ Footer:
 
 ---
 
-# 133. KESIMPULAN
+# 128. KESIMPULAN
 
 Aplikasi **Absensi Karyawan** memiliki dua role:
 
@@ -4179,7 +4145,13 @@ CameraX
 ML Kit Barcode Scanning
 ```
 
-Local storage:
+QR Generator:
+
+```text
+ZXing
+```
+
+Local Storage:
 
 ```text
 DataStore Preferences
@@ -4209,7 +4181,7 @@ QR kantor dikontrol melalui:
 qr_settings
 ```
 
-QR aktif:
+QR resmi:
 
 ```text
 Malang
@@ -4227,6 +4199,23 @@ Overlap Validation
 3-Frame Validation
 QR Lock
 Firestore Whitelist
+Office Detection
+```
+
+Sistem absensi:
+
+```text
+Absen Masuk
+Absen Pulang
+Absen Luar Kantor
+```
+
+Sistem pengajuan:
+
+```text
+Pengajuan Staff
+Approval Admin
+Notifikasi
 ```
 
 Sistem komunikasi:
@@ -4235,61 +4224,46 @@ Sistem komunikasi:
 Staff ↔ Admin Chat
 ```
 
-Sistem notifikasi:
+WhatsApp dapat menggunakan:
 
 ```text
-Staff Notifications
-Admin Notifications
+api.whatsapp.com
 ```
 
 ---
 
-# 134. PATOKAN PENGEMBANGAN
-
-Dokumen ini adalah **MASTER ROADMAP PROJECT**.
-
-Setiap perubahan harus mengikuti:
+# 129. FITUR UTAMA YANG SUDAH TERBANGUN
 
 ```text
-CEK KONDISI SEKARANG
-        ↓
-BACA KODE YANG SUDAH ADA
-        ↓
-PERTAHANKAN FITUR LAMA
-        ↓
-TENTUKAN BAGIAN YANG PERLU DIUBAH
-        ↓
-UBAH SESEDIKIT MUNGKIN
-        ↓
-BUILD
-        ↓
-TEST
-        ↓
-FIX JIKA ERROR
-        ↓
-BUILD ULANG
-        ↓
-TEST ULANG
-        ↓
-LANJUT FITUR BERIKUTNYA
-```
+ADMIN
+│
+├── Dashboard
+├── Approval
+├── Karyawan
+├── Rekap
+├── QR Settings
+├── Generate QR
+├── Chat Staff
+├── Notifikasi
+└── Settings
 
-Prinsip:
-
-```text
-JANGAN HAPUS YANG SUDAH BERJALAN.
-JANGAN RUSAK FITUR LAMA.
-JANGAN RUSAK NAVIGASI.
-JANGAN UBAH DESAIN TANPA PERMINTAAN.
-TAMBAHKAN FITUR SECARA BERTAHAP.
-BUILD → TEST → FIX → BUILD → TEST.
+STAFF
+│
+├── Dashboard
+├── Scan QR
+├── Absen Masuk
+├── Absen Pulang
+├── Absen Luar Kantor
+├── Pengajuan
+├── Riwayat
+├── Chat Admin
+├── Notifikasi
+└── Settings
 ```
 
 ---
 
-# 135. STATUS TERAKHIR PROJECT
-
-Pada tahap dokumentasi ini:
+# 130. STATUS PROJECT TERAKHIR
 
 ```text
 CORE SYSTEM              ✅
@@ -4304,9 +4278,11 @@ DATASTORE                ✅
 THEME                    ✅
 SESSION MANAGER          ✅
 QR SETTINGS              ✅
+GENERATE QR              ✅
 QR SCANNER               ✅
 QR VALIDATION            ✅
 QR LOCK                  ✅
+OFFICE DETECTION         ✅
 ABSEN MASUK              ✅
 ABSEN PULANG             ✅
 ABSEN LUAR KANTOR        ✅
@@ -4319,58 +4295,47 @@ NOTIFIKASI ADMIN         ✅
 SETTINGS                 ✅
 ```
 
-Status build terakhir:
-
-```text
-BUILD SUCCESSFUL
-```
-
 ---
 
-# 136. FOKUS PENGEMBANGAN SAAT INI
+# 131. POSISI PENGEMBANGAN SEKARANG
 
-Karena fitur inti sudah tersedia, fokus project selanjutnya adalah:
+Project sudah melewati tahap pembuatan fitur dasar.
+
+Fokus saat ini:
 
 ```text
-TEST
-  ↓
-TEMUKAN BUG
-  ↓
-PERBAIKI BUG
-  ↓
-TEST ULANG
-  ↓
+TESTING
+   ↓
+BUG FIX
+   ↓
+DATA VALIDATION
+   ↓
+QR VALIDATION
+   ↓
+ABSENSI VALIDATION
+   ↓
 UI/UX FINAL
-  ↓
-FINAL QA
-  ↓
-BUILD APK
-```
-
-Bukan lagi membuat ulang fitur dasar.
-
-Prioritas utama:
-
-```text
-STABILITAS
-DATA
-VALIDASI
-UI/UX
+   ↓
 ANDROID COMPATIBILITY
-FINAL TESTING
+   ↓
+FINAL QA
+   ↓
+BUILD APK
+   ↓
+BACKUP GITHUB
 ```
 
 ---
 
-# 137. DOKUMENTASI PROJECT
+# 132. DOKUMENTASI PROJECT
 
-Folder:
+Folder dokumentasi:
 
 ```text
 DOKUMENTASI/
 ```
 
-File utama:
+File:
 
 ```text
 ALUR_APLIKASI.md
@@ -4389,6 +4354,7 @@ Firestore
 Authentication
 Session
 Theme
+QR Generator
 QR Scanner
 Absensi
 Pengajuan
@@ -4402,15 +4368,16 @@ Roadmap
 `CHANGELOG.md` berisi:
 
 ```text
-Riwayat perubahan project
 Tanggal perubahan
 Fitur yang diubah
+Perubahan kode
+Bug fix
 Status build
 ```
 
 ---
 
-# 138. FINAL PROJECT STRUCTURE
+# 133. FINAL PROJECT STRUCTURE
 
 ```text
 ABSENSI KARYAWAN
@@ -4430,6 +4397,7 @@ ABSENSI KARYAWAN
 │   ├── Karyawan
 │   ├── Rekap
 │   ├── QR Settings
+│   ├── Generate QR
 │   ├── Chat
 │   ├── Notifikasi
 │   └── Settings
@@ -4462,6 +4430,7 @@ ABSENSI KARYAWAN
     ├── Testing
     ├── Bug Fix
     ├── UI/UX
+    ├── Android Compatibility
     ├── Final QA
     ├── Build APK
     └── GitHub Backup
@@ -4469,7 +4438,81 @@ ABSENSI KARYAWAN
 
 ---
 
-# 139. FINAL
+# 134. PATOKAN PENGEMBANGAN
+
+Dokumen ini merupakan:
+
+```text
+MASTER DOCUMENTATION
+MASTER ROADMAP
+MASTER ALUR PROJECT
+```
+
+Setiap perubahan berikutnya mengikuti:
+
+```text
+CEK KONDISI SEKARANG
+        ↓
+BACA KODE YANG SUDAH ADA
+        ↓
+PERTAHANKAN FITUR LAMA
+        ↓
+TENTUKAN FILE TERKAIT
+        ↓
+UBAH SESEDIKIT MUNGKIN
+        ↓
+BUILD
+        ↓
+TEST
+        ↓
+FIX JIKA ERROR
+        ↓
+BUILD ULANG
+        ↓
+TEST ULANG
+        ↓
+LANJUT FITUR BERIKUTNYA
+```
+
+---
+
+# 135. PRINSIP UTAMA PROJECT
+
+```text
+JANGAN HAPUS YANG SUDAH BERJALAN.
+```
+
+```text
+JANGAN RUSAK FITUR LAMA.
+```
+
+```text
+JANGAN RUSAK NAVIGASI.
+```
+
+```text
+JANGAN UBAH DESAIN TANPA PERMINTAAN.
+```
+
+```text
+JANGAN MENGGANTI STRUKTUR STABIL TANPA ALASAN.
+```
+
+```text
+TAMBAHKAN FITUR SECARA BERTAHAP.
+```
+
+```text
+PERBAIKI BAGIAN YANG BERMASALAH SAJA.
+```
+
+```text
+BUILD → TEST → FIX → BUILD → TEST
+```
+
+---
+
+# 136. FINAL
 
 ```text
 PROJECT
@@ -4482,16 +4525,31 @@ VERSION
 1.1
 
 VERSION CODE
-1
+2
 
 YEAR
 2026
 
-BUILD STATUS
-BUILD SUCCESSFUL
+GRADLE
+9.7.1
+
+AGP
+9.4.0
+
+KOTLIN
+2.2.10
+
+COMPILE SDK
+37
+
+TARGET SDK
+37
+
+MIN SDK
+24
 ```
 
-Aplikasi saat ini sudah memiliki:
+Aplikasi sudah memiliki:
 
 ```text
 ADMIN
@@ -4502,8 +4560,13 @@ FIRESTORE
 SESSION
 THEME
 QR SETTINGS
+GENERATE QR
 QR SCANNER
-ABSENSI
+QR VALIDATION
+OFFICE DETECTION
+ABSEN MASUK
+ABSEN PULANG
+ABSEN LUAR KANTOR
 PENGAJUAN
 APPROVAL
 RIWAYAT
@@ -4512,7 +4575,27 @@ NOTIFIKASI
 SETTINGS
 ```
 
-Dokumen ini menjadi **MASTER DOCUMENTATION / MASTER ROADMAP** untuk pengembangan project AbsensiKaryawan selanjutnya.
+Alur QR utama:
+
+```text
+GENERATE QR
+      ↓
+QR SETTINGS FIRESTORE
+      ↓
+STAFF SCAN QR
+      ↓
+VALIDASI QR
+      ↓
+DETEKSI KANTOR
+      ↓
+ABSENSI
+      ↓
+qrData + kantor
+      ↓
+ATTENDANCE FIRESTORE
+```
+
+Dokumen ini menjadi **MASTER DOCUMENTATION PROJECT ABSENSI KARYAWAN** untuk pengembangan berikutnya.
 
 ```text
 KODE PROJECT
@@ -4522,6 +4605,16 @@ FIREBASE
 DATABASE
      +
 NAVIGATION
+     +
+QR SYSTEM
+     +
+ABSENSI
+     +
+PENGAJUAN
+     +
+CHAT
+     +
+NOTIFIKASI
      +
 DOKUMENTASI
      +
@@ -4541,4 +4634,4 @@ TAMBAHKAN FITUR SECARA BERTAHAP.
 BUILD → TEST → FIX → BUILD → TEST.
 ```
 
-**END OF MASTER DOCUMENTATION**
+# END OF MASTER DOCUMENTATION

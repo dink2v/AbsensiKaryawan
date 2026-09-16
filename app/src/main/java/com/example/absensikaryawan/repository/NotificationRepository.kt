@@ -12,6 +12,10 @@ class NotificationRepository {
     private val notificationsCollection =
         db.collection("notifications")
 
+    // ==========================================================
+    // CREATE NOTIFICATION
+    // ==========================================================
+
     fun createNotification(
         notification: Notification,
         onSuccess: () -> Unit = {},
@@ -33,6 +37,10 @@ class NotificationRepository {
             }
     }
 
+    // ==========================================================
+    // LISTEN REALTIME NOTIFICATIONS
+    // ==========================================================
+
     fun listenNotifications(
         userId: String,
         onNotificationsChanged: (List<Notification>) -> Unit,
@@ -41,36 +49,131 @@ class NotificationRepository {
 
         return notificationsCollection
             .whereEqualTo("userId", userId)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .orderBy(
+                "timestamp",
+                Query.Direction.DESCENDING
+            )
             .addSnapshotListener { snapshot, exception ->
+
+                // ==============================================
+                // ERROR
+                // ==============================================
 
                 if (exception != null) {
                     onError(exception)
                     return@addSnapshotListener
                 }
 
+                // ==============================================
+                // SNAPSHOT KOSONG
+                // ==============================================
+
                 if (snapshot == null) {
                     onNotificationsChanged(emptyList())
                     return@addSnapshotListener
                 }
 
+                // ==============================================
+                // CONVERT FIRESTORE -> MODEL
+                // ==============================================
+
                 val notifications =
                     snapshot.documents.mapNotNull { document ->
-                        document.toObject(Notification::class.java)
+
+                        try {
+
+                            // ----------------------------------
+                            // TIMESTAMP FIRESTORE
+                            // ----------------------------------
+
+                            val firestoreTimestamp =
+                                document.getTimestamp("timestamp")
+
+                            val timestampMillis =
+                                firestoreTimestamp
+                                    ?.toDate()
+                                    ?.time
+                                    ?: 0L
+
+                            // ----------------------------------
+                            // MODEL NOTIFICATION
+                            // ----------------------------------
+
+                            Notification(
+                                id =
+                                    document.id,
+
+                                userId =
+                                    document.getString(
+                                        "userId"
+                                    ).orEmpty(),
+
+                                type =
+                                    document.getString(
+                                        "type"
+                                    ).orEmpty(),
+
+                                title =
+                                    document.getString(
+                                        "title"
+                                    ).orEmpty(),
+
+                                message =
+                                    document.getString(
+                                        "message"
+                                    ).orEmpty(),
+
+                                timestamp =
+                                    timestampMillis,
+
+                                isRead =
+                                    document.getBoolean(
+                                        "isRead"
+                                    ) ?: false,
+
+                                relatedId =
+                                    document.getString(
+                                        "relatedId"
+                                    ).orEmpty()
+                            )
+
+                        } catch (
+                            exception: Exception
+                        ) {
+
+                            // Jika satu dokumen bermasalah,
+                            // jangan sampai seluruh list gagal.
+
+                            null
+                        }
                     }
 
-                onNotificationsChanged(notifications)
+                // ==============================================
+                // KIRIM HASIL
+                // ==============================================
+
+                onNotificationsChanged(
+                    notifications
+                )
             }
     }
+
+    // ==========================================================
+    // MARK AS READ
+    // ==========================================================
 
     fun markAsRead(
         notificationId: String,
         onSuccess: () -> Unit = {},
         onError: (Exception) -> Unit = {}
     ) {
+
         notificationsCollection
             .document(notificationId)
-            .update("isRead", true)
+            .update(
+                "isRead",
+                true
+            )
             .addOnSuccessListener {
                 onSuccess()
             }
@@ -79,20 +182,33 @@ class NotificationRepository {
             }
     }
 
+    // ==========================================================
+    // MARK ALL AS READ
+    // ==========================================================
+
     fun markAllAsRead(
         userId: String,
         onSuccess: () -> Unit = {},
         onError: (Exception) -> Unit = {}
     ) {
+
         notificationsCollection
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("isRead", false)
+            .whereEqualTo(
+                "userId",
+                userId
+            )
+            .whereEqualTo(
+                "isRead",
+                false
+            )
             .get()
             .addOnSuccessListener { snapshot ->
 
-                val batch = db.batch()
+                val batch =
+                    db.batch()
 
                 snapshot.documents.forEach { document ->
+
                     batch.update(
                         document.reference,
                         "isRead",
@@ -113,11 +229,16 @@ class NotificationRepository {
             }
     }
 
+    // ==========================================================
+    // DELETE NOTIFICATION
+    // ==========================================================
+
     fun deleteNotification(
         notificationId: String,
         onSuccess: () -> Unit = {},
         onError: (Exception) -> Unit = {}
     ) {
+
         notificationsCollection
             .document(notificationId)
             .delete()

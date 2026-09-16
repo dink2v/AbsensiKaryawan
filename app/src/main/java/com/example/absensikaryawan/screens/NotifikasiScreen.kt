@@ -30,10 +30,12 @@ import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,24 +47,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.models.Notification
 import com.example.absensikaryawan.navigation.NotificationTarget
-
-
-// ==========================================================
-// MODEL
-// ==========================================================
-
-private data class NotificationItem(
-    val id: String,
-    val title: String,
-    val message: String,
-    val time: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val color: Color,
-    val target: NotificationTarget,
-    val read: Boolean = false
-)
-
+import com.example.absensikaryawan.repository.NotificationRepository
+import com.google.firebase.auth.FirebaseAuth
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // ==========================================================
 // SCREEN
@@ -75,87 +66,84 @@ fun NotifikasiScreen(
 ) {
 
     // ======================================================
-    // DATA NOTIFIKASI
+    // FIREBASE
+    // ======================================================
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid
+
+    val notificationRepository = remember {
+        NotificationRepository()
+    }
+
+    // ======================================================
+    // STATE
     // ======================================================
 
     var notifications by remember {
-
-        mutableStateOf(
-            listOf(
-
-                NotificationItem(
-                    id = "absensi_berhasil",
-                    title = "Absensi Berhasil",
-                    message = "Absensi masuk kamu berhasil dicatat.",
-                    time = "Hari ini",
-                    icon = Icons.Default.CheckCircle,
-                    color = PrimaryGreen,
-                    target = NotificationTarget.RIWAYAT_ABSENSI
-                ),
-
-                NotificationItem(
-                    id = "pengajuan_menunggu",
-                    title = "Pengajuan Menunggu",
-                    message = "Pengajuan kamu sedang menunggu persetujuan.",
-                    time = "Hari ini",
-                    icon = Icons.Default.Description,
-                    color = Color(0xFFD89B00),
-                    target = NotificationTarget.PENGAJUAN_MENUNGGU
-                ),
-
-                NotificationItem(
-                    id = "pengajuan_disetujui",
-                    title = "Pengajuan Disetujui",
-                    message = "Pengajuan kamu telah disetujui oleh admin.",
-                    time = "Hari ini",
-                    icon = Icons.Default.CheckCircle,
-                    color = PrimaryGreen,
-                    target = NotificationTarget.PENGAJUAN_DISETUJUI
-                ),
-
-                NotificationItem(
-                    id = "pengajuan_ditolak",
-                    title = "Pengajuan Ditolak",
-                    message = "Pengajuan kamu telah ditolak oleh admin.",
-                    time = "Hari ini",
-                    icon = Icons.Default.Info,
-                    color = Color(0xFFD64545),
-                    target = NotificationTarget.PENGAJUAN_DITOLAK
-                ),
-
-                NotificationItem(
-                    id = "pesan_baru",
-                    title = "Pesan Baru",
-                    message = "Admin mengirim pesan baru kepada kamu.",
-                    time = "Hari ini",
-                    icon = Icons.Default.NotificationsNone,
-                    color = Color(0xFF2878D8),
-                    target = NotificationTarget.CHAT_ADMIN
-                ),
-
-                NotificationItem(
-                    id = "selamat_datang",
-                    title = "Selamat Datang",
-                    message = "Selamat datang di aplikasi Absensi Karyawan.",
-                    time = "Hari ini",
-                    icon = Icons.Default.Info,
-                    color = Color(0xFF2878D8),
-                    target = NotificationTarget.NONE,
-                    read = true
-                )
-            )
-        )
+        mutableStateOf<List<Notification>>(emptyList())
     }
 
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf("")
+    }
 
     // ======================================================
-    // JUMLAH NOTIFIKASI BELUM DIBACA
+    // REALTIME LISTENER
+    // ======================================================
+
+    DisposableEffect(userId) {
+
+        if (userId.isNullOrBlank()) {
+
+            notifications = emptyList()
+            isLoading = false
+            errorMessage = "User belum login."
+
+            onDispose {}
+
+        } else {
+
+            isLoading = true
+            errorMessage = ""
+
+            val listener =
+                notificationRepository.listenNotifications(
+                    userId = userId,
+
+                    onNotificationsChanged = { data ->
+
+                        notifications = data
+                        isLoading = false
+                        errorMessage = ""
+                    },
+
+                    onError = { exception ->
+
+                        isLoading = false
+                        errorMessage =
+                            exception.message
+                                ?: "Gagal memuat notifikasi."
+                    }
+                )
+
+            onDispose {
+                listener.remove()
+            }
+        }
+    }
+
+    // ======================================================
+    // JUMLAH BELUM DIBACA
     // ======================================================
 
     val unread = notifications.count {
-        !it.read
+        !it.isRead
     }
-
 
     // ======================================================
     // ROOT
@@ -165,15 +153,10 @@ fun NotifikasiScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
-            .windowInsetsPadding(
-                WindowInsets.statusBars
-            )
-            .windowInsetsPadding(
-                WindowInsets.navigationBars
-            )
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp)
     ) {
-
 
         // ==================================================
         // HEADER
@@ -233,7 +216,6 @@ fun NotifikasiScreen(
             }
         }
 
-
         // ==================================================
         // INFO + CLEAR ALL
         // ==================================================
@@ -261,12 +243,16 @@ fun NotifikasiScreen(
                 )
 
                 Text(
-                    text = "Informasi terbaru dari aplikasi",
+                    text =
+                        if (unread > 0) {
+                            "$unread notifikasi belum dibaca"
+                        } else {
+                            "Informasi terbaru dari aplikasi"
+                        },
                     fontSize = 11.sp,
                     color = TextGray
                 )
             }
-
 
             // ==============================================
             // CLEAR ALL
@@ -285,12 +271,19 @@ fun NotifikasiScreen(
                             RoundedCornerShape(8.dp)
                         )
                         .background(
-                            Color(0xFFD64545).copy(alpha = 0.10f)
+                            Color(0xFFD64545)
+                                .copy(alpha = 0.10f)
                         )
                         .clickable {
 
-                            notifications = emptyList()
+                            notifications.forEach { notification ->
 
+                                notificationRepository
+                                    .deleteNotification(
+                                        notificationId =
+                                            notification.id
+                                    )
+                            }
                         }
                         .padding(
                             horizontal = 10.dp,
@@ -300,17 +293,106 @@ fun NotifikasiScreen(
             }
         }
 
-
         Spacer(
             modifier = Modifier.height(12.dp)
         )
 
-
         // ==================================================
-        // LIST NOTIFIKASI
+        // LOADING
         // ==================================================
 
-        if (notifications.isNotEmpty()) {
+        if (isLoading) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+
+                contentAlignment = Alignment.Center
+            ) {
+
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    color = PrimaryGreen,
+                    strokeWidth = 3.dp
+                )
+            }
+
+        } else if (errorMessage.isNotBlank()) {
+
+            // ==================================================
+            // ERROR
+            // ==================================================
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(20.dp),
+
+                contentAlignment = Alignment.Center
+            ) {
+
+                Column(
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
+                ) {
+
+                    Box(
+                        modifier = Modifier
+                            .size(58.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Color(0xFFD64545)
+                                    .copy(alpha = 0.10f)
+                            ),
+
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Info,
+
+                            contentDescription = null,
+
+                            tint =
+                                Color(0xFFD64545),
+
+                            modifier =
+                                Modifier.size(28.dp)
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
+
+                    Text(
+                        text = "Gagal memuat notifikasi",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(4.dp)
+                    )
+
+                    Text(
+                        text = errorMessage,
+                        fontSize = 11.sp,
+                        color = TextGray
+                    )
+                }
+            }
+
+        } else if (notifications.isNotEmpty()) {
+
+            // ==================================================
+            // LIST NOTIFIKASI
+            // ==================================================
 
             LazyColumn(
                 modifier = Modifier
@@ -328,6 +410,25 @@ fun NotifikasiScreen(
                     }
                 ) { notification ->
 
+                    // ==========================================
+                    // TENTUKAN ICON
+                    // ==========================================
+
+                    val icon =
+                        getNotificationIcon(
+                            notification.type,
+                            notification.title
+                        )
+
+                    // ==========================================
+                    // TENTUKAN WARNA
+                    // ==========================================
+
+                    val iconColor =
+                        getNotificationColor(
+                            notification.type,
+                            notification.title
+                        )
 
                     // ==========================================
                     // CARD
@@ -342,7 +443,14 @@ fun NotifikasiScreen(
 
                         colors =
                             CardDefaults.cardColors(
-                                containerColor = Color.White
+                                containerColor =
+                                    if (!notification.isRead) {
+                                        Color.White
+                                    } else {
+                                        Color.White.copy(
+                                            alpha = 0.88f
+                                        )
+                                    }
                             ),
 
                         elevation =
@@ -360,35 +468,31 @@ fun NotifikasiScreen(
                                     // TANDAI SUDAH DIBACA
                                     // ==================================
 
-                                    notifications =
-                                        notifications.map {
+                                    if (!notification.isRead) {
 
-                                            if (
-                                                it.id ==
-                                                notification.id
-                                            ) {
-
-                                                it.copy(
-                                                    read = true
-                                                )
-
-                                            } else {
-                                                it
-                                            }
-                                        }
-
+                                        notificationRepository
+                                            .markAsRead(
+                                                notificationId =
+                                                    notification.id
+                                            )
+                                    }
 
                                     // ==================================
                                     // NAVIGASI
                                     // ==================================
 
+                                    val target =
+                                        getNotificationTarget(
+                                            notification
+                                        )
+
                                     if (
-                                        notification.target !=
+                                        target !=
                                         NotificationTarget.NONE
                                     ) {
 
                                         onNotificationClick(
-                                            notification.target
+                                            target
                                         )
                                     }
                                 }
@@ -397,7 +501,6 @@ fun NotifikasiScreen(
                             verticalAlignment =
                                 Alignment.Top
                         ) {
-
 
                             // ==========================================
                             // ICON
@@ -408,7 +511,7 @@ fun NotifikasiScreen(
                                     .size(43.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        notification.color.copy(
+                                        iconColor.copy(
                                             alpha = 0.12f
                                         )
                                     ),
@@ -418,26 +521,21 @@ fun NotifikasiScreen(
                             ) {
 
                                 Icon(
-                                    imageVector =
-                                        notification.icon,
+                                    imageVector = icon,
 
-                                    contentDescription =
-                                        null,
+                                    contentDescription = null,
 
-                                    tint =
-                                        notification.color,
+                                    tint = iconColor,
 
                                     modifier =
                                         Modifier.size(22.dp)
                                 )
                             }
 
-
                             Spacer(
                                 modifier =
                                     Modifier.width(11.dp)
                             )
-
 
                             // ==========================================
                             // TEXT
@@ -462,7 +560,7 @@ fun NotifikasiScreen(
 
                                         fontWeight =
                                             if (
-                                                notification.read
+                                                notification.isRead
                                             ) {
                                                 FontWeight.SemiBold
                                             } else {
@@ -476,13 +574,12 @@ fun NotifikasiScreen(
                                             Modifier.weight(1f)
                                     )
 
-
                                     // ==================================
                                     // UNREAD DOT
                                     // ==================================
 
                                     if (
-                                        !notification.read
+                                        !notification.isRead
                                     ) {
 
                                         Box(
@@ -499,12 +596,10 @@ fun NotifikasiScreen(
                                     }
                                 }
 
-
                                 Spacer(
                                     modifier =
                                         Modifier.height(4.dp)
                                 )
-
 
                                 Text(
                                     text =
@@ -520,12 +615,10 @@ fun NotifikasiScreen(
                                         15.sp
                                 )
 
-
                                 Spacer(
                                     modifier =
                                         Modifier.height(6.dp)
                                 )
-
 
                                 // ==================================
                                 // WAKTU
@@ -557,7 +650,9 @@ fun NotifikasiScreen(
 
                                     Text(
                                         text =
-                                            notification.time,
+                                            formatNotificationTime(
+                                                notification.timestamp
+                                            ),
 
                                         fontSize =
                                             9.sp,
@@ -570,7 +665,6 @@ fun NotifikasiScreen(
                         }
                     }
                 }
-
 
                 // ==============================================
                 // BOTTOM SPACE
@@ -660,7 +754,7 @@ fun NotifikasiScreen(
 
                     Text(
                         text =
-                            "Semua notifikasi sudah dibersihkan.",
+                            "Belum ada notifikasi untuk kamu.",
 
                         fontSize =
                             11.sp,
@@ -670,6 +764,269 @@ fun NotifikasiScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+// ==========================================================
+// NOTIFICATION ICON
+// ==========================================================
+
+private fun getNotificationIcon(
+    type: String,
+    title: String
+): androidx.compose.ui.graphics.vector.ImageVector {
+
+    val value =
+        "$type $title".uppercase(Locale.getDefault())
+
+    return when {
+
+        value.contains("ABSENSI") ->
+            Icons.Default.CheckCircle
+
+        value.contains("PENGAJUAN") ->
+            if (value.contains("DISETUJUI")) {
+                Icons.Default.CheckCircle
+            } else if (value.contains("DITOLAK")) {
+                Icons.Default.Info
+            } else {
+                Icons.Default.Description
+            }
+
+        value.contains("CHAT") ||
+                value.contains("PESAN") ||
+                value.contains("BALASAN") ->
+            Icons.Default.NotificationsNone
+
+        else ->
+            Icons.Default.Info
+    }
+}
+
+// ==========================================================
+// NOTIFICATION COLOR
+// ==========================================================
+
+private fun getNotificationColor(
+    type: String,
+    title: String
+): Color {
+
+    val value =
+        "$type $title".uppercase(Locale.getDefault())
+
+    return when {
+
+        value.contains("DITOLAK") ->
+            Color(0xFFD64545)
+
+        value.contains("MENUNGGU") ->
+            Color(0xFFD89B00)
+
+        value.contains("CHAT") ||
+                value.contains("PESAN") ||
+                value.contains("BALASAN") ->
+            Color(0xFF2878D8)
+
+        value.contains("ABSENSI") ||
+                value.contains("DISETUJUI") ->
+            PrimaryGreen
+
+        else ->
+            Color(0xFF2878D8)
+    }
+}
+
+// ==========================================================
+// NOTIFICATION TARGET
+// ==========================================================
+
+private fun getNotificationTarget(
+    notification: Notification
+): NotificationTarget {
+
+    return when (
+        notification.type
+            .uppercase(Locale.getDefault())
+    ) {
+
+        "ABSENSI" ->
+            NotificationTarget.RIWAYAT_ABSENSI
+
+        "PENGAJUAN" -> {
+
+            when (
+                notification.targetValue()
+            ) {
+
+                "PENGAJUAN_DISETUJUI" ->
+                    NotificationTarget.PENGAJUAN_DISETUJUI
+
+                "PENGAJUAN_DITOLAK" ->
+                    NotificationTarget.PENGAJUAN_DITOLAK
+
+                "PENGAJUAN_MENUNGGU" ->
+                    NotificationTarget.PENGAJUAN_MENUNGGU
+
+                "PENGAJUAN_BARU" ->
+                    NotificationTarget.PENGAJUAN_MENUNGGU
+
+                else -> {
+
+                    val title =
+                        notification.title
+                            .uppercase(
+                                Locale.getDefault()
+                            )
+
+                    when {
+
+                        title.contains("DISETUJUI") ->
+                            NotificationTarget.PENGAJUAN_DISETUJUI
+
+                        title.contains("DITOLAK") ->
+                            NotificationTarget.PENGAJUAN_DITOLAK
+
+                        title.contains("MENUNGGU") ->
+                            NotificationTarget.PENGAJUAN_MENUNGGU
+
+                        else ->
+                            NotificationTarget.PENGAJUAN_MENUNGGU
+                    }
+                }
+            }
+        }
+
+        "CHAT" ->
+            NotificationTarget.CHAT_ADMIN
+
+        else -> {
+
+            val value =
+                "${notification.type} ${notification.title}"
+                    .uppercase(Locale.getDefault())
+
+            when {
+
+                value.contains("BALASAN") ->
+                    NotificationTarget.CHAT_ADMIN
+
+                value.contains("PESAN") ->
+                    NotificationTarget.CHAT_ADMIN
+
+                value.contains("ABSENSI") ->
+                    NotificationTarget.RIWAYAT_ABSENSI
+
+                value.contains("DISETUJUI") ->
+                    NotificationTarget.PENGAJUAN_DISETUJUI
+
+                value.contains("DITOLAK") ->
+                    NotificationTarget.PENGAJUAN_DITOLAK
+
+                value.contains("MENUNGGU") ->
+                    NotificationTarget.PENGAJUAN_MENUNGGU
+
+                else ->
+                    NotificationTarget.NONE
+            }
+        }
+    }
+}
+
+// ==========================================================
+// NOTIFICATION TARGET VALUE
+// ==========================================================
+//
+// Karena model Notification saat ini hanya punya relatedId,
+// kita gunakan relatedId/type/title untuk kompatibilitas dengan
+// data Firestore yang sudah ada.
+//
+
+private fun Notification.targetValue(): String {
+
+    val title =
+        title.uppercase(
+            Locale.getDefault()
+        )
+
+    return when {
+
+        title.contains("DISETUJUI") ->
+            "PENGAJUAN_DISETUJUI"
+
+        title.contains("DITOLAK") ->
+            "PENGAJUAN_DITOLAK"
+
+        title.contains("MENUNGGU") ->
+            "PENGAJUAN_MENUNGGU"
+
+        title.contains("BARU") &&
+                type.uppercase(Locale.getDefault())
+                    .contains("PENGAJUAN") ->
+            "PENGAJUAN_BARU"
+
+        else ->
+            ""
+    }
+}
+
+// ==========================================================
+// FORMAT WAKTU
+// ==========================================================
+
+private fun formatNotificationTime(
+    timestamp: Long
+): String {
+
+    if (timestamp <= 0L) {
+        return "Baru saja"
+    }
+
+    val now =
+        System.currentTimeMillis()
+
+    val difference =
+        now - timestamp
+
+    val minute =
+        60_000L
+
+    val hour =
+        60 * minute
+
+    val day =
+        24 * hour
+
+    return when {
+
+        difference < minute ->
+            "Baru saja"
+
+        difference < hour -> {
+
+            val minutes =
+                difference / minute
+
+            "$minutes menit lalu"
+        }
+
+        difference < day -> {
+
+            val hours =
+                difference / hour
+
+            "$hours jam lalu"
+        }
+
+        else -> {
+
+            SimpleDateFormat(
+                "dd MMM yyyy, HH:mm",
+                Locale("id", "ID")
+            ).format(
+                Date(timestamp)
+            )
         }
     }
 }

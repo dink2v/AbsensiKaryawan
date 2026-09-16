@@ -13,7 +13,6 @@ class PengajuanRepository {
     private val auth =
         FirebaseAuth.getInstance()
 
-
     // ==========================================================
     // SIMPAN PENGAJUAN
     // ==========================================================
@@ -39,7 +38,6 @@ class PengajuanRepository {
             val uid =
                 currentUser.uid
 
-
             // ==================================================
             // DATA USER
             // ==================================================
@@ -51,12 +49,10 @@ class PengajuanRepository {
                     .get()
                     .await()
 
-
             val nama =
                 userDocument.getString("nama")
                     ?: currentUser.displayName
                     ?: "Karyawan"
-
 
             // ==================================================
             // DATA PENGAJUAN
@@ -95,7 +91,6 @@ class PengajuanRepository {
                     "catatanAdmin" to ""
                 )
 
-
             // ==================================================
             // SIMPAN PENGAJUAN
             // ==================================================
@@ -106,44 +101,74 @@ class PengajuanRepository {
                     .add(data)
                     .await()
 
+            val pengajuanId =
+                pengajuanReference.id
 
             // ==================================================
-            // NOTIFIKASI PENGAJUAN MENUNGGU
+            // NOTIFIKASI ADMIN
             // ==================================================
 
-            val notificationData =
-                hashMapOf<String, Any>(
+            val adminSnapshot =
+                firestore
+                    .collection("users")
+                    .whereEqualTo("isAdmin", true)
+                    .get()
+                    .await()
 
-                    "userId" to uid,
+            if (!adminSnapshot.isEmpty) {
 
-                    "title" to
-                            "Pengajuan Menunggu",
+                val batch =
+                    firestore.batch()
 
-                    "message" to
-                            "Pengajuan $jenis kamu sedang menunggu persetujuan admin.",
+                adminSnapshot.documents.forEach { adminDocument ->
 
-                    "type" to
-                            "PENGAJUAN",
+                    val adminUid =
+                        adminDocument.id
 
-                    "target" to
-                            "PENGAJUAN_MENUNGGU",
+                    val notificationReference =
+                        firestore
+                            .collection("notifications")
+                            .document()
 
-                    "read" to
-                            false,
+                    val notificationData =
+                        hashMapOf<String, Any>(
 
-                    "timestamp" to
-                            FieldValue.serverTimestamp(),
+                            "id" to
+                                    notificationReference.id,
 
-                    "pengajuanId" to
-                            pengajuanReference.id
-                )
+                            "userId" to
+                                    adminUid,
 
+                            "type" to
+                                    "PENGAJUAN",
 
-            firestore
-                .collection("notifications")
-                .add(notificationData)
-                .await()
+                            "title" to
+                                    "Pengajuan Baru",
 
+                            "message" to
+                                    "$nama mengajukan $jenis dan menunggu persetujuan.",
+
+                            "timestamp" to
+                                    FieldValue.serverTimestamp(),
+
+                            "isRead" to
+                                    false,
+
+                            "relatedId" to
+                                    pengajuanId,
+
+                            "target" to
+                                    "PENGAJUAN_BARU"
+                        )
+
+                    batch.set(
+                        notificationReference,
+                        notificationData
+                    )
+                }
+
+                batch.commit().await()
+            }
 
             Result.success(Unit)
 
@@ -153,10 +178,8 @@ class PengajuanRepository {
         }
     }
 
-
     // ==========================================================
     // AMBIL PENGAJUAN SAYA
-    // KHUSUS USER YANG SEDANG LOGIN
     // ==========================================================
 
     suspend fun ambilPengajuanSaya():
@@ -173,7 +196,6 @@ class PengajuanRepository {
             val uid =
                 currentUser.uid
 
-
             val snapshot =
                 firestore
                     .collection("pengajuan")
@@ -184,25 +206,14 @@ class PengajuanRepository {
                     .get()
                     .await()
 
-
             val data =
                 snapshot.documents.map { document ->
 
                     val item =
                         HashMap<String, Any>()
 
-
-                    // ==================================================
-                    // DOCUMENT ID
-                    // ==================================================
-
                     item["documentId"] =
                         document.id
-
-
-                    // ==================================================
-                    // SEMUA FIELD
-                    // ==================================================
 
                     document.data?.forEach { entry ->
 
@@ -222,7 +233,6 @@ class PengajuanRepository {
                     item
                 }
 
-
             Result.success(data)
 
         } catch (e: Exception) {
@@ -231,10 +241,8 @@ class PengajuanRepository {
         }
     }
 
-
     // ==========================================================
     // AMBIL SEMUA PENGAJUAN
-    // KHUSUS ADMIN
     // ==========================================================
 
     suspend fun ambilSemuaPengajuan():
@@ -248,17 +256,14 @@ class PengajuanRepository {
                     .get()
                     .await()
 
-
             val data =
                 snapshot.documents.map { document ->
 
                     val item =
                         HashMap<String, Any>()
 
-
                     item["documentId"] =
                         document.id
-
 
                     document.data?.forEach { entry ->
 
@@ -275,9 +280,8 @@ class PengajuanRepository {
                         }
                     }
 
-                    item
+                    dataMapNormalize(item)
                 }
-
 
             Result.success(data)
 
@@ -287,10 +291,8 @@ class PengajuanRepository {
         }
     }
 
-
     // ==========================================================
-    // UPDATE STATUS
-    // KHUSUS ADMIN
+    // UPDATE STATUS PENGAJUAN
     // ==========================================================
 
     suspend fun updateStatusPengajuan(
@@ -300,24 +302,63 @@ class PengajuanRepository {
 
         return try {
 
+            // ==================================================
+            // CEK ADMIN
+            // ==================================================
+
             val currentUser =
                 auth.currentUser
                     ?: return Result.failure(
                         Exception("Admin belum login.")
                     )
 
+            // ==================================================
+            // VALIDASI DOCUMENT ID
+            // ==================================================
+
+            if (documentId.isBlank()) {
+
+                return Result.failure(
+                    Exception(
+                        "ID pengajuan tidak ditemukan."
+                    )
+                )
+            }
+
+            // ==================================================
+            // NORMALISASI STATUS
+            // ==================================================
+
+            val statusNormal =
+                status
+                    .trim()
+                    .lowercase()
+
+            if (
+                statusNormal != "disetujui" &&
+                statusNormal != "ditolak"
+            ) {
+
+                return Result.failure(
+                    Exception(
+                        "Status pengajuan tidak valid."
+                    )
+                )
+            }
 
             // ==================================================
             // AMBIL DATA PENGAJUAN
             // ==================================================
 
-            val pengajuanDocument =
+            val pengajuanReference =
                 firestore
                     .collection("pengajuan")
                     .document(documentId)
+
+            val pengajuanDocument =
+                pengajuanReference
                     .get()
                     .await()
-
 
             if (!pengajuanDocument.exists()) {
 
@@ -328,14 +369,33 @@ class PengajuanRepository {
                 )
             }
 
+            // ==================================================
+            // CEK STATUS SAAT INI
+            // ==================================================
+
+            val statusSaatIni =
+                pengajuanDocument
+                    .getString("status")
+                    ?.trim()
+                    ?.lowercase()
+                    ?: "menunggu"
+
+            if (statusSaatIni != "menunggu") {
+
+                return Result.failure(
+                    Exception(
+                        "Pengajuan ini sudah diproses sebelumnya."
+                    )
+                )
+            }
 
             // ==================================================
-            // AMBIL UID STAFF
+            // UID STAFF
             // ==================================================
 
             val staffUid =
-                pengajuanDocument.getString("uid")
-
+                pengajuanDocument
+                    .getString("uid")
 
             if (staffUid.isNullOrBlank()) {
 
@@ -346,24 +406,28 @@ class PengajuanRepository {
                 )
             }
 
+            // ==================================================
+            // DATA STAFF
+            // ==================================================
 
-            // ==================================================
-            // AMBIL JENIS PENGAJUAN
-            // ==================================================
+            val namaStaff =
+                pengajuanDocument
+                    .getString("nama")
+                    ?: "Karyawan"
 
             val jenis =
-                pengajuanDocument.getString("jenis")
+                pengajuanDocument
+                    .getString("jenis")
                     ?: "pengajuan"
 
-
             // ==================================================
-            // UPDATE STATUS
+            // UPDATE PENGAJUAN
             // ==================================================
 
-            val data =
+            val updateData =
                 hashMapOf<String, Any>(
 
-                    "status" to status,
+                    "status" to statusNormal,
 
                     "approvedBy" to
                             currentUser.uid,
@@ -372,28 +436,17 @@ class PengajuanRepository {
                             FieldValue.serverTimestamp()
                 )
 
-
-            firestore
-                .collection("pengajuan")
-                .document(documentId)
-                .update(data)
+            pengajuanReference
+                .update(updateData)
                 .await()
 
-
             // ==================================================
-            // SIAPKAN NOTIFIKASI
+            // SIAPKAN NOTIFIKASI STAFF
             // ==================================================
-
-            val statusNormal =
-                status
-                    .trim()
-                    .lowercase()
-
 
             val title: String
             val message: String
             val target: String
-
 
             when (statusNormal) {
 
@@ -409,8 +462,7 @@ class PengajuanRepository {
                         "PENGAJUAN_DISETUJUI"
                 }
 
-
-                "ditolak" -> {
+                else -> {
 
                     title =
                         "Pengajuan Ditolak"
@@ -421,62 +473,88 @@ class PengajuanRepository {
                     target =
                         "PENGAJUAN_DITOLAK"
                 }
-
-
-                else -> {
-
-                    title =
-                        "Status Pengajuan Diperbarui"
-
-                    message =
-                        "Status pengajuan $jenis kamu telah diperbarui."
-
-                    target =
-                        "PENGAJUAN_MENUNGGU"
-                }
             }
 
-
             // ==================================================
-            // SIMPAN NOTIFIKASI
+            // SIMPAN NOTIFIKASI STAFF
+            //
+            // Jika notifikasi gagal, status pengajuan TETAP
+            // sudah berhasil berubah.
             // ==================================================
 
-            val notificationData =
-                hashMapOf<String, Any>(
+            try {
 
-                    "userId" to staffUid,
+                val notificationReference =
+                    firestore
+                        .collection("notifications")
+                        .document()
 
-                    "title" to title,
+                val notificationData =
+                    hashMapOf<String, Any>(
 
-                    "message" to message,
+                        "id" to
+                                notificationReference.id,
 
-                    "type" to
-                            "PENGAJUAN",
+                        "userId" to
+                                staffUid,
 
-                    "target" to target,
+                        "type" to
+                                "PENGAJUAN",
 
-                    "read" to
-                            false,
+                        "title" to
+                                title,
 
-                    "timestamp" to
-                            FieldValue.serverTimestamp(),
+                        "message" to
+                                message,
 
-                    "pengajuanId" to
-                            documentId
-                )
+                        "timestamp" to
+                                FieldValue.serverTimestamp(),
 
+                        "isRead" to
+                                false,
 
-            firestore
-                .collection("notifications")
-                .add(notificationData)
-                .await()
+                        "relatedId" to
+                                documentId,
 
+                        "target" to
+                                target,
+
+                        "namaStaff" to
+                                namaStaff
+                    )
+
+                notificationReference
+                    .set(notificationData)
+                    .await()
+
+            } catch (_: Exception) {
+
+                // ==================================================
+                // NOTIFIKASI GAGAL TIDAK MEMBATALKAN UPDATE STATUS
+                // ==================================================
+            }
 
             Result.success(Unit)
 
         } catch (e: Exception) {
 
-            Result.failure(e)
+            Result.failure(
+                Exception(
+                    e.message
+                        ?: "Gagal memperbarui status pengajuan."
+                )
+            )
         }
+    }
+
+    // ==========================================================
+    // NORMALISASI DATA
+    // ==========================================================
+
+    private fun dataMapNormalize(
+        item: HashMap<String, Any>
+    ): HashMap<String, Any> {
+
+        return item
     }
 }

@@ -6,16 +6,13 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
-
 // ==========================================================
 // FIRESTORE REPOSITORY
 // ==========================================================
 
 class FirestoreRepository {
 
-    private val db =
-        FirebaseFirestore.getInstance()
-
+    private val db = FirebaseFirestore.getInstance()
 
     // ==========================================================
     // COLLECTION ABSENSI
@@ -24,14 +21,12 @@ class FirestoreRepository {
     private val attendanceCollection =
         db.collection("attendance")
 
-
     // ==========================================================
     // COLLECTION USERS / KARYAWAN
     // ==========================================================
 
     private val usersCollection =
         db.collection("users")
-
 
     // ==========================================================
     // COLLECTION CHAT
@@ -51,22 +46,23 @@ class FirestoreRepository {
         tanggal: String,
         jamMasuk: String,
         qrData: String,
-        catatan: String = ""
+        catatan: String = "",
+        kantor: String = ""
     ): Result<Unit> {
 
         return try {
 
-            val data =
-                hashMapOf<String, Any>(
-                    "uid" to uid,
-                    "nama" to nama,
-                    "tanggal" to tanggal,
-                    "jamMasuk" to jamMasuk,
-                    "jamPulang" to "",
-                    "status" to "Hadir",
-                    "qrData" to qrData,
-                    "catatan" to catatan
-                )
+            val data = hashMapOf<String, Any>(
+                "uid" to uid,
+                "nama" to nama,
+                "tanggal" to tanggal,
+                "jamMasuk" to jamMasuk,
+                "jamPulang" to "",
+                "status" to "Hadir",
+                "qrData" to qrData,
+                "kantor" to kantor,
+                "catatan" to catatan
+            )
 
             attendanceCollection
                 .add(data)
@@ -96,18 +92,17 @@ class FirestoreRepository {
 
         return try {
 
-            val data =
-                hashMapOf<String, Any>(
-                    "uid" to uid,
-                    "nama" to nama,
-                    "tanggal" to tanggal,
-                    "jamMasuk" to jamMasuk,
-                    "jamPulang" to "",
-                    "status" to "Hadir",
-                    "qrData" to "LUAR_KANTOR",
-                    "lokasi" to lokasi,
-                    "alasan" to alasan
-                )
+            val data = hashMapOf<String, Any>(
+                "uid" to uid,
+                "nama" to nama,
+                "tanggal" to tanggal,
+                "jamMasuk" to jamMasuk,
+                "jamPulang" to "",
+                "status" to "Hadir",
+                "qrData" to "LUAR_KANTOR",
+                "lokasi" to lokasi,
+                "alasan" to alasan
+            )
 
             attendanceCollection
                 .add(data)
@@ -131,55 +126,107 @@ class FirestoreRepository {
         tanggal: String
     ): AbsenHariIni? {
 
+        val snapshot =
+            attendanceCollection
+                .whereEqualTo("uid", uid)
+                .whereEqualTo("tanggal", tanggal)
+                .limit(1)
+                .get()
+                .await()
+
+        if (snapshot.isEmpty) {
+            return null
+        }
+
+        val document =
+            snapshot.documents.first()
+
+        return AbsenHariIni(
+            documentId = document.id,
+            jamMasuk = document.getString("jamMasuk") ?: "",
+            jamPulang = document.getString("jamPulang") ?: ""
+        )
+    }
+
+// ==========================================================
+// DATA REKAP ABSENSI
+// ==========================================================
+
+    suspend fun getRekapAbsensi(
+        tanggalMulai: String,
+        tanggalAkhir: String
+    ): Result<List<RekapAbsensiData>> {
+
         return try {
 
             val snapshot =
                 attendanceCollection
-                    .whereEqualTo(
-                        "uid",
-                        uid
-                    )
-                    .whereEqualTo(
+                    .whereGreaterThanOrEqualTo(
                         "tanggal",
-                        tanggal
+                        tanggalMulai
                     )
-                    .limit(1)
+                    .whereLessThanOrEqualTo(
+                        "tanggal",
+                        tanggalAkhir
+                    )
                     .get()
                     .await()
 
+            val daftar =
+                snapshot.documents
+                    .map { document ->
 
-            if (snapshot.isEmpty) {
+                        RekapAbsensiData(
+                            id = document.id,
 
-                return null
-            }
+                            uid =
+                                document.getString("uid")
+                                    ?: "",
 
+                            nama =
+                                document.getString("nama")
+                                    ?: "",
 
-            val document =
-                snapshot.documents.first()
+                            tanggal =
+                                document.getString("tanggal")
+                                    ?: "",
 
+                            jamMasuk =
+                                document.getString("jamMasuk")
+                                    ?: "",
 
-            AbsenHariIni(
+                            jamPulang =
+                                document.getString("jamPulang")
+                                    ?: "",
 
-                documentId =
-                    document.id,
+                            status =
+                                document.getString("status")
+                                    ?: "",
 
-                jamMasuk =
-                    document.getString(
-                        "jamMasuk"
-                    ) ?: "",
+                            qrData =
+                                document.getString("qrData")
+                                    ?: "",
 
-                jamPulang =
-                    document.getString(
-                        "jamPulang"
-                    ) ?: ""
-            )
+                            kantor =
+                                document.getString("kantor")
+                                    ?: ""
+                        )
+                    }
+                    .sortedWith(
+                        compareBy<RekapAbsensiData> {
+                            it.tanggal
+                        }.thenBy {
+                            it.nama.lowercase()
+                        }
+                    )
+
+            Result.success(daftar)
 
         } catch (e: Exception) {
 
-            throw e
+            Result.failure(e)
         }
     }
-
 
     // ==========================================================
     // SIMPAN ABSEN PULANG
@@ -193,9 +240,7 @@ class FirestoreRepository {
         return try {
 
             attendanceCollection
-                .document(
-                    documentId
-                )
+                .document(documentId)
                 .update(
                     "jamPulang",
                     jamPulang
@@ -230,25 +275,22 @@ class FirestoreRepository {
 
         return try {
 
-            val data =
-                hashMapOf<String, Any>(
-                    "uid" to uid,
-                    "nama" to nama,
-                    "jenis" to jenis,
-                    "tanggal" to tanggal,
-                    "jamPulang" to jamPulang,
-                    "jamKeluar" to jamKeluar,
-                    "jamKembali" to jamKembali,
-                    "tanggalMulai" to tanggalMulai,
-                    "tanggalSelesai" to tanggalSelesai,
-                    "alasan" to alasan,
-                    "status" to "menunggu",
-                    "waktuPengajuan" to Timestamp.now()
-                )
-
-            db.collection(
-                "pengajuan"
+            val data = hashMapOf<String, Any>(
+                "uid" to uid,
+                "nama" to nama,
+                "jenis" to jenis,
+                "tanggal" to tanggal,
+                "jamPulang" to jamPulang,
+                "jamKeluar" to jamKeluar,
+                "jamKembali" to jamKembali,
+                "tanggalMulai" to tanggalMulai,
+                "tanggalSelesai" to tanggalSelesai,
+                "alasan" to alasan,
+                "status" to "menunggu",
+                "waktuPengajuan" to Timestamp.now()
             )
+
+            db.collection("pengajuan")
                 .add(data)
                 .await()
 
@@ -271,9 +313,7 @@ class FirestoreRepository {
         return try {
 
             val snapshot =
-                db.collection(
-                    "pengajuan"
-                )
+                db.collection("pengajuan")
                     .whereEqualTo(
                         "status",
                         "menunggu"
@@ -281,71 +321,25 @@ class FirestoreRepository {
                     .get()
                     .await()
 
-
             val daftar =
                 snapshot.documents.map { document ->
 
                     PengajuanData(
-
-                        id =
-                            document.id,
-
-                        nama =
-                            document.getString(
-                                "nama"
-                            ) ?: "",
-
-                        jenis =
-                            document.getString(
-                                "jenis"
-                            ) ?: "",
-
-                        tanggal =
-                            document.getString(
-                                "tanggal"
-                            ) ?: "",
-
-                        jamPulang =
-                            document.getString(
-                                "jamPulang"
-                            ) ?: "",
-
-                        jamKeluar =
-                            document.getString(
-                                "jamKeluar"
-                            ) ?: "",
-
-                        jamKembali =
-                            document.getString(
-                                "jamKembali"
-                            ) ?: "",
-
-                        tanggalMulai =
-                            document.getString(
-                                "tanggalMulai"
-                            ) ?: "",
-
-                        tanggalSelesai =
-                            document.getString(
-                                "tanggalSelesai"
-                            ) ?: "",
-
-                        alasan =
-                            document.getString(
-                                "alasan"
-                            ) ?: "",
-
-                        status =
-                            document.getString(
-                                "status"
-                            ) ?: "menunggu"
+                        id = document.id,
+                        nama = document.getString("nama") ?: "",
+                        jenis = document.getString("jenis") ?: "",
+                        tanggal = document.getString("tanggal") ?: "",
+                        jamPulang = document.getString("jamPulang") ?: "",
+                        jamKeluar = document.getString("jamKeluar") ?: "",
+                        jamKembali = document.getString("jamKembali") ?: "",
+                        tanggalMulai = document.getString("tanggalMulai") ?: "",
+                        tanggalSelesai = document.getString("tanggalSelesai") ?: "",
+                        alasan = document.getString("alasan") ?: "",
+                        status = document.getString("status") ?: "menunggu"
                     )
                 }
 
-
-            Result.success(
-                daftar
-            )
+            Result.success(daftar)
 
         } catch (e: Exception) {
 
@@ -373,71 +367,25 @@ class FirestoreRepository {
                     .get()
                     .await()
 
-
             val daftar =
                 snapshot.documents.map { document ->
 
                     PengajuanData(
-
-                        id =
-                            document.id,
-
-                        nama =
-                            document.getString(
-                                "nama"
-                            ) ?: "",
-
-                        jenis =
-                            document.getString(
-                                "jenis"
-                            ) ?: "",
-
-                        tanggal =
-                            document.getString(
-                                "tanggal"
-                            ) ?: "",
-
-                        jamPulang =
-                            document.getString(
-                                "jamPulang"
-                            ) ?: "",
-
-                        jamKeluar =
-                            document.getString(
-                                "jamKeluar"
-                            ) ?: "",
-
-                        jamKembali =
-                            document.getString(
-                                "jamKembali"
-                            ) ?: "",
-
-                        tanggalMulai =
-                            document.getString(
-                                "tanggalMulai"
-                            ) ?: "",
-
-                        tanggalSelesai =
-                            document.getString(
-                                "tanggalSelesai"
-                            ) ?: "",
-
-                        alasan =
-                            document.getString(
-                                "alasan"
-                            ) ?: "",
-
-                        status =
-                            document.getString(
-                                "status"
-                            ) ?: "menunggu"
+                        id = document.id,
+                        nama = document.getString("nama") ?: "",
+                        jenis = document.getString("jenis") ?: "",
+                        tanggal = document.getString("tanggal") ?: "",
+                        jamPulang = document.getString("jamPulang") ?: "",
+                        jamKeluar = document.getString("jamKeluar") ?: "",
+                        jamKembali = document.getString("jamKembali") ?: "",
+                        tanggalMulai = document.getString("tanggalMulai") ?: "",
+                        tanggalSelesai = document.getString("tanggalSelesai") ?: "",
+                        alasan = document.getString("alasan") ?: "",
+                        status = document.getString("status") ?: "menunggu"
                     )
                 }
 
-
-            Result.success(
-                daftar
-            )
+            Result.success(daftar)
 
         } catch (e: Exception) {
 
@@ -457,12 +405,8 @@ class FirestoreRepository {
 
         return try {
 
-            db.collection(
-                "pengajuan"
-            )
-                .document(
-                    documentId
-                )
+            db.collection("pengajuan")
+                .document(documentId)
                 .update(
                     "status",
                     status
@@ -476,11 +420,6 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
-
-
-    // ==========================================================
-    // KARYAWAN
-    // ==========================================================
 
 
     // ==========================================================
@@ -498,32 +437,21 @@ class FirestoreRepository {
 
         return try {
 
-            val data =
-                hashMapOf<String, Any>(
-
-                    "nama" to nama,
-
-                    "email" to email,
-
-                    "jabatan" to jabatan,
-
-                    "divisi" to divisi,
-
-                    "usernameTele" to usernameTele,
-
-                    "isAdmin" to isAdmin
-                )
-
+            val data = hashMapOf<String, Any>(
+                "nama" to nama,
+                "email" to email,
+                "jabatan" to jabatan,
+                "divisi" to divisi,
+                "usernameTele" to usernameTele,
+                "isAdmin" to isAdmin
+            )
 
             val document =
                 usersCollection
                     .add(data)
                     .await()
 
-
-            Result.success(
-                document.id
-            )
+            Result.success(document.id)
 
         } catch (e: Exception) {
 
@@ -546,54 +474,27 @@ class FirestoreRepository {
                     .get()
                     .await()
 
-
             val daftar =
-                snapshot.documents.map { document ->
+                snapshot.documents
+                    .map { document ->
 
-                    KaryawanData(
-
-                        id =
-                            document.id,
-
-                        nama =
-                            document.getString(
-                                "nama"
-                            ) ?: "",
-
-                        email =
-                            document.getString(
-                                "email"
-                            ) ?: "",
-
-                        jabatan =
-                            document.getString(
-                                "jabatan"
-                            ) ?: "",
-
-                        divisi =
-                            document.getString(
-                                "divisi"
-                            ) ?: "",
-
-                        usernameTele =
-                            document.getString(
-                                "usernameTele"
-                            ) ?: "",
-
-                        isAdmin =
-                            document.getBoolean(
-                                "isAdmin"
-                            ) ?: false
-                    )
-                }
+                        KaryawanData(
+                            id = document.id,
+                            nama = document.getString("nama") ?: "",
+                            email = document.getString("email") ?: "",
+                            jabatan = document.getString("jabatan") ?: "",
+                            divisi = document.getString("divisi") ?: "",
+                            usernameTele =
+                                document.getString("usernameTele") ?: "",
+                            isAdmin =
+                                document.getBoolean("isAdmin") ?: false
+                        )
+                    }
                     .sortedBy {
                         it.nama.lowercase()
                     }
 
-
-            Result.success(
-                daftar
-            )
+            Result.success(daftar)
 
         } catch (e: Exception) {
 
@@ -618,32 +519,19 @@ class FirestoreRepository {
 
         return try {
 
-            val data =
-                hashMapOf<String, Any>(
-
-                    "nama" to nama,
-
-                    "email" to email,
-
-                    "jabatan" to jabatan,
-
-                    "divisi" to divisi,
-
-                    "usernameTele" to usernameTele,
-
-                    "isAdmin" to isAdmin
-                )
-
+            val data = hashMapOf<String, Any>(
+                "nama" to nama,
+                "email" to email,
+                "jabatan" to jabatan,
+                "divisi" to divisi,
+                "usernameTele" to usernameTele,
+                "isAdmin" to isAdmin
+            )
 
             usersCollection
-                .document(
-                    documentId
-                )
-                .update(
-                    data
-                )
+                .document(documentId)
+                .update(data)
                 .await()
-
 
             Result.success(Unit)
 
@@ -665,12 +553,9 @@ class FirestoreRepository {
         return try {
 
             usersCollection
-                .document(
-                    documentId
-                )
+                .document(documentId)
                 .delete()
                 .await()
-
 
             Result.success(Unit)
 
@@ -682,14 +567,7 @@ class FirestoreRepository {
 
 
     // ==========================================================
-    // ==========================================================
-    // CHAT ADMIN / HRD
-    // ==========================================================
-    // ==========================================================
-
-
-    // ==========================================================
-    // SIMPAN PESAN CHAT
+    // KIRIM PESAN CHAT
     // ==========================================================
 
     suspend fun kirimPesanChat(
@@ -701,8 +579,7 @@ class FirestoreRepository {
 
         return try {
 
-            val text =
-                message.trim()
+            val text = message.trim()
 
             if (text.isEmpty()) {
 
@@ -713,36 +590,18 @@ class FirestoreRepository {
                 )
             }
 
-
-            val data =
-                hashMapOf<String, Any>(
-
-                    "senderUid" to
-                            senderUid,
-
-                    "senderType" to
-                            senderType,
-
-                    "message" to
-                            text,
-
-                    "timestamp" to
-                            Timestamp.now()
-                )
-
+            val data = hashMapOf<String, Any>(
+                "senderUid" to senderUid,
+                "senderType" to senderType,
+                "message" to text,
+                "timestamp" to Timestamp.now()
+            )
 
             chatCollection
-                .document(
-                    staffUid
-                )
-                .collection(
-                    "messages"
-                )
-                .add(
-                    data
-                )
+                .document(staffUid)
+                .collection("messages")
+                .add(data)
                 .await()
-
 
             Result.success(Unit)
 
@@ -766,12 +625,8 @@ class FirestoreRepository {
     ): ListenerRegistration {
 
         return chatCollection
-            .document(
-                staffUid
-            )
-            .collection(
-                "messages"
-            )
+            .document(staffUid)
+            .collection("messages")
             .orderBy(
                 "timestamp",
                 Query.Direction.ASCENDING
@@ -780,13 +635,10 @@ class FirestoreRepository {
 
                 if (error != null) {
 
-                    onError(
-                        error
-                    )
+                    onError(error)
 
                     return@addSnapshotListener
                 }
-
 
                 if (snapshot == null) {
 
@@ -797,57 +649,34 @@ class FirestoreRepository {
                     return@addSnapshotListener
                 }
 
-
                 val messages =
                     snapshot.documents.mapNotNull { document ->
 
                         val message =
-                            document.getString(
-                                "message"
-                            )
+                            document.getString("message")
                                 ?: return@mapNotNull null
 
                         val senderUid =
-                            document.getString(
-                                "senderUid"
-                            )
+                            document.getString("senderUid")
                                 ?: ""
 
                         val senderType =
-                            document.getString(
-                                "senderType"
-                            )
+                            document.getString("senderType")
                                 ?: "staff"
 
                         val timestamp =
-                            document.getTimestamp(
-                                "timestamp"
-                            )
-
+                            document.getTimestamp("timestamp")
 
                         ChatMessageData(
-
-                            id =
-                                document.id,
-
-                            message =
-                                message,
-
-                            senderUid =
-                                senderUid,
-
-                            senderType =
-                                senderType,
-
-                            timestamp =
-                                timestamp
+                            id = document.id,
+                            message = message,
+                            senderUid = senderUid,
+                            senderType = senderType,
+                            timestamp = timestamp
                         )
                     }
 
-
-                onMessagesChanged(
-                    messages
-                )
+                onMessagesChanged(messages)
             }
     }
 }
@@ -858,11 +687,8 @@ class FirestoreRepository {
 // ==========================================================
 
 data class AbsenHariIni(
-
     val documentId: String,
-
     val jamMasuk: String,
-
     val jamPulang: String
 )
 
@@ -872,27 +698,16 @@ data class AbsenHariIni(
 // ==========================================================
 
 data class PengajuanData(
-
     val id: String,
-
     val nama: String,
-
     val jenis: String,
-
     val tanggal: String,
-
     val jamPulang: String,
-
     val jamKeluar: String,
-
     val jamKembali: String,
-
     val tanggalMulai: String,
-
     val tanggalSelesai: String,
-
     val alasan: String,
-
     val status: String
 )
 
@@ -902,36 +717,39 @@ data class PengajuanData(
 // ==========================================================
 
 data class KaryawanData(
-
     val id: String,
-
     val nama: String,
-
     val email: String,
-
     val jabatan: String,
-
     val divisi: String,
-
     val usernameTele: String,
-
     val isAdmin: Boolean
 )
 
+// ==========================================================
+// DATA REKAP ABSENSI
+// ==========================================================
+
+data class RekapAbsensiData(
+    val id: String,
+    val uid: String,
+    val nama: String,
+    val tanggal: String,
+    val jamMasuk: String,
+    val jamPulang: String,
+    val status: String,
+    val qrData: String,
+    val kantor: String
+)
 
 // ==========================================================
 // DATA CHAT
 // ==========================================================
 
 data class ChatMessageData(
-
     val id: String,
-
     val message: String,
-
     val senderUid: String,
-
     val senderType: String,
-
     val timestamp: Timestamp?
 )

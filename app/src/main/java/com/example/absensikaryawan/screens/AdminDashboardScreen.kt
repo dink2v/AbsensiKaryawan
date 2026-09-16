@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.ChevronRight
 
 import androidx.compose.material3.Card
@@ -123,6 +124,10 @@ fun AdminDashboardScreen(
         mutableStateOf(0)
     }
 
+    var jumlahBelumAbsen by remember {
+        mutableStateOf(0)
+    }
+
     var jumlahSudahPulang by remember {
         mutableStateOf(0)
     }
@@ -145,6 +150,7 @@ fun AdminDashboardScreen(
                     Date()
                 )
 
+
             coroutineScope {
 
                 // ==========================================
@@ -161,7 +167,7 @@ fun AdminDashboardScreen(
 
 
                 // ==========================================
-                // QUERY ATTENDANCE
+                // QUERY ATTENDANCE HARI INI
                 // ==========================================
 
                 val attendanceDeferred =
@@ -203,7 +209,7 @@ fun AdminDashboardScreen(
 
 
                 // ==================================================
-                // USERS
+                // USERS / KARYAWAN
                 // ==================================================
 
                 try {
@@ -211,8 +217,32 @@ fun AdminDashboardScreen(
                     val usersSnapshot =
                         results[0]
 
+
+                    var totalKaryawan =
+                        0
+
+
+                    usersSnapshot.documents
+                        .forEach { document ->
+
+                            val isAdmin =
+                                document.getBoolean(
+                                    "isAdmin"
+                                ) ?: false
+
+
+                            // Hanya menghitung Staff.
+                            // Admin tidak dimasukkan ke jumlah karyawan.
+
+                            if (!isAdmin) {
+
+                                totalKaryawan++
+                            }
+                        }
+
+
                     jumlahKaryawan =
-                        usersSnapshot.size()
+                        totalKaryawan
 
                 } catch (e: Exception) {
 
@@ -221,13 +251,14 @@ fun AdminDashboardScreen(
 
 
                 // ==================================================
-                // ATTENDANCE
+                // ATTENDANCE HARI INI
                 // ==================================================
 
                 try {
 
                     val attendanceSnapshot =
                         results[1]
+
 
                     var totalHadir =
                         0
@@ -254,6 +285,10 @@ fun AdminDashboardScreen(
                                 ) ?: ""
 
 
+                            // ======================================
+                            // SUDAH ABSEN MASUK
+                            // ======================================
+
                             if (
                                 jamMasuk.isNotBlank()
                             ) {
@@ -262,13 +297,23 @@ fun AdminDashboardScreen(
                             }
 
 
+                            // ======================================
+                            // SUDAH PULANG
+                            // ======================================
+
                             if (
                                 jamPulang.isNotBlank()
                             ) {
 
                                 totalSudahPulang++
 
-                            } else if (
+                            }
+
+                            // ======================================
+                            // BELUM PULANG
+                            // ======================================
+
+                            else if (
                                 jamMasuk.isNotBlank()
                             ) {
 
@@ -280,11 +325,25 @@ fun AdminDashboardScreen(
                     jumlahHadir =
                         totalHadir
 
+
                     jumlahSudahPulang =
                         totalSudahPulang
 
+
                     jumlahBelumPulang =
                         totalBelumPulang
+
+
+                    // ==========================================
+                    // BELUM ABSEN
+                    // ==========================================
+
+                    jumlahBelumAbsen =
+                        (
+                                jumlahKaryawan -
+                                        totalHadir
+                                )
+                            .coerceAtLeast(0)
 
                 } catch (e: Exception) {
 
@@ -300,6 +359,7 @@ fun AdminDashboardScreen(
 
                     val snapshot =
                         results[2]
+
 
                     var totalHariIni =
                         0
@@ -325,6 +385,10 @@ fun AdminDashboardScreen(
                                     ?: ""
 
 
+                            // ======================================
+                            // PENGAJUAN HARI INI
+                            // ======================================
+
                             if (
                                 tanggalMulai ==
                                 tanggalHariIni
@@ -333,6 +397,10 @@ fun AdminDashboardScreen(
                                 totalHariIni++
                             }
 
+
+                            // ======================================
+                            // PENGAJUAN MENUNGGU
+                            // ======================================
 
                             if (
                                 status ==
@@ -346,6 +414,7 @@ fun AdminDashboardScreen(
 
                     jumlahPengajuanHariIni =
                         totalHariIni
+
 
                     jumlahPengajuanMenunggu =
                         totalMenunggu
@@ -396,6 +465,7 @@ fun AdminDashboardScreen(
                     Modifier.height(6.dp)
             )
 
+
             Row(
                 modifier =
                     Modifier
@@ -427,9 +497,10 @@ fun AdminDashboardScreen(
                             TextDark
                     )
 
+
                     Text(
                         text =
-                            "Kelola aktivitas aplikasi",
+                            "Ringkasan aktivitas hari ini",
 
                         fontSize =
                             12.sp,
@@ -445,6 +516,7 @@ fun AdminDashboardScreen(
                 // ==========================================
 
                 CompactIconButton(
+
                     icon =
                         Icons.Default.Notifications,
 
@@ -471,9 +543,116 @@ fun AdminDashboardScreen(
         }
 
 
+        // ==================================================
+        // BARIS STATISTIK 1
+        // KARYAWAN + HADIR
+        // ==================================================
+
+        item {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
+            ) {
+
+                AdminDashboardStatCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Groups,
+
+                    title =
+                        "Karyawan",
+
+                    value =
+                        jumlahKaryawan.toString()
+                )
+
+
+                AdminDashboardStatCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.CheckCircle,
+
+                    title =
+                        "Hadir",
+
+                    value =
+                        jumlahHadir.toString()
+                )
+            }
+        }
+
+
+        // ==================================================
+        // BARIS STATISTIK 2
+        // BELUM ABSEN + BELUM PULANG
+        // ==================================================
+
+        item {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
+            ) {
+
+                AdminDashboardStatCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.PersonOff,
+
+                    title =
+                        "Belum Absen",
+
+                    value =
+                        jumlahBelumAbsen.toString()
+                )
+
+
+                AdminDashboardStatCard(
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    icon =
+                        Icons.Default.Schedule,
+
+                    title =
+                        "Belum Pulang",
+
+                    value =
+                        jumlahBelumPulang.toString()
+                )
+            }
+        }
+
+
+        // ==================================================
+        // SUDAH PULANG
+        // ==================================================
+
         item {
 
             Card(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -496,75 +675,82 @@ fun AdminDashboardScreen(
             ) {
 
                 Row(
+
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(
-                                horizontal = 8.dp,
-                                vertical = 13.dp
+                                horizontal = 16.dp,
+                                vertical = 14.dp
                             ),
-
-                    horizontalArrangement =
-                        Arrangement.SpaceEvenly,
 
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
 
-                    AdminCompactStat(
+                    AdminSmallIconBox(
                         icon =
-                            Icons.Default.Groups,
-
-                        title =
-                            "Karyawan",
-
-                        value =
-                            jumlahKaryawan.toString()
+                            Icons.Default.CheckCircle
                     )
 
 
-                    AdminVerticalDivider()
-
-
-                    AdminCompactStat(
-                        icon =
-                            Icons.Default.CheckCircle,
-
-                        title =
-                            "Hadir",
-
-                        value =
-                            jumlahHadir.toString()
+                    Spacer(
+                        modifier =
+                            Modifier.width(12.dp)
                     )
 
 
-                    AdminVerticalDivider()
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+
+                        Text(
+                            text =
+                                "Sudah Pulang",
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.SemiBold,
+
+                            color =
+                                TextDark
+                        )
 
 
-                    AdminCompactStat(
-                        icon =
-                            Icons.Default.Schedule,
-
-                        title =
-                            "Belum Pulang",
-
-                        value =
-                            jumlahBelumPulang.toString()
-                    )
+                        Spacer(
+                            modifier =
+                                Modifier.height(2.dp)
+                        )
 
 
-                    AdminVerticalDivider()
+                        Text(
+                            text =
+                                "Karyawan yang sudah melakukan absen pulang",
+
+                            fontSize =
+                                11.sp,
+
+                            color =
+                                TextGray
+                        )
+                    }
 
 
-                    AdminCompactStat(
-                        icon =
-                            Icons.Default.CheckCircle,
+                    Text(
+                        text =
+                            jumlahSudahPulang.toString(),
 
-                        title =
-                            "Sudah Pulang",
+                        fontSize =
+                            22.sp,
 
-                        value =
-                            jumlahSudahPulang.toString()
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            PrimaryGreen
                     )
                 }
             }
@@ -587,6 +773,7 @@ fun AdminDashboardScreen(
         item {
 
             Card(
+
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -613,6 +800,7 @@ fun AdminDashboardScreen(
             ) {
 
                 Row(
+
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -656,10 +844,12 @@ fun AdminDashboardScreen(
                                 TextDark
                         )
 
+
                         Spacer(
                             modifier =
                                 Modifier.height(2.dp)
                         )
+
 
                         Text(
                             text =
@@ -713,6 +903,7 @@ fun AdminDashboardScreen(
         item {
 
             Row(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -723,6 +914,7 @@ fun AdminDashboardScreen(
             ) {
 
                 AdminQuickCard(
+
                     modifier =
                         Modifier.weight(1f),
 
@@ -738,6 +930,7 @@ fun AdminDashboardScreen(
 
 
                 AdminQuickCard(
+
                     modifier =
                         Modifier.weight(1f),
 
@@ -762,6 +955,7 @@ fun AdminDashboardScreen(
         item {
 
             Row(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -772,6 +966,7 @@ fun AdminDashboardScreen(
             ) {
 
                 AdminQuickCard(
+
                     modifier =
                         Modifier.weight(1f),
 
@@ -787,6 +982,7 @@ fun AdminDashboardScreen(
 
 
                 AdminQuickCard(
+
                     modifier =
                         Modifier.weight(1f),
 
@@ -819,6 +1015,115 @@ fun AdminDashboardScreen(
 
 
 // ==========================================================
+// DASHBOARD STAT CARD
+// ==========================================================
+
+@Composable
+private fun AdminDashboardStatCard(
+    modifier: Modifier,
+    icon: ImageVector,
+    title: String,
+    value: String
+) {
+
+    Card(
+
+        modifier =
+            modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(
+                16.dp
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    1.dp
+            )
+    ) {
+
+        Column(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 14.dp,
+                        vertical = 14.dp
+                    ),
+
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            Icon(
+
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    title,
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier.size(22.dp)
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(5.dp)
+            )
+
+
+            Text(
+
+                text =
+                    value,
+
+                fontSize =
+                    22.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextDark
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(2.dp)
+            )
+
+
+            Text(
+
+                text =
+                    title,
+
+                fontSize =
+                    10.sp,
+
+                color =
+                    TextGray
+            )
+        }
+    }
+}
+
+
+// ==========================================================
 // SECTION TITLE
 // ==========================================================
 
@@ -828,6 +1133,7 @@ private fun AdminSectionTitle(
 ) {
 
     Text(
+
         text =
             title,
 
@@ -849,104 +1155,6 @@ private fun AdminSectionTitle(
 
 
 // ==========================================================
-// COMPACT STAT
-// ==========================================================
-
-@Composable
-private fun AdminCompactStat(
-    icon: ImageVector,
-    title: String,
-    value: String
-) {
-
-    Column(
-        modifier =
-            Modifier.width(72.dp),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
-    ) {
-
-        Icon(
-            imageVector =
-                icon,
-
-            contentDescription =
-                title,
-
-            tint =
-                PrimaryGreen,
-
-            modifier =
-                Modifier.size(19.dp)
-        )
-
-
-        Spacer(
-            modifier =
-                Modifier.height(4.dp)
-        )
-
-
-        Text(
-            text =
-                value,
-
-            fontSize =
-                19.sp,
-
-            fontWeight =
-                FontWeight.Bold,
-
-            color =
-                TextDark
-        )
-
-
-        Spacer(
-            modifier =
-                Modifier.height(1.dp)
-        )
-
-
-        Text(
-            text =
-                title,
-
-            fontSize =
-                9.sp,
-
-            color =
-                TextGray,
-
-            maxLines =
-                1
-        )
-    }
-}
-
-
-// ==========================================================
-// VERTICAL DIVIDER
-// ==========================================================
-
-@Composable
-private fun AdminVerticalDivider() {
-
-    Spacer(
-        modifier =
-            Modifier
-                .width(1.dp)
-                .height(40.dp)
-                .background(
-                    color =
-                        Color(0xFFE5E7EB)
-                )
-    )
-}
-
-
-// ==========================================================
 // SMALL ICON BOX
 // ==========================================================
 
@@ -956,6 +1164,7 @@ private fun AdminSmallIconBox(
 ) {
 
     Row(
+
         modifier =
             Modifier
                 .size(40.dp)
@@ -977,6 +1186,7 @@ private fun AdminSmallIconBox(
     ) {
 
         Icon(
+
             imageVector =
                 icon,
 
@@ -1006,6 +1216,7 @@ private fun AdminQuickCard(
 ) {
 
     Card(
+
         modifier =
             modifier
                 .clickable {
@@ -1031,6 +1242,7 @@ private fun AdminQuickCard(
     ) {
 
         Row(
+
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -1044,6 +1256,7 @@ private fun AdminQuickCard(
         ) {
 
             Row(
+
                 modifier =
                     Modifier
                         .size(36.dp)
@@ -1065,6 +1278,7 @@ private fun AdminQuickCard(
             ) {
 
                 Icon(
+
                     imageVector =
                         icon,
 
@@ -1087,6 +1301,7 @@ private fun AdminQuickCard(
 
 
             Text(
+
                 text =
                     title,
 
@@ -1105,6 +1320,7 @@ private fun AdminQuickCard(
 
 
             Icon(
+
                 imageVector =
                     Icons.Default.ChevronRight,
 
@@ -1134,6 +1350,7 @@ private fun CompactIconButton(
 ) {
 
     Row(
+
         modifier =
             Modifier
                 .size(42.dp)
@@ -1158,6 +1375,7 @@ private fun CompactIconButton(
     ) {
 
         Icon(
+
             imageVector =
                 icon,
 

@@ -211,6 +211,7 @@ dependencies {
         "androidx.camera:camera-mlkit-vision:1.4.2"
     )
 
+    implementation("com.google.zxing:core:3.5.3")
 
     // ==========================================================
     // TEST
@@ -230,5 +231,9 @@ dependencies {
 
     androidTestImplementation(
         libs.androidx.compose.ui.test.junit4
+    )
+
+    implementation(
+        libs.zxing.core
     )
 }

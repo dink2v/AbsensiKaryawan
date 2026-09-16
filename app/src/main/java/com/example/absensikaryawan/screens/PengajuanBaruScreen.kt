@@ -9,17 +9,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
@@ -30,6 +27,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,13 +39,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -137,8 +133,8 @@ fun PengajuanBaruScreen(
         mutableStateOf("")
     }
 
-    var successMessage by remember {
-        mutableStateOf("")
+    var pengajuanBerhasil by remember {
+        mutableStateOf(false)
     }
 
     // ==================================================
@@ -182,7 +178,7 @@ fun PengajuanBaruScreen(
 
                 IconButton(
                     onClick = {
-                        if (!isSubmitting) {
+                        if (!isSubmitting && !pengajuanBerhasil) {
                             onBack()
                         }
                     }
@@ -200,14 +196,22 @@ fun PengajuanBaruScreen(
                 ) {
 
                     Text(
-                        text = "Pengajuan Baru",
+                        text = if (pengajuanBerhasil) {
+                            "Pengajuan Terkirim"
+                        } else {
+                            "Pengajuan Baru"
+                        },
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextDark
                     )
 
                     Text(
-                        text = "Pilih jenis pengajuan",
+                        text = if (pengajuanBerhasil) {
+                            "Pengajuan berhasil dikirim"
+                        } else {
+                            "Pilih jenis pengajuan"
+                        },
                         fontSize = 12.sp,
                         color = TextGray
                     )
@@ -215,674 +219,942 @@ fun PengajuanBaruScreen(
             }
 
             // ==================================================
-            // CONTENT
+            // JIKA BERHASIL
             // ==================================================
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(
-                        rememberScrollState()
+            if (pengajuanBerhasil) {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            horizontal = 24.dp
+                        )
+                        .imePadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+
+                    // ==================================================
+                    // ICON CENTANG
+                    // ==================================================
+
+                    Surface(
+                        modifier = Modifier.size(110.dp),
+                        shape = CircleShape,
+                        color = SoftGreen
+                    ) {
+
+                        BoxCenter {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Check,
+                                contentDescription =
+                                    "Berhasil",
+                                tint =
+                                    PrimaryGreen,
+                                modifier =
+                                    Modifier.size(65.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(28.dp)
                     )
-                    .imePadding()
-                    .padding(
-                        horizontal = 20.dp
+
+                    // ==================================================
+                    // JUDUL
+                    // ==================================================
+
+                    Text(
+                        text = "Pengajuan Berhasil Dikirim",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
                     )
-            ) {
 
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
 
-                // ==================================================
-                // SUCCESS MESSAGE
-                // ==================================================
+                    // ==================================================
+                    // KETERANGAN
+                    // ==================================================
 
-                if (successMessage.isNotBlank()) {
+                    Text(
+                        text =
+                            "Pengajuan kamu sudah berhasil dikirim dan sedang menunggu persetujuan admin.",
+                        fontSize = 14.sp,
+                        color = TextGray,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 21.sp
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(30.dp)
+                    )
+
+                    // ==================================================
+                    // STATUS CARD
+                    // ==================================================
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = SoftGreen
                         )
                     ) {
 
-                        Text(
-                            text = successMessage,
-                            modifier = Modifier.padding(14.dp),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PrimaryGreen
-                        )
-                    }
-
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
-                }
-
-                // ==================================================
-                // ERROR MESSAGE
-                // ==================================================
-
-                if (errorMessage.isNotBlank()) {
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFFFE4E6)
-                        )
-                    ) {
-
-                        Text(
-                            text = errorMessage,
-                            modifier = Modifier.padding(14.dp),
-                            fontSize = 13.sp,
-                            color = Color(0xFFB91C1C)
-                        )
-                    }
-
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
-                }
-
-                // ==================================================
-                // JENIS PENGAJUAN
-                // ==================================================
-
-                Text(
-                    text = "Jenis Pengajuan",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
-                )
-
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
-
-                // ==================================================
-                // PULANG CEPAT
-                // ==================================================
-
-                JenisPengajuanCard(
-
-                    icon = Icons.Default.ExitToApp,
-
-                    title = "Pulang Cepat",
-
-                    description =
-                        "Tanggal + Jam Pulang + Alasan",
-
-                    selected =
-                        jenisDipilih ==
-                                JenisPengajuan.PulangCepat,
-
-                    onClick = {
-
-                        jenisDipilih =
-                            JenisPengajuan.PulangCepat
-
-                        errorMessage = ""
-                        successMessage = ""
-                    }
-                )
-
-                // ==================================================
-                // IZIN KELUAR
-                // ==================================================
-
-                JenisPengajuanCard(
-
-                    icon = Icons.Default.AccessTime,
-
-                    title = "Izin Keluar",
-
-                    description =
-                        "Tanggal + Jam Keluar + Jam Kembali + Alasan",
-
-                    selected =
-                        jenisDipilih ==
-                                JenisPengajuan.IzinKeluar,
-
-                    onClick = {
-
-                        jenisDipilih =
-                            JenisPengajuan.IzinKeluar
-
-                        errorMessage = ""
-                        successMessage = ""
-                    }
-                )
-
-                // ==================================================
-                // IZIN TERLAMBAT
-                // ==================================================
-
-                JenisPengajuanCard(
-
-                    icon = Icons.Default.Schedule,
-
-                    title = "Izin Terlambat",
-
-                    description =
-                        "Alasan keterlambatan",
-
-                    selected =
-                        jenisDipilih ==
-                                JenisPengajuan.IzinTerlambat,
-
-                    onClick = {
-
-                        jenisDipilih =
-                            JenisPengajuan.IzinTerlambat
-
-                        errorMessage = ""
-                        successMessage = ""
-                    }
-                )
-
-                // ==================================================
-                // IZIN SAKIT
-                // ==================================================
-
-                JenisPengajuanCard(
-
-                    icon = Icons.Default.HealthAndSafety,
-
-                    title = "Izin Sakit",
-
-                    description =
-                        "Tanggal Mulai – Selesai + Alasan",
-
-                    selected =
-                        jenisDipilih ==
-                                JenisPengajuan.IzinSakit,
-
-                    onClick = {
-
-                        jenisDipilih =
-                            JenisPengajuan.IzinSakit
-
-                        errorMessage = ""
-                        successMessage = ""
-                    }
-                )
-
-                // ==================================================
-                // CUTI REGULER
-                // ==================================================
-
-                JenisPengajuanCard(
-
-                    icon = Icons.Default.Event,
-
-                    title = "Cuti Reguler",
-
-                    description =
-                        "Min. H-7, maksimal 2 hari, maksimal 2x/bulan",
-
-                    selected =
-                        jenisDipilih ==
-                                JenisPengajuan.CutiReguler,
-
-                    onClick = {
-
-                        jenisDipilih =
-                            JenisPengajuan.CutiReguler
-
-                        errorMessage = ""
-                        successMessage = ""
-                    }
-                )
-
-                // ==================================================
-                // FORM DETAIL
-                // ==================================================
-
-                if (jenisDipilih != null) {
-
-                    Spacer(
-                        modifier = Modifier.height(18.dp)
-                    )
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
-                        ),
-                        elevation = CardDefaults.cardElevation(
-                            defaultElevation = 2.dp
-                        )
-                    ) {
-
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(18.dp)
+                                .padding(16.dp),
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
 
-                            // ==================================================
-                            // JUDUL DETAIL
-                            // ==================================================
+                            Surface(
+                                modifier =
+                                    Modifier.size(42.dp),
+                                shape =
+                                    CircleShape,
+                                color =
+                                    PrimaryGreen
+                            ) {
 
-                            Text(
-                                text = "Detail Pengajuan",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
+                                BoxCenter {
+
+                                    Icon(
+                                        imageVector =
+                                            Icons.Default.Check,
+                                        contentDescription =
+                                            null,
+                                        tint =
+                                            Color.White,
+                                        modifier =
+                                            Modifier.size(24.dp)
+                                    )
+                                }
+                            }
 
                             Spacer(
-                                modifier = Modifier.height(14.dp)
+                                modifier =
+                                    Modifier.width(12.dp)
                             )
 
-                            // ==================================================
-                            // PULANG CEPAT
-                            // ==================================================
-
-                            if (
-                                jenisDipilih ==
-                                JenisPengajuan.PulangCepat
+                            Column(
+                                modifier =
+                                    Modifier.weight(1f)
                             ) {
 
-                                TanggalInfo(
-                                    tanggal = tanggalHariIni
+                                Text(
+                                    text =
+                                        "Status Pengajuan",
+                                    fontSize =
+                                        12.sp,
+                                    color =
+                                        TextGray
                                 )
 
                                 Spacer(
-                                    modifier = Modifier.height(12.dp)
-                                )
-
-                                InputField(
-                                    value = jamPulang,
-                                    onValueChange = {
-                                        jamPulang = it
-                                    },
-                                    label = "Jam Pulang",
-                                    icon = Icons.Default.AccessTime
-                                )
-                            }
-
-                            // ==================================================
-                            // IZIN KELUAR
-                            // ==================================================
-
-                            if (
-                                jenisDipilih ==
-                                JenisPengajuan.IzinKeluar
-                            ) {
-
-                                TanggalInfo(
-                                    tanggal = tanggalHariIni
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(12.dp)
-                                )
-
-                                InputField(
-                                    value = jamKeluar,
-                                    onValueChange = {
-                                        jamKeluar = it
-                                    },
-                                    label = "Jam Keluar",
-                                    icon = Icons.Default.AccessTime
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(10.dp)
-                                )
-
-                                InputField(
-                                    value = jamKembali,
-                                    onValueChange = {
-                                        jamKembali = it
-                                    },
-                                    label = "Jam Kembali",
-                                    icon = Icons.Default.AccessTime
-                                )
-                            }
-
-                            // ==================================================
-                            // IZIN TERLAMBAT
-                            // ==================================================
-
-                            if (
-                                jenisDipilih ==
-                                JenisPengajuan.IzinTerlambat
-                            ) {
-
-                                TanggalInfo(
-                                    tanggal = tanggalHariIni
-                                )
-                            }
-
-                            // ==================================================
-                            // IZIN SAKIT
-                            // ==================================================
-
-                            if (
-                                jenisDipilih ==
-                                JenisPengajuan.IzinSakit
-                            ) {
-
-                                InputField(
-                                    value = tanggalMulai,
-                                    onValueChange = {
-                                        tanggalMulai = it
-                                    },
-                                    label = "Tanggal Mulai",
-                                    icon = Icons.Default.CalendarMonth
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(10.dp)
-                                )
-
-                                InputField(
-                                    value = tanggalSelesai,
-                                    onValueChange = {
-                                        tanggalSelesai = it
-                                    },
-                                    label = "Tanggal Selesai",
-                                    icon = Icons.Default.CalendarMonth
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(10.dp)
+                                    modifier =
+                                        Modifier.height(2.dp)
                                 )
 
                                 Text(
                                     text =
-                                        "Jika sakit 3 hari atau lebih, lampirkan surat dokter.",
-                                    fontSize = 12.sp,
-                                    color = TextGray
+                                        "Menunggu Persetujuan Admin",
+                                    fontSize =
+                                        14.sp,
+                                    fontWeight =
+                                        FontWeight.Bold,
+                                    color =
+                                        PrimaryGreen
                                 )
-                            }
-
-                            // ==================================================
-                            // CUTI REGULER
-                            // ==================================================
-
-                            if (
-                                jenisDipilih ==
-                                JenisPengajuan.CutiReguler
-                            ) {
-
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = SoftGreen
-                                    )
-                                ) {
-
-                                    Column(
-                                        modifier = Modifier.padding(14.dp)
-                                    ) {
-
-                                        Text(
-                                            text = "Sisa kuota cuti",
-                                            fontSize = 12.sp,
-                                            color = TextGray
-                                        )
-
-                                        Spacer(
-                                            modifier = Modifier.height(3.dp)
-                                        )
-
-                                        Text(
-                                            text = "8 / 12 hari",
-                                            fontSize = 21.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = PrimaryGreen
-                                        )
-
-                                        Spacer(
-                                            modifier = Modifier.height(5.dp)
-                                        )
-
-                                        Text(
-                                            text =
-                                                "Ajukan minimal H-7. Maksimal 2 hari sekali dan 2 kali dalam 1 bulan.",
-                                            fontSize = 12.sp,
-                                            color = TextGray
-                                        )
-                                    }
-                                }
-
-                                Spacer(
-                                    modifier = Modifier.height(12.dp)
-                                )
-
-                                InputField(
-                                    value = tanggalMulai,
-                                    onValueChange = {
-                                        tanggalMulai = it
-                                    },
-                                    label = "Tanggal Mulai Cuti",
-                                    icon = Icons.Default.CalendarMonth
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(10.dp)
-                                )
-
-                                InputField(
-                                    value = tanggalSelesai,
-                                    onValueChange = {
-                                        tanggalSelesai = it
-                                    },
-                                    label = "Tanggal Selesai Cuti",
-                                    icon = Icons.Default.CalendarMonth
-                                )
-                            }
-
-                            Spacer(
-                                modifier = Modifier.height(12.dp)
-                            )
-
-                            // ==================================================
-                            // ALASAN
-                            // ==================================================
-
-                            OutlinedTextField(
-                                value = alasan,
-                                onValueChange = {
-                                    alasan = it
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(120.dp),
-                                label = {
-                                    Text(
-                                        "Alasan / Keterangan"
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector =
-                                            Icons.Default.Description,
-                                        contentDescription = null
-                                    )
-                                },
-                                singleLine = false,
-                                maxLines = 5
-                            )
-
-                            Spacer(
-                                modifier = Modifier.height(18.dp)
-                            )
-
-                            // ==================================================
-                            // TOMBOL AJUKAN
-                            // ==================================================
-
-                            Button(
-                                onClick = {
-
-                                    if (isSubmitting) {
-                                        return@Button
-                                    }
-
-                                    errorMessage = ""
-                                    successMessage = ""
-
-                                    if (jenisDipilih == null) {
-
-                                        errorMessage =
-                                            "Silakan pilih jenis pengajuan."
-
-                                        return@Button
-                                    }
-
-                                    if (alasan.isBlank()) {
-
-                                        errorMessage =
-                                            "Alasan / Keterangan wajib diisi."
-
-                                        return@Button
-                                    }
-
-                                    isSubmitting = true
-
-                                    // --------------------------------------------------
-                                    // SIMPAN FIRESTORE
-                                    // --------------------------------------------------
-
-                                    coroutineScope.launch {
-                                        val result =
-                                            pengajuanRepository.simpanPengajuan(
-
-                                                jenis =
-                                                    jenisDipilih
-                                                        ?.name
-                                                        ?: "",
-
-                                                jamPulang =
-                                                    jamPulang,
-
-                                                jamKeluar =
-                                                    jamKeluar,
-
-                                                jamKembali =
-                                                    jamKembali,
-
-                                                tanggalMulai =
-                                                    if (
-                                                        jenisDipilih ==
-                                                        JenisPengajuan.PulangCepat ||
-                                                        jenisDipilih ==
-                                                        JenisPengajuan.IzinKeluar ||
-                                                        jenisDipilih ==
-                                                        JenisPengajuan.IzinTerlambat
-                                                    ) {
-                                                        tanggalHariIni
-                                                    } else {
-                                                        tanggalMulai
-                                                    },
-
-                                                tanggalSelesai =
-                                                    tanggalSelesai,
-
-                                                alasan =
-                                                    alasan
-                                            )
-
-                                        isSubmitting = false
-
-                                        if (result.isSuccess) {
-
-                                            successMessage =
-                                                "Pengajuan berhasil dikirim dan sedang menunggu approval admin."
-
-                                            errorMessage = ""
-
-                                            onSubmit(
-                                                jenisDipilih
-                                                    ?.name
-                                                    ?: "",
-
-                                                jamPulang,
-
-                                                jamKeluar,
-
-                                                jamKembali,
-
-                                                tanggalMulai,
-
-                                                tanggalSelesai,
-
-                                                alasan
-                                            )
-
-                                        } else {
-
-                                            errorMessage =
-                                                result.exceptionOrNull()
-                                                    ?.message
-                                                    ?: "Gagal menyimpan pengajuan."
-
-                                            successMessage = ""
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                enabled = !isSubmitting,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryGreen
-                                )
-                            ) {
-
-                                if (isSubmitting) {
-
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-
-                                    Spacer(
-                                        modifier = Modifier.width(8.dp)
-                                    )
-
-                                    Text(
-                                        text = "Mengirim..."
-                                    )
-
-                                } else {
-
-                                    Icon(
-                                        imageVector = Icons.Default.Send,
-                                        contentDescription = null
-                                    )
-
-                                    Spacer(
-                                        modifier = Modifier.width(8.dp)
-                                    )
-
-                                    Text(
-                                        text = "Ajukan Sekarang",
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
                             }
                         }
                     }
 
                     Spacer(
-                        modifier = Modifier.height(24.dp)
+                        modifier = Modifier.height(28.dp)
                     )
+
+                    // ==================================================
+                    // TOMBOL SELESAI
+                    // ==================================================
+
+                    Button(
+                        onClick = {
+                            onBack()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryGreen
+                        )
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Check,
+                            contentDescription =
+                                null
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(8.dp)
+                        )
+
+                        Text(
+                            text = "Selesai",
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
+                }
+
+            } else {
+
+                // ==================================================
+                // FORM NORMAL
+                // ==================================================
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(
+                            rememberScrollState()
+                        )
+                        .imePadding()
+                        .padding(
+                            horizontal = 20.dp
+                        )
+                ) {
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    // ==================================================
+                    // ERROR MESSAGE
+                    // ==================================================
+
+                    if (errorMessage.isNotBlank()) {
+
+                        Card(
+                            modifier =
+                                Modifier.fillMaxWidth(),
+                            shape =
+                                RoundedCornerShape(14.dp),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        Color(0xFFFFE4E6)
+                                )
+                        ) {
+
+                            Text(
+                                text =
+                                    errorMessage,
+                                modifier =
+                                    Modifier.padding(14.dp),
+                                fontSize =
+                                    13.sp,
+                                color =
+                                    Color(0xFFB91C1C)
+                            )
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(12.dp)
+                        )
+                    }
+
+                    // ==================================================
+                    // JENIS PENGAJUAN
+                    // ==================================================
+
+                    Text(
+                        text = "Jenis Pengajuan",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // ==================================================
+                    // PULANG CEPAT
+                    // ==================================================
+
+                    JenisPengajuanCard(
+
+                        icon = Icons.Default.ExitToApp,
+
+                        title = "Pulang Cepat",
+
+                        description =
+                            "Tanggal + Jam Pulang + Alasan",
+
+                        selected =
+                            jenisDipilih ==
+                                    JenisPengajuan.PulangCepat,
+
+                        onClick = {
+
+                            jenisDipilih =
+                                JenisPengajuan.PulangCepat
+
+                            errorMessage = ""
+                        }
+                    )
+
+                    // ==================================================
+                    // IZIN KELUAR
+                    // ==================================================
+
+                    JenisPengajuanCard(
+
+                        icon = Icons.Default.AccessTime,
+
+                        title = "Izin Keluar",
+
+                        description =
+                            "Tanggal + Jam Keluar + Jam Kembali + Alasan",
+
+                        selected =
+                            jenisDipilih ==
+                                    JenisPengajuan.IzinKeluar,
+
+                        onClick = {
+
+                            jenisDipilih =
+                                JenisPengajuan.IzinKeluar
+
+                            errorMessage = ""
+                        }
+                    )
+
+                    // ==================================================
+                    // IZIN TERLAMBAT
+                    // ==================================================
+
+                    JenisPengajuanCard(
+
+                        icon = Icons.Default.Schedule,
+
+                        title = "Izin Terlambat",
+
+                        description =
+                            "Alasan keterlambatan",
+
+                        selected =
+                            jenisDipilih ==
+                                    JenisPengajuan.IzinTerlambat,
+
+                        onClick = {
+
+                            jenisDipilih =
+                                JenisPengajuan.IzinTerlambat
+
+                            errorMessage = ""
+                        }
+                    )
+
+                    // ==================================================
+                    // IZIN SAKIT
+                    // ==================================================
+
+                    JenisPengajuanCard(
+
+                        icon = Icons.Default.HealthAndSafety,
+
+                        title = "Izin Sakit",
+
+                        description =
+                            "Tanggal Mulai – Selesai + Alasan",
+
+                        selected =
+                            jenisDipilih ==
+                                    JenisPengajuan.IzinSakit,
+
+                        onClick = {
+
+                            jenisDipilih =
+                                JenisPengajuan.IzinSakit
+
+                            errorMessage = ""
+                        }
+                    )
+
+                    // ==================================================
+                    // CUTI REGULER
+                    // ==================================================
+
+                    JenisPengajuanCard(
+
+                        icon = Icons.Default.Event,
+
+                        title = "Cuti Reguler",
+
+                        description =
+                            "Min. H-7, maksimal 2 hari, maksimal 2x/bulan",
+
+                        selected =
+                            jenisDipilih ==
+                                    JenisPengajuan.CutiReguler,
+
+                        onClick = {
+
+                            jenisDipilih =
+                                JenisPengajuan.CutiReguler
+
+                            errorMessage = ""
+                        }
+                    )
+
+                    // ==================================================
+                    // FORM DETAIL
+                    // ==================================================
+
+                    if (jenisDipilih != null) {
+
+                        Spacer(
+                            modifier = Modifier.height(18.dp)
+                        )
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = 2.dp
+                            )
+                        ) {
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp)
+                            ) {
+
+                                // ==================================================
+                                // JUDUL DETAIL
+                                // ==================================================
+
+                                Text(
+                                    text = "Detail Pengajuan",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(14.dp)
+                                )
+
+                                // ==================================================
+                                // PULANG CEPAT
+                                // ==================================================
+
+                                if (
+                                    jenisDipilih ==
+                                    JenisPengajuan.PulangCepat
+                                ) {
+
+                                    TanggalInfo(
+                                        tanggal = tanggalHariIni
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(12.dp)
+                                    )
+
+                                    InputField(
+                                        value = jamPulang,
+                                        onValueChange = {
+                                            jamPulang = it
+                                        },
+                                        label = "Jam Pulang",
+                                        icon =
+                                            Icons.Default.AccessTime
+                                    )
+                                }
+
+                                // ==================================================
+                                // IZIN KELUAR
+                                // ==================================================
+
+                                if (
+                                    jenisDipilih ==
+                                    JenisPengajuan.IzinKeluar
+                                ) {
+
+                                    TanggalInfo(
+                                        tanggal = tanggalHariIni
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(12.dp)
+                                    )
+
+                                    InputField(
+                                        value = jamKeluar,
+                                        onValueChange = {
+                                            jamKeluar = it
+                                        },
+                                        label = "Jam Keluar",
+                                        icon =
+                                            Icons.Default.AccessTime
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(10.dp)
+                                    )
+
+                                    InputField(
+                                        value = jamKembali,
+                                        onValueChange = {
+                                            jamKembali = it
+                                        },
+                                        label = "Jam Kembali",
+                                        icon =
+                                            Icons.Default.AccessTime
+                                    )
+                                }
+
+                                // ==================================================
+                                // IZIN TERLAMBAT
+                                // ==================================================
+
+                                if (
+                                    jenisDipilih ==
+                                    JenisPengajuan.IzinTerlambat
+                                ) {
+
+                                    TanggalInfo(
+                                        tanggal = tanggalHariIni
+                                    )
+                                }
+
+                                // ==================================================
+                                // IZIN SAKIT
+                                // ==================================================
+
+                                if (
+                                    jenisDipilih ==
+                                    JenisPengajuan.IzinSakit
+                                ) {
+
+                                    InputField(
+                                        value = tanggalMulai,
+                                        onValueChange = {
+                                            tanggalMulai = it
+                                        },
+                                        label = "Tanggal Mulai",
+                                        icon =
+                                            Icons.Default.CalendarMonth
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(10.dp)
+                                    )
+
+                                    InputField(
+                                        value = tanggalSelesai,
+                                        onValueChange = {
+                                            tanggalSelesai = it
+                                        },
+                                        label = "Tanggal Selesai",
+                                        icon =
+                                            Icons.Default.CalendarMonth
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(10.dp)
+                                    )
+
+                                    Text(
+                                        text =
+                                            "Jika sakit 3 hari atau lebih, lampirkan surat dokter.",
+                                        fontSize =
+                                            12.sp,
+                                        color =
+                                            TextGray
+                                    )
+                                }
+
+                                // ==================================================
+                                // CUTI REGULER
+                                // ==================================================
+
+                                if (
+                                    jenisDipilih ==
+                                    JenisPengajuan.CutiReguler
+                                ) {
+
+                                    Card(
+                                        modifier =
+                                            Modifier.fillMaxWidth(),
+                                        shape =
+                                            RoundedCornerShape(14.dp),
+                                        colors =
+                                            CardDefaults.cardColors(
+                                                containerColor =
+                                                    SoftGreen
+                                            )
+                                    ) {
+
+                                        Column(
+                                            modifier =
+                                                Modifier.padding(14.dp)
+                                        ) {
+
+                                            Text(
+                                                text =
+                                                    "Sisa kuota cuti",
+                                                fontSize =
+                                                    12.sp,
+                                                color =
+                                                    TextGray
+                                            )
+
+                                            Spacer(
+                                                modifier =
+                                                    Modifier.height(3.dp)
+                                            )
+
+                                            Text(
+                                                text =
+                                                    "8 / 12 hari",
+                                                fontSize =
+                                                    21.sp,
+                                                fontWeight =
+                                                    FontWeight.Bold,
+                                                color =
+                                                    PrimaryGreen
+                                            )
+
+                                            Spacer(
+                                                modifier =
+                                                    Modifier.height(5.dp)
+                                            )
+
+                                            Text(
+                                                text =
+                                                    "Ajukan minimal H-7. Maksimal 2 hari sekali dan 2 kali dalam 1 bulan.",
+                                                fontSize =
+                                                    12.sp,
+                                                color =
+                                                    TextGray
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(12.dp)
+                                    )
+
+                                    InputField(
+                                        value =
+                                            tanggalMulai,
+                                        onValueChange = {
+                                            tanggalMulai = it
+                                        },
+                                        label =
+                                            "Tanggal Mulai Cuti",
+                                        icon =
+                                            Icons.Default.CalendarMonth
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(10.dp)
+                                    )
+
+                                    InputField(
+                                        value =
+                                            tanggalSelesai,
+                                        onValueChange = {
+                                            tanggalSelesai = it
+                                        },
+                                        label =
+                                            "Tanggal Selesai Cuti",
+                                        icon =
+                                            Icons.Default.CalendarMonth
+                                    )
+                                }
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.height(12.dp)
+                                )
+
+                                // ==================================================
+                                // ALASAN
+                                // ==================================================
+
+                                OutlinedTextField(
+                                    value = alasan,
+                                    onValueChange = {
+                                        alasan = it
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(120.dp),
+                                    label = {
+                                        Text(
+                                            "Alasan / Keterangan"
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector =
+                                                Icons.Default.Description,
+                                            contentDescription =
+                                                null
+                                        )
+                                    },
+                                    singleLine = false,
+                                    maxLines = 5
+                                )
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.height(18.dp)
+                                )
+
+                                // ==================================================
+                                // TOMBOL AJUKAN
+                                // ==================================================
+
+                                Button(
+                                    onClick = {
+
+                                        if (isSubmitting) {
+                                            return@Button
+                                        }
+
+                                        errorMessage = ""
+
+                                        if (jenisDipilih == null) {
+
+                                            errorMessage =
+                                                "Silakan pilih jenis pengajuan."
+
+                                            return@Button
+                                        }
+
+                                        if (alasan.isBlank()) {
+
+                                            errorMessage =
+                                                "Alasan / Keterangan wajib diisi."
+
+                                            return@Button
+                                        }
+
+                                        isSubmitting = true
+
+                                        // ==================================================
+                                        // SIMPAN FIRESTORE
+                                        // ==================================================
+
+                                        coroutineScope.launch {
+
+                                            val jenisSaatSubmit =
+                                                jenisDipilih
+                                                    ?.name
+                                                    ?: ""
+
+                                            val tanggalMulaiSaatSubmit =
+                                                if (
+                                                    jenisDipilih ==
+                                                    JenisPengajuan.PulangCepat ||
+                                                    jenisDipilih ==
+                                                    JenisPengajuan.IzinKeluar ||
+                                                    jenisDipilih ==
+                                                    JenisPengajuan.IzinTerlambat
+                                                ) {
+                                                    tanggalHariIni
+                                                } else {
+                                                    tanggalMulai
+                                                }
+
+                                            val result =
+                                                pengajuanRepository
+                                                    .simpanPengajuan(
+
+                                                        jenis =
+                                                            jenisSaatSubmit,
+
+                                                        jamPulang =
+                                                            jamPulang,
+
+                                                        jamKeluar =
+                                                            jamKeluar,
+
+                                                        jamKembali =
+                                                            jamKembali,
+
+                                                        tanggalMulai =
+                                                            tanggalMulaiSaatSubmit,
+
+                                                        tanggalSelesai =
+                                                            tanggalSelesai,
+
+                                                        alasan =
+                                                            alasan
+                                                    )
+
+                                            isSubmitting = false
+
+                                            if (result.isSuccess) {
+
+                                                // ==================================================
+                                                // DATA BERHASIL TERKIRIM
+                                                // ==================================================
+
+                                                errorMessage = ""
+
+                                                // ==================================================
+                                                // PANGGIL CALLBACK
+                                                // ==================================================
+
+                                                onSubmit(
+                                                    jenisSaatSubmit,
+
+                                                    jamPulang,
+
+                                                    jamKeluar,
+
+                                                    jamKembali,
+
+                                                    tanggalMulaiSaatSubmit,
+
+                                                    tanggalSelesai,
+
+                                                    alasan
+                                                )
+
+                                                // ==================================================
+                                                // TUTUP DETAIL DAN TAMPILKAN SUKSES
+                                                // ==================================================
+
+                                                jenisDipilih = null
+
+                                                pengajuanBerhasil = true
+
+                                            } else {
+
+                                                errorMessage =
+                                                    result
+                                                        .exceptionOrNull()
+                                                        ?.message
+                                                        ?: "Gagal menyimpan pengajuan."
+                                            }
+                                        }
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxWidth(),
+                                    shape =
+                                        RoundedCornerShape(14.dp),
+                                    enabled =
+                                        !isSubmitting,
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor =
+                                                PrimaryGreen
+                                        )
+                                ) {
+
+                                    if (isSubmitting) {
+
+                                        CircularProgressIndicator(
+                                            modifier =
+                                                Modifier.size(20.dp),
+                                            color =
+                                                Color.White,
+                                            strokeWidth =
+                                                2.dp
+                                        )
+
+                                        Spacer(
+                                            modifier =
+                                                Modifier.width(8.dp)
+                                        )
+
+                                        Text(
+                                            text =
+                                                "Mengirim..."
+                                        )
+
+                                    } else {
+
+                                        Icon(
+                                            imageVector =
+                                                Icons.Default.Send,
+                                            contentDescription =
+                                                null
+                                        )
+
+                                        Spacer(
+                                            modifier =
+                                                Modifier.width(8.dp)
+                                        )
+
+                                        Text(
+                                            text =
+                                                "Ajukan Sekarang",
+                                            fontWeight =
+                                                FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(24.dp)
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+// ==========================================================
+// BOX CENTER
+// ==========================================================
+
+@Composable
+private fun BoxCenter(
+    content: @Composable () -> Unit
+) {
+
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }
 

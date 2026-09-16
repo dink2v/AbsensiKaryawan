@@ -5,7 +5,10 @@ import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -20,6 +23,7 @@ import com.example.absensikaryawan.screens.BantuanScreen
 import com.example.absensikaryawan.screens.BottomNavigationBar
 import com.example.absensikaryawan.screens.ChatAdminScreen
 import com.example.absensikaryawan.screens.DetailPengajuanScreen
+import com.example.absensikaryawan.screens.FilterStatusPengajuan
 import com.example.absensikaryawan.screens.NotifikasiScreen
 import com.example.absensikaryawan.screens.PengajuanBaruScreen
 import com.example.absensikaryawan.screens.PengajuanScreen
@@ -32,7 +36,6 @@ import com.example.absensikaryawan.screens.StaffDashboardScreen
 import com.example.absensikaryawan.screens.TampilanScreen
 import com.example.absensikaryawan.screens.TentangAplikasiScreen
 import com.example.absensikaryawan.screens.ThemeMode
-import com.example.absensikaryawan.screens.FilterStatusPengajuan
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -43,6 +46,7 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 
 // ==========================================================
 // TARGET NOTIFIKASI
@@ -64,6 +68,7 @@ enum class NotificationTarget {
 
     CHAT_ADMIN
 }
+
 
 // ==========================================================
 // STAFF NAVIGATION
@@ -88,6 +93,7 @@ fun StaffNavigation(
 
     val coroutineScope = rememberCoroutineScope()
 
+
     // ======================================================
     // CURRENT SCREEN
     // ======================================================
@@ -95,6 +101,7 @@ fun StaffNavigation(
     var currentScreen by remember {
         mutableStateOf(StaffScreen.Dashboard)
     }
+
 
     // ======================================================
     // BOTTOM NAVIGATION
@@ -104,6 +111,7 @@ fun StaffNavigation(
         mutableIntStateOf(0)
     }
 
+
     // ======================================================
     // REFRESH DASHBOARD / RIWAYAT
     // ======================================================
@@ -111,6 +119,7 @@ fun StaffNavigation(
     var refreshKey by remember {
         mutableIntStateOf(0)
     }
+
 
     // ======================================================
     // DATA PENGAJUAN YANG DIPILIH
@@ -120,6 +129,7 @@ fun StaffNavigation(
         mutableStateOf<Map<String, Any>?>(null)
     }
 
+
     // ======================================================
     // SCREEN ASAL DETAIL PENGAJUAN
     // ======================================================
@@ -128,12 +138,30 @@ fun StaffNavigation(
         mutableStateOf(StaffScreen.Pengajuan)
     }
 
+
     // ======================================================
     // TARGET NOTIFIKASI
     // ======================================================
 
     var notificationTarget by remember {
         mutableStateOf(NotificationTarget.NONE)
+    }
+
+
+    // ======================================================
+    // PESAN PENOLAKAN ABSENSI
+    // ======================================================
+
+    var attendanceMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    // ======================================================
+    // RESET SCANNER QR
+    // ======================================================
+
+    var scanResetKey by remember {
+        mutableIntStateOf(0)
     }
 
     // ======================================================
@@ -188,10 +216,6 @@ fun StaffNavigation(
                                     StaffScreen.Dashboard
                             }
 
-                        // ==========================================
-                        // RESET TARGET NOTIFIKASI
-                        // ==========================================
-
                         notificationTarget =
                             NotificationTarget.NONE
                     }
@@ -202,13 +226,15 @@ fun StaffNavigation(
     ) { paddingValues ->
 
         Box(
-
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-
         ) {
+
+            // ==================================================
+            // SCREEN NAVIGATION
+            // ==================================================
 
             when (currentScreen) {
 
@@ -289,6 +315,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // SCAN QR
                 // ==================================================
@@ -297,43 +324,28 @@ fun StaffNavigation(
 
                     ScanAbsenScreen(
 
-                        onBack = {
+                        externalResetKey = scanResetKey,
 
-                            selectedBottomItem = 0
+                        onBack = {
 
                             currentScreen =
                                 StaffScreen.Dashboard
+
+                            selectedBottomItem = 0
                         },
 
-                        onQrScanned = { qrData, catatan ->
+                        onQrScanned = {
+                                qrData,
+                                catatan,
+                                kantor ->
 
                             coroutineScope.launch {
 
                                 try {
 
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "================================"
-                                    )
-
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "QR ABSEN DITERIMA"
-                                    )
-
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "QR DATA = $qrData"
-                                    )
-
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "CATATAN = $catatan"
-                                    )
-
-                                    // ==================================
-                                    // USER LOGIN
-                                    // ==================================
+                                    // ==========================================
+                                    // CEK LOGIN
+                                    // ==========================================
 
                                     val currentUser =
                                         auth.currentUser
@@ -342,8 +354,12 @@ fun StaffNavigation(
 
                                         Log.e(
                                             "STAFF_NAV",
-                                            "USER BELUM LOGIN"
+                                            "User belum login"
                                         )
+
+                                        attendanceMessage =
+                                            "Sesi login tidak ditemukan.\n\n" +
+                                                    "Silakan login kembali."
 
                                         return@launch
                                     }
@@ -351,44 +367,96 @@ fun StaffNavigation(
                                     val uid =
                                         currentUser.uid
 
-                                    // ==================================
-                                    // TANGGAL HARI INI
-                                    // ==================================
+
+                                    // ==========================================
+                                    // WAKTU SEKARANG
+                                    // ==========================================
+
+                                    val now =
+                                        Date()
 
                                     val tanggalHariIni =
                                         SimpleDateFormat(
                                             "yyyy-MM-dd",
                                             Locale.getDefault()
-                                        ).format(Date())
-
-                                    // ==================================
-                                    // JAM SEKARANG
-                                    // ==================================
+                                        ).format(now)
 
                                     val jamSekarang =
                                         SimpleDateFormat(
                                             "HH:mm:ss",
                                             Locale.getDefault()
-                                        ).format(Date())
+                                        ).format(now)
+
+
+                                    // ==========================================
+                                    // PARSING JAM
+                                    // ==========================================
+
+                                    val jamMenitSekarang =
+                                        SimpleDateFormat(
+                                            "HH:mm",
+                                            Locale.getDefault()
+                                        ).format(now)
+
+                                    val jamSekarangMenit =
+                                        jamMenitSekarang
+                                            .substring(0, 2)
+                                            .toInt()
+
+                                    val menitSekarang =
+                                        jamMenitSekarang
+                                            .substring(3, 5)
+                                            .toInt()
+
+                                    val totalMenitSekarang =
+                                        (jamSekarangMenit * 60) +
+                                                menitSekarang
+
+
+                                    // ==========================================
+                                    // BATAS WAKTU ABSENSI
+                                    // ==========================================
+
+                                    val waktuMasukMulai =
+                                        6 * 60
+
+                                    val waktuPulangMulai =
+                                        16 * 60
+
+                                    val waktuPulangSelesai =
+                                        21 * 60
+
+
+                                    // ==========================================
+                                    // IDENTITAS USER
+                                    // ==========================================
+
+                                    val namaUser =
+                                        currentUser.displayName
+                                            ?.takeIf {
+                                                it.isNotBlank()
+                                            }
+                                            ?: currentUser.email
+                                                ?.substringBefore("@")
+                                                ?.takeIf {
+                                                    it.isNotBlank()
+                                                }
+                                            ?: "Staff"
+
 
                                     Log.d(
                                         "STAFF_NAV",
-                                        "UID = $uid"
+                                        "QR SCAN → " +
+                                                "qrData=$qrData | " +
+                                                "kantor=$kantor | " +
+                                                "tanggal=$tanggalHariIni | " +
+                                                "jam=$jamSekarang"
                                     )
 
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "TANGGAL = $tanggalHariIni"
-                                    )
 
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "JAM = $jamSekarang"
-                                    )
-
-                                    // ==================================
-                                    // CARI ABSENSI HARI INI
-                                    // ==================================
+                                    // ==========================================
+                                    // AMBIL DATA ABSENSI HARI INI
+                                    // ==========================================
 
                                     val attendanceSnapshot =
                                         db.collection("attendance")
@@ -404,35 +472,74 @@ fun StaffNavigation(
                                             .get()
                                             .await()
 
-                                    // ==================================
-                                    // BELUM ADA ABSENSI
-                                    // = ABSEN MASUK
-                                    // ==================================
 
-                                    if (attendanceSnapshot.isEmpty) {
+                                    // ==================================================
+                                    // BELUM ADA DATA ABSENSI
+                                    // ==================================================
 
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "BELUM ADA ABSENSI HARI INI"
-                                        )
+                                    if (
+                                        attendanceSnapshot.isEmpty
+                                    ) {
 
-                                        val namaUser =
-                                            currentUser
-                                                .displayName
-                                                ?.takeIf {
-                                                    it.isNotBlank()
-                                                }
-                                                ?: currentUser
-                                                    .email
-                                                    ?.substringBefore("@")
-                                                ?: "Staff"
+                                        // ==========================================
+                                        // SEBELUM 06.00
+                                        // ==========================================
+
+                                        if (
+                                            totalMenitSekarang <
+                                            waktuMasukMulai
+                                        ) {
+
+                                            Log.w(
+                                                "STAFF_NAV",
+                                                "ABSEN DITOLAK → Belum masuk jam absensi"
+                                            )
+
+                                            attendanceMessage =
+                                                "Absen masuk belum dibuka.\n\n" +
+                                                        "Silakan melakukan absen mulai pukul 06.00."
+
+                                            scanResetKey++
+
+                                            return@launch
+                                        }
+
+
+                                        // ==========================================
+                                        // SUDAH 16.00 TAPI BELUM ABSEN MASUK
+                                        // ==========================================
+
+                                        if (
+                                            totalMenitSekarang >=
+                                            waktuPulangMulai
+                                        ) {
+
+                                            Log.w(
+                                                "STAFF_NAV",
+                                                "ABSEN DITOLAK → Belum melakukan absen masuk"
+                                            )
+
+                                            attendanceMessage =
+                                                "Anda belum melakukan absen masuk hari ini.\n\n" +
+                                                        "Absen masuk hanya dapat dilakukan sebelum pukul 16.00."
+
+                                            return@launch
+                                        }
+
+
+                                        // ==========================================
+                                        // ABSEN MASUK
+                                        // 06.00 - sebelum 16.00
+                                        // ==========================================
 
                                         val attendanceData =
                                             hashMapOf<String, Any>(
 
-                                                "uid" to uid,
+                                                "uid" to
+                                                        uid,
 
-                                                "nama" to namaUser,
+                                                "nama" to
+                                                        namaUser,
 
                                                 "tanggal" to
                                                         tanggalHariIni,
@@ -440,44 +547,43 @@ fun StaffNavigation(
                                                 "jamMasuk" to
                                                         jamSekarang,
 
-                                                "jamPulang" to "",
+                                                "jamPulang" to
+                                                        "",
+
+                                                "status" to
+                                                        "Hadir",
 
                                                 "qrData" to
                                                         qrData,
+
+                                                "kantor" to
+                                                        kantor,
 
                                                 "catatan" to
                                                         catatan
                                             )
 
-                                        db.collection("attendance")
-                                            .add(attendanceData)
+
+                                        db.collection(
+                                            "attendance"
+                                        )
+                                            .add(
+                                                attendanceData
+                                            )
                                             .await()
 
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "================================"
-                                        )
 
                                         Log.d(
                                             "STAFF_NAV",
-                                            "ABSEN MASUK BERHASIL"
-                                        )
-
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "JAM MASUK = $jamSekarang"
-                                        )
-
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "================================"
+                                            "ABSEN MASUK BERHASIL → " +
+                                                    "$kantor | $jamSekarang"
                                         )
 
                                     } else {
 
-                                        // ==================================
-                                        // ABSENSI SUDAH ADA
-                                        // ==================================
+                                        // ==================================================
+                                        // DATA ABSENSI SUDAH ADA
+                                        // ==================================================
 
                                         val document =
                                             attendanceSnapshot
@@ -485,52 +591,74 @@ fun StaffNavigation(
                                                 .first()
 
                                         val jamMasuk =
-                                            document
-                                                .getString(
-                                                    "jamMasuk"
-                                                )
-                                                ?: ""
+                                            document.getString(
+                                                "jamMasuk"
+                                            ) ?: ""
 
                                         val jamPulang =
-                                            document
-                                                .getString(
-                                                    "jamPulang"
-                                                )
-                                                ?: ""
+                                            document.getString(
+                                                "jamPulang"
+                                            ) ?: ""
 
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "ABSENSI DITEMUKAN"
-                                        )
 
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "DOCUMENT ID = ${document.id}"
-                                        )
-
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "JAM MASUK = $jamMasuk"
-                                        )
-
-                                        Log.d(
-                                            "STAFF_NAV",
-                                            "JAM PULANG = $jamPulang"
-                                        )
-
-                                        // ==================================
-                                        // ABSEN PULANG
-                                        // ==================================
+                                        // ==================================================
+                                        // SUDAH MASUK, BELUM PULANG
+                                        // ==================================================
 
                                         if (
                                             jamMasuk.isNotBlank() &&
                                             jamPulang.isBlank()
                                         ) {
 
-                                            Log.d(
-                                                "STAFF_NAV",
-                                                "ABSEN PULANG DIPROSES"
-                                            )
+                                            // ==========================================
+                                            // SEBELUM 16.00
+                                            // ==========================================
+
+                                            if (
+                                                totalMenitSekarang <
+                                                waktuPulangMulai
+                                            ) {
+
+                                                Log.w(
+                                                    "STAFF_NAV",
+                                                    "ABSEN PULANG DITOLAK → Belum masuk jam pulang"
+                                                )
+
+                                                attendanceMessage =
+                                                    "Absen pulang belum dibuka.\n\n" +
+                                                            "Absen pulang dapat dilakukan mulai pukul 16.00."
+
+                                                return@launch
+                                            }
+
+
+                                            // ==========================================
+                                            // SETELAH 21.00
+                                            // ==========================================
+
+                                            if (
+                                                totalMenitSekarang >
+                                                waktuPulangSelesai
+                                            ) {
+
+                                                Log.w(
+                                                    "STAFF_NAV",
+                                                    "ABSEN PULANG DITOLAK → Sudah melewati jam pulang"
+                                                )
+
+                                                attendanceMessage =
+                                                    "Anda sudah melakukan absen masuk dan pulang hari ini."
+
+                                                scanResetKey++
+
+                                                return@launch
+                                            }
+
+
+                                            // ==========================================
+                                            // ABSEN PULANG
+                                            // 16.00 - 21.00
+                                            // ==========================================
 
                                             val updateData =
                                                 hashMapOf<String, Any>(
@@ -541,9 +669,13 @@ fun StaffNavigation(
                                                     "qrDataPulang" to
                                                             qrData,
 
+                                                    "kantorPulang" to
+                                                            kantor,
+
                                                     "catatanPulang" to
                                                             catatan
                                                 )
+
 
                                             document.reference
                                                 .update(
@@ -551,36 +683,18 @@ fun StaffNavigation(
                                                 )
                                                 .await()
 
-                                            Log.d(
-                                                "STAFF_NAV",
-                                                "================================"
-                                            )
 
                                             Log.d(
                                                 "STAFF_NAV",
-                                                "ABSEN PULANG BERHASIL"
+                                                "ABSEN PULANG BERHASIL → " +
+                                                        "$kantor | $jamSekarang"
                                             )
-
-                                            Log.d(
-                                                "STAFF_NAV",
-                                                "JAM PULANG = $jamSekarang"
-                                            )
-
-                                            Log.d(
-                                                "STAFF_NAV",
-                                                "DOCUMENT ID = ${document.id}"
-                                            )
-
-                                            Log.d(
-                                                "STAFF_NAV",
-                                                "================================"
-                                            )
-
                                         }
 
-                                        // ==================================
-                                        // ABSENSI SUDAH LENGKAP
-                                        // ==================================
+
+                                        // ==================================================
+                                        // SUDAH MASUK DAN SUDAH PULANG
+                                        // ==================================================
 
                                         else if (
                                             jamMasuk.isNotBlank() &&
@@ -589,76 +703,119 @@ fun StaffNavigation(
 
                                             Log.w(
                                                 "STAFF_NAV",
-                                                "ABSEN HARI INI SUDAH LENGKAP"
+                                                "USER SUDAH ABSEN MASUK DAN PULANG HARI INI"
                                             )
 
-                                            Log.w(
-                                                "STAFF_NAV",
-                                                "JAM MASUK = $jamMasuk"
-                                            )
+                                            attendanceMessage =
+                                                "Anda sudah melakukan absen masuk dan pulang hari ini."
 
-                                            Log.w(
-                                                "STAFF_NAV",
-                                                "JAM PULANG = $jamPulang"
-                                            )
+                                            return@launch
                                         }
 
-                                        // ==================================
-                                        // JAM MASUK KOSONG
-                                        // ==================================
+
+                                        // ==================================================
+                                        // DATA ADA TAPI JAM MASUK KOSONG
+                                        // ==================================================
 
                                         else if (
                                             jamMasuk.isBlank()
                                         ) {
 
-                                            Log.d(
-                                                "STAFF_NAV",
-                                                "JAM MASUK KOSONG"
-                                            )
+                                            // ==========================================
+                                            // SEBELUM 06.00
+                                            // ==========================================
+
+                                            if (
+                                                totalMenitSekarang <
+                                                waktuMasukMulai
+                                            ) {
+
+                                                Log.w(
+                                                    "STAFF_NAV",
+                                                    "ABSEN MASUK DITOLAK → Belum masuk jam absensi"
+                                                )
+
+                                                attendanceMessage =
+                                                    "Absen masuk belum dibuka.\n\n" +
+                                                            "Silakan melakukan absen mulai pukul 06.00."
+
+                                                return@launch
+                                            }
+
+
+                                            // ==========================================
+                                            // SUDAH 16.00
+                                            // ==========================================
+
+                                            if (
+                                                totalMenitSekarang >=
+                                                waktuPulangMulai
+                                            ) {
+
+                                                Log.w(
+                                                    "STAFF_NAV",
+                                                    "ABSEN MASUK DITOLAK → Sudah masuk waktu pulang"
+                                                )
+                                                attendanceMessage =
+                                                    "Absen pulang belum dibuka.\n\n" +
+                                                            "Absen pulang dapat dilakukan mulai pukul 16.00."
+
+                                                scanResetKey++
+
+                                                return@launch
+                                            }
+
+
+                                            // ==========================================
+                                            // UPDATE JAM MASUK
+                                            // ==========================================
+
+                                            val updateData =
+                                                hashMapOf<String, Any>(
+
+                                                    "jamMasuk" to
+                                                            jamSekarang,
+
+                                                    "status" to
+                                                            "Hadir",
+
+                                                    "qrData" to
+                                                            qrData,
+
+                                                    "kantor" to
+                                                            kantor,
+
+                                                    "catatan" to
+                                                            catatan
+                                                )
+
 
                                             document.reference
                                                 .update(
-
-                                                    mapOf(
-
-                                                        "jamMasuk" to
-                                                                jamSekarang,
-
-                                                        "qrData" to
-                                                                qrData,
-
-                                                        "catatan" to
-                                                                catatan
-                                                    )
+                                                    updateData
                                                 )
                                                 .await()
 
+
                                             Log.d(
                                                 "STAFF_NAV",
-                                                "ABSEN MASUK BERHASIL MELALUI UPDATE"
+                                                "JAM MASUK DIUPDATE → " +
+                                                        "$kantor | $jamSekarang"
                                             )
                                         }
                                     }
 
-                                    // ==================================
-                                    // REFRESH DATA
-                                    // ==================================
+
+                                    // ==========================================
+                                    // REFRESH UI
+                                    // ==========================================
 
                                     refreshKey++
-
-                                    // ==================================
-                                    // KEMBALI KE DASHBOARD
-                                    // ==================================
 
                                     selectedBottomItem = 0
 
                                     currentScreen =
                                         StaffScreen.Dashboard
-
-                                    Log.d(
-                                        "STAFF_NAV",
-                                        "KEMBALI KE DASHBOARD"
-                                    )
 
                                 } catch (e: Exception) {
 
@@ -667,11 +824,18 @@ fun StaffNavigation(
                                         "GAGAL MEMPROSES ABSEN",
                                         e
                                     )
+
+                                    attendanceMessage =
+                                        "Terjadi kesalahan saat memproses absensi.\n\n" +
+                                                "Silakan coba lagi."
+
+                                    scanResetKey++
                                 }
                             }
                         }
                     )
                 }
+
 
                 // ==================================================
                 // ABSEN LUAR KANTOR
@@ -694,6 +858,7 @@ fun StaffNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // PENGAJUAN
@@ -731,6 +896,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // PENGAJUAN BARU
                 // ==================================================
@@ -761,6 +927,7 @@ fun StaffNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // DETAIL PENGAJUAN
@@ -824,6 +991,7 @@ fun StaffNavigation(
                     }
                 }
 
+
                 // ==================================================
                 // RIWAYAT
                 // ==================================================
@@ -845,6 +1013,7 @@ fun StaffNavigation(
                             else ->
                                 FilterStatusPengajuan.SEMUA
                         }
+
 
                     RiwayatScreen(
 
@@ -913,6 +1082,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // RIWAYAT JAM PULANG
                 // ==================================================
@@ -929,6 +1099,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // PROFILE
                 // ==================================================
@@ -944,6 +1115,7 @@ fun StaffNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // NOTIFIKASI
@@ -969,6 +1141,7 @@ fun StaffNavigation(
                             notificationTarget =
                                 target
 
+
                             when (target) {
 
                                 NotificationTarget.RIWAYAT_ABSENSI -> {
@@ -979,6 +1152,7 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
+
                                 NotificationTarget.RIWAYAT_PENGAJUAN -> {
 
                                     selectedBottomItem = 3
@@ -986,6 +1160,7 @@ fun StaffNavigation(
                                     currentScreen =
                                         StaffScreen.Riwayat
                                 }
+
 
                                 NotificationTarget.PENGAJUAN_DISETUJUI -> {
 
@@ -995,6 +1170,7 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
+
                                 NotificationTarget.PENGAJUAN_DITOLAK -> {
 
                                     selectedBottomItem = 3
@@ -1002,6 +1178,7 @@ fun StaffNavigation(
                                     currentScreen =
                                         StaffScreen.Riwayat
                                 }
+
 
                                 NotificationTarget.PENGAJUAN_MENUNGGU -> {
 
@@ -1011,11 +1188,13 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
+
                                 NotificationTarget.CHAT_ADMIN -> {
 
                                     currentScreen =
                                         StaffScreen.ChatAdmin
                                 }
+
 
                                 NotificationTarget.NONE -> {
 
@@ -1025,6 +1204,7 @@ fun StaffNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // SETTINGS
@@ -1079,6 +1259,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // TAMPILAN
                 // ==================================================
@@ -1104,6 +1285,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // CHAT ADMIN
                 // ==================================================
@@ -1119,6 +1301,7 @@ fun StaffNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // BANTUAN
@@ -1142,6 +1325,7 @@ fun StaffNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // TENTANG APLIKASI
                 // ==================================================
@@ -1158,9 +1342,59 @@ fun StaffNavigation(
                     )
                 }
             }
+
+
+            // ==================================================
+            // DIALOG PESAN ABSENSI
+            // ==================================================
+
+            attendanceMessage?.let { message ->
+
+                AlertDialog(
+
+                    onDismissRequest = {
+
+                        attendanceMessage = null
+                    },
+
+                    title = {
+
+                        Text(
+                            text =
+                                "Absensi Tidak Dapat Dilakukan"
+                        )
+                    },
+
+                    text = {
+
+                        Text(
+                            text =
+                                message
+                        )
+                    },
+
+                    confirmButton = {
+
+                        TextButton(
+
+                            onClick = {
+
+                                attendanceMessage = null
+                            }
+
+                        ) {
+
+                            Text(
+                                text = "OK"
+                            )
+                        }
+                    }
+                )
+            }
         }
     }
 }
+
 
 // ==========================================================
 // STAFF SCREEN

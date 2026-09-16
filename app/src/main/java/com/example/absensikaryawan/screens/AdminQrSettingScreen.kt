@@ -1,5 +1,7 @@
 package com.example.absensikaryawan.screens
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,15 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
-
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,10 +40,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -51,6 +51,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.MultiFormatWriter
+import com.google.zxing.common.BitMatrix
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -86,11 +89,17 @@ fun AdminQrSettingScreen(
     // ======================================================
 
     var qrMalang by remember {
-        mutableStateOf("")
+        mutableStateOf(
+            "https://q.me-qr.com/x5ie23mg"
+        )
     }
 
     var aktifMalang by remember {
         mutableStateOf(true)
+    }
+
+    var qrBitmapMalang by remember {
+        mutableStateOf<Bitmap?>(null)
     }
 
 
@@ -99,11 +108,17 @@ fun AdminQrSettingScreen(
     // ======================================================
 
     var qrBlitar by remember {
-        mutableStateOf("")
+        mutableStateOf(
+            "https://q.me-qr.com/hbywvgy7"
+        )
     }
 
     var aktifBlitar by remember {
         mutableStateOf(true)
+    }
+
+    var qrBitmapBlitar by remember {
+        mutableStateOf<Bitmap?>(null)
     }
 
 
@@ -112,11 +127,17 @@ fun AdminQrSettingScreen(
     // ======================================================
 
     var qrKediri by remember {
-        mutableStateOf("")
+        mutableStateOf(
+            "https://q.me-qr.com/14vy2ipr"
+        )
     }
 
     var aktifKediri by remember {
         mutableStateOf(true)
+    }
+
+    var qrBitmapKediri by remember {
+        mutableStateOf<Bitmap?>(null)
     }
 
 
@@ -171,31 +192,31 @@ fun AdminQrSettingScreen(
 
                     "malang" -> {
 
-                        qrMalang =
-                            qrData
+                        if (qrData.isNotBlank()) {
+                            qrMalang = qrData
+                        }
 
-                        aktifMalang =
-                            aktif
+                        aktifMalang = aktif
                     }
 
 
                     "blitar" -> {
 
-                        qrBlitar =
-                            qrData
+                        if (qrData.isNotBlank()) {
+                            qrBlitar = qrData
+                        }
 
-                        aktifBlitar =
-                            aktif
+                        aktifBlitar = aktif
                     }
 
 
                     "kediri" -> {
 
-                        qrKediri =
-                            qrData
+                        if (qrData.isNotBlank()) {
+                            qrKediri = qrData
+                        }
 
-                        aktifKediri =
-                            aktif
+                        aktifKediri = aktif
                     }
                 }
             }
@@ -207,8 +228,7 @@ fun AdminQrSettingScreen(
 
         } finally {
 
-            loading =
-                false
+            loading = false
         }
     }
 
@@ -221,11 +241,9 @@ fun AdminQrSettingScreen(
 
         scope.launch {
 
-            saving =
-                true
+            saving = true
 
-            message =
-                ""
+            message = ""
 
             try {
 
@@ -289,10 +307,61 @@ fun AdminQrSettingScreen(
 
             } finally {
 
-                saving =
-                    false
+                saving = false
             }
         }
+    }
+
+
+    // ======================================================
+    // GENERATE QR
+    // ======================================================
+
+    fun generateQrMalang() {
+
+        qrBitmapMalang =
+            generateQrBitmap(
+                qrMalang
+            )
+
+        message =
+            if (qrBitmapMalang != null) {
+                "QR Malang berhasil dibuat."
+            } else {
+                "Data QR Malang masih kosong."
+            }
+    }
+
+
+    fun generateQrBlitar() {
+
+        qrBitmapBlitar =
+            generateQrBitmap(
+                qrBlitar
+            )
+
+        message =
+            if (qrBitmapBlitar != null) {
+                "QR Blitar berhasil dibuat."
+            } else {
+                "Data QR Blitar masih kosong."
+            }
+    }
+
+
+    fun generateQrKediri() {
+
+        qrBitmapKediri =
+            generateQrBitmap(
+                qrKediri
+            )
+
+        message =
+            if (qrBitmapKediri != null) {
+                "QR Kediri berhasil dibuat."
+            } else {
+                "Data QR Kediri masih kosong."
+            }
     }
 
 
@@ -377,7 +446,7 @@ fun AdminQrSettingScreen(
 
                 Text(
                     text =
-                        "Atur QR yang boleh digunakan Staff",
+                        "Generate dan atur QR yang digunakan Staff",
 
                     fontSize =
                         12.sp,
@@ -529,16 +598,27 @@ fun AdminQrSettingScreen(
                 aktif =
                     aktifMalang,
 
-                onQrChange = { value: String ->
+                qrBitmap =
+                    qrBitmapMalang,
+
+                onQrChange = { value ->
 
                     qrMalang =
                         value
+
+                    qrBitmapMalang =
+                        null
                 },
 
                 onAktifChange = {
 
                     aktifMalang =
                         !aktifMalang
+                },
+
+                onGenerate = {
+
+                    generateQrMalang()
                 }
             )
 
@@ -564,16 +644,27 @@ fun AdminQrSettingScreen(
                 aktif =
                     aktifBlitar,
 
-                onQrChange = { value: String ->
+                qrBitmap =
+                    qrBitmapBlitar,
+
+                onQrChange = { value ->
 
                     qrBlitar =
                         value
+
+                    qrBitmapBlitar =
+                        null
                 },
 
                 onAktifChange = {
 
                     aktifBlitar =
                         !aktifBlitar
+                },
+
+                onGenerate = {
+
+                    generateQrBlitar()
                 }
             )
 
@@ -599,16 +690,27 @@ fun AdminQrSettingScreen(
                 aktif =
                     aktifKediri,
 
-                onQrChange = { value: String ->
+                qrBitmap =
+                    qrBitmapKediri,
+
+                onQrChange = { value ->
 
                     qrKediri =
                         value
+
+                    qrBitmapKediri =
+                        null
                 },
 
                 onAktifChange = {
 
                     aktifKediri =
                         !aktifKediri
+                },
+
+                onGenerate = {
+
+                    generateQrKediri()
                 }
             )
         }
@@ -638,8 +740,9 @@ fun AdminQrSettingScreen(
 
                 color =
                     if (
-                        message ==
-                        "Pengaturan QR berhasil disimpan."
+                        message.contains(
+                            "berhasil"
+                        )
                     ) {
 
                         PrimaryGreen
@@ -758,9 +861,13 @@ private fun QrOfficeCard(
 
     aktif: Boolean,
 
+    qrBitmap: Bitmap?,
+
     onQrChange: (String) -> Unit,
 
-    onAktifChange: () -> Unit
+    onAktifChange: () -> Unit,
+
+    onGenerate: () -> Unit
 
 ) {
 
@@ -911,6 +1018,109 @@ private fun QrOfficeCard(
 
 
             // ==================================================
+            // QR PREVIEW
+            // ==================================================
+
+            if (qrBitmap != null) {
+
+                Card(
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                bottom = 12.dp
+                            ),
+
+                    shape =
+                        RoundedCornerShape(
+                            14.dp
+                        ),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color(0xFFF8FAFC)
+                        ),
+
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation =
+                                0.dp
+                        )
+
+                ) {
+
+                    Column(
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+
+                    ) {
+
+                        Text(
+
+                            text =
+                                "QR KANTOR $namaKantor",
+
+                            fontSize =
+                                13.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                TextDark
+                        )
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(12.dp)
+                        )
+
+
+                        Image(
+
+                            bitmap =
+                                qrBitmap.asImageBitmap(),
+
+                            contentDescription =
+                                "QR Code Kantor $namaKantor",
+
+                            modifier =
+                                Modifier.size(230.dp)
+                        )
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(10.dp)
+                        )
+
+
+                        Text(
+
+                            text =
+                                "Scan QR ini untuk absensi.",
+
+                            fontSize =
+                                11.sp,
+
+                            color =
+                                TextGray
+                        )
+                    }
+                }
+            }
+
+
+            // ==================================================
             // QR DATA
             // ==================================================
 
@@ -957,7 +1167,84 @@ private fun QrOfficeCard(
 
             Spacer(
                 modifier =
-                    Modifier.height(6.dp)
+                    Modifier.height(10.dp)
+            )
+
+
+            // ==================================================
+            // GENERATE BUTTON
+            // ==================================================
+
+            Button(
+
+                onClick =
+                    onGenerate,
+
+                enabled =
+                    qrData.isNotBlank(),
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+
+                shape =
+                    RoundedCornerShape(
+                        12.dp
+                    ),
+
+                colors =
+                    ButtonDefaults.buttonColors(
+
+                        containerColor =
+                            PrimaryGreen
+                    )
+
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        Icons.Default.Refresh,
+
+                    contentDescription =
+                        null,
+
+                    modifier =
+                        Modifier.size(19.dp)
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(8.dp)
+                )
+
+
+                Text(
+
+                    text =
+                        if (qrBitmap == null) {
+
+                            "Generate QR Code"
+
+                        } else {
+
+                            "Generate Ulang QR Code"
+                        },
+
+                    fontSize =
+                        13.sp,
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(8.dp)
             )
 
 
@@ -991,5 +1278,75 @@ private fun QrOfficeCard(
                     }
             )
         }
+    }
+}
+
+
+// ==========================================================
+// GENERATE BITMAP QR
+// ==========================================================
+
+private fun generateQrBitmap(
+    data: String
+): Bitmap? {
+
+    if (
+        data.isBlank()
+    ) {
+        return null
+    }
+
+    return try {
+
+        val size = 800
+
+        val bitMatrix: BitMatrix =
+            MultiFormatWriter().encode(
+                data.trim(),
+                BarcodeFormat.QR_CODE,
+                size,
+                size
+            )
+
+        val bitmap =
+            Bitmap.createBitmap(
+                size,
+                size,
+                Bitmap.Config.RGB_565
+            )
+
+        for (x in 0 until size) {
+
+            for (y in 0 until size) {
+
+                bitmap.setPixel(
+
+                    x,
+                    y,
+
+                    if (
+                        bitMatrix.get(
+                            x,
+                            y
+                        )
+                    ) {
+
+                        android.graphics.Color.BLACK
+
+                    } else {
+
+                        android.graphics.Color.WHITE
+                    }
+                )
+            }
+        }
+
+        bitmap
+
+    } catch (e: Exception) {
+
+        e.printStackTrace()
+
+        null
     }
 }
