@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.UserRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -96,17 +97,15 @@ fun LoginScreen(
     // AUTO SCROLL PASSWORD
     // ==========================================================
 
-    val passwordBringIntoViewRequester =
-        remember {
-            BringIntoViewRequester()
-        }
+    val passwordBringIntoViewRequester = remember {
+        BringIntoViewRequester()
+    }
 
     // ==========================================================
     // SCROLL
     // ==========================================================
 
-    val scrollState =
-        rememberScrollState()
+    val scrollState = rememberScrollState()
 
     // ==========================================================
     // SCREEN
@@ -455,36 +454,49 @@ fun LoginScreen(
                                             onStaffLogin()
                                         }
 
+                                    } catch (e: FirebaseAuthException) {
+
+                                        // ==================================================
+                                        // FIREBASE AUTH ERROR
+                                        // ==================================================
+
+                                        errorMessage = when (e.errorCode) {
+
+                                            "ERROR_INVALID_EMAIL" ->
+                                                "Format email tidak valid."
+
+                                            "ERROR_INVALID_CREDENTIAL" ->
+                                                "Email atau password salah, atau kredensial sudah tidak valid."
+
+                                            "ERROR_WRONG_PASSWORD" ->
+                                                "Password salah."
+
+                                            "ERROR_USER_NOT_FOUND" ->
+                                                "Email belum terdaftar di Firebase Authentication."
+
+                                            "ERROR_USER_DISABLED" ->
+                                                "Akun ini telah dinonaktifkan."
+
+                                            "ERROR_TOO_MANY_REQUESTS" ->
+                                                "Terlalu banyak percobaan login. Coba lagi beberapa saat."
+
+                                            "ERROR_NETWORK_REQUEST_FAILED" ->
+                                                "Tidak dapat terhubung ke server. Periksa koneksi internet."
+
+                                            else ->
+                                                e.message
+                                                    ?: "Login gagal."
+                                        }
+
                                     } catch (e: Exception) {
 
+                                        // ==================================================
+                                        // ERROR LAIN
+                                        // ==================================================
+
                                         errorMessage =
-                                            when {
-
-                                                e.message
-                                                    ?.contains(
-                                                        "password",
-                                                        ignoreCase = true
-                                                    ) == true ->
-                                                    "Password salah."
-
-                                                e.message
-                                                    ?.contains(
-                                                        "no user record",
-                                                        ignoreCase = true
-                                                    ) == true ->
-                                                    "Email belum terdaftar di Firebase Authentication."
-
-                                                e.message
-                                                    ?.contains(
-                                                        "badly formatted",
-                                                        ignoreCase = true
-                                                    ) == true ->
-                                                    "Format email tidak valid."
-
-                                                else ->
-                                                    e.message
-                                                        ?: "Login gagal."
-                                            }
+                                            e.message
+                                                ?: "Login gagal."
 
                                     } finally {
 
