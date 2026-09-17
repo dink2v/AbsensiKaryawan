@@ -419,7 +419,7 @@ private fun LogoutCard(
                 shape = RoundedCornerShape(12.dp),
 
                 colors = CardDefaults.cardColors(
-                    containerColor = SoftGreen
+                    containerColor = Color(0xFFFCE8E8)
                 ),
 
                 elevation = CardDefaults.cardElevation(
@@ -436,7 +436,7 @@ private fun LogoutCard(
                     Icon(
                         imageVector = Icons.Default.Logout,
                         contentDescription = "Keluar",
-                        tint = PrimaryGreen,
+                        tint = Color(0xFFB91C1C),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -458,7 +458,7 @@ private fun LogoutCard(
                     text = "Keluar",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextDark
+                    color = Color(0xFFB91C1C)
                 )
 
                 Spacer(
@@ -483,7 +483,7 @@ private fun LogoutCard(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Keluar",
-                tint = TextGray,
+                tint = Color(0xFFB91C1C).copy(alpha = 0.6f),
                 modifier = Modifier.size(21.dp)
             )
         }

@@ -757,129 +757,63 @@ fun PengajuanScreen(
                 } else {
 
                     // ==================================================
-                    // MENUNGGU
+                    // GRID STATUS: 2 KOLOM x 2 BARIS
+                    // Warna beda per status biar cepat dibaca sekilas
                     // ==================================================
 
-                    StatusCard(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
 
-                        icon =
-                            Icons.Default.Pending,
+                        StatusCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Pending,
+                            title = "Menunggu",
+                            number = jumlahMenunggu.toString(),
+                            accentColor = Color(0xFFD97706),
+                            badgeColor = Color(0xFFFFF3E0),
+                            onClick = { pilihFilter("menunggu") }
+                        )
 
-                        title =
-                            "Menunggu Persetujuan",
+                        StatusCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.CheckCircle,
+                            title = "Disetujui",
+                            number = jumlahDisetujui.toString(),
+                            accentColor = PrimaryGreen,
+                            badgeColor = SoftGreen,
+                            onClick = { pilihFilter("disetujui") }
+                        )
+                    }
 
-                        description =
-                            "Pengajuan yang sedang diperiksa admin.",
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                        number =
-                            jumlahMenunggu.toString(),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
 
-                        onClick = {
+                        StatusCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Cancel,
+                            title = "Ditolak",
+                            number = jumlahDitolak.toString(),
+                            accentColor = Color(0xFFB91C1C),
+                            badgeColor = Color(0xFFFCE8E8),
+                            onClick = { pilihFilter("ditolak") }
+                        )
 
-                            pilihFilter(
-                                "menunggu"
-                            )
-                        }
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
-
-
-                    // ==================================================
-                    // DISETUJUI
-                    // ==================================================
-
-                    StatusCard(
-
-                        icon =
-                            Icons.Default.CheckCircle,
-
-                        title =
-                            "Disetujui",
-
-                        description =
-                            "Pengajuan yang telah disetujui admin.",
-
-                        number =
-                            jumlahDisetujui.toString(),
-
-                        onClick = {
-
-                            pilihFilter(
-                                "disetujui"
-                            )
-                        }
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
-
-
-                    // ==================================================
-                    // DITOLAK
-                    // ==================================================
-
-                    StatusCard(
-
-                        icon =
-                            Icons.Default.Cancel,
-
-                        title =
-                            "Ditolak",
-
-                        description =
-                            "Pengajuan yang ditolak admin.",
-
-                        number =
-                            jumlahDitolak.toString(),
-
-                        onClick = {
-
-                            pilihFilter(
-                                "ditolak"
-                            )
-                        }
-                    )
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
-
-
-                    // ==================================================
-                    // TOTAL
-                    // ==================================================
-
-                    StatusCard(
-
-                        icon =
-                            Icons.Default.EventNote,
-
-                        title =
-                            "Total Pengajuan",
-
-                        description =
-                            "Jumlah seluruh pengajuan kamu.",
-
-                        number =
-                            jumlahTotal.toString(),
-
-                        onClick = {
-
-                            pilihFilter(
-                                "semua"
-                            )
-                        }
-                    )
+                        StatusCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.EventNote,
+                            title = "Total",
+                            number = jumlahTotal.toString(),
+                            accentColor = TextDark,
+                            badgeColor = Color(0xFFF0F1F3),
+                            onClick = { pilihFilter("semua") }
+                        )
+                    }
                 }
 
 
@@ -1241,13 +1175,17 @@ private fun BoxDropdownFilter(
 @Composable
 private fun StatusCard(
 
+    modifier: Modifier = Modifier,
+
     icon: ImageVector,
 
     title: String,
 
-    description: String,
-
     number: String,
+
+    accentColor: Color,
+
+    badgeColor: Color,
 
     onClick: () -> Unit
 
@@ -1256,8 +1194,7 @@ private fun StatusCard(
     Card(
 
         modifier =
-            Modifier
-                .fillMaxWidth()
+            modifier
                 .clickable {
 
                     onClick()
@@ -1280,119 +1217,99 @@ private fun StatusCard(
 
     ) {
 
-        Row(
+        Column(
 
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-
-            verticalAlignment =
-                Alignment.CenterVertically
+                    .padding(14.dp)
 
         ) {
 
             Row(
 
                 modifier =
-                    Modifier
-                        .size(48.dp)
-                        .background(
-
-                            color =
-                                SoftGreen,
-
-                            shape =
-                                RoundedCornerShape(14.dp)
-                        ),
+                    Modifier.fillMaxWidth(),
 
                 horizontalArrangement =
-                    Arrangement.Center,
+                    Arrangement.SpaceBetween,
 
                 verticalAlignment =
                     Alignment.CenterVertically
 
             ) {
 
-                Icon(
-
-                    imageVector =
-                        icon,
-
-                    contentDescription =
-                        title,
-
-                    tint =
-                        PrimaryGreen,
+                Row(
 
                     modifier =
-                        Modifier.size(25.dp)
-                )
-            }
+                        Modifier
+                            .size(38.dp)
+                            .background(
+                                color =
+                                    badgeColor,
 
+                                shape =
+                                    RoundedCornerShape(12.dp)
+                            ),
 
-            Spacer(
-                modifier =
-                    Modifier.width(14.dp)
-            )
+                    horizontalArrangement =
+                        Arrangement.Center,
 
+                    verticalAlignment =
+                        Alignment.CenterVertically
 
-            Column(
+                ) {
 
-                modifier =
-                    Modifier.weight(1f)
+                    Icon(
 
-            ) {
+                        imageVector =
+                            icon,
+
+                        contentDescription =
+                            title,
+
+                        tint =
+                            accentColor,
+
+                        modifier =
+                            Modifier.size(20.dp)
+                    )
+                }
 
                 Text(
 
                     text =
-                        title,
+                        number,
 
                     fontSize =
-                        15.sp,
+                        24.sp,
 
                     fontWeight =
                         FontWeight.Bold,
 
                     color =
-                        TextDark
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-
-                Text(
-
-                    text =
-                        description,
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
+                        accentColor
                 )
             }
 
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
 
             Text(
 
                 text =
-                    number,
+                    title,
 
                 fontSize =
-                    22.sp,
+                    13.sp,
 
                 fontWeight =
-                    FontWeight.Bold,
+                    FontWeight.SemiBold,
 
                 color =
-                    PrimaryGreen
+                    TextDark
             )
         }
     }
@@ -1603,20 +1520,36 @@ private fun RiwayatPengajuanCard(
 
         ) {
 
-            Icon(
-
-                imageVector =
-                    statusIcon,
-
-                contentDescription =
-                    statusText,
-
-                tint =
-                    statusColor,
+            Row(
 
                 modifier =
-                    Modifier.size(28.dp)
-            )
+                    Modifier
+                        .size(42.dp)
+                        .background(
+                            color = statusColor.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        statusIcon,
+
+                    contentDescription =
+                        statusText,
+
+                    tint =
+                        statusColor,
+
+                    modifier =
+                        Modifier.size(22.dp)
+                )
+            }
 
 
             Spacer(
@@ -1677,13 +1610,21 @@ private fun RiwayatPengajuanCard(
                     statusText,
 
                 fontSize =
-                    12.sp,
+                    11.sp,
 
                 fontWeight =
                     FontWeight.Bold,
 
                 color =
-                    statusColor
+                    statusColor,
+
+                modifier =
+                    Modifier
+                        .background(
+                            color = statusColor.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(50.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
             )
         }
     }

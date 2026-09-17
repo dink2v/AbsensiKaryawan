@@ -2,6 +2,7 @@ package com.example.absensikaryawan.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,11 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -40,6 +44,7 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -414,10 +419,10 @@ fun StaffDashboardScreen(
 
                     Text(
                         text =
-                            "ABSENSI KARYAWAN",
+                            "Halo, $namaUser \uD83D\uDC4B",
 
                         fontSize =
-                            21.sp,
+                            19.sp,
 
                         fontWeight =
                             FontWeight.Bold,
@@ -436,7 +441,7 @@ fun StaffDashboardScreen(
                             tanggalSekarang,
 
                         fontSize =
-                            11.sp,
+                            12.sp,
 
                         color =
                             TextGray
@@ -448,55 +453,94 @@ fun StaffDashboardScreen(
                 // NOTIFIKASI
                 // ==================================================
 
-                IconButton(
-                    onClick =
-                        onNotification,
-
+                Box(
                     modifier =
-                        Modifier.size(44.dp)
+                        Modifier
+                            .size(44.dp)
+                            .background(
+                                color = Color.White,
+                                shape = CircleShape
+                            ),
+
+                    contentAlignment =
+                        Alignment.Center
                 ) {
 
-                    Icon(
-                        imageVector =
-                            Icons.Default.NotificationsNone,
-
-                        contentDescription =
-                            "Notifikasi",
-
-                        tint =
-                            TextDark,
+                    IconButton(
+                        onClick =
+                            onNotification,
 
                         modifier =
-                            Modifier.size(25.dp)
-                    )
+                            Modifier.size(44.dp)
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.NotificationsNone,
+
+                            contentDescription =
+                                "Notifikasi",
+
+                            tint =
+                                TextDark,
+
+                            modifier =
+                                Modifier.size(23.dp)
+                        )
+                    }
                 }
 
-
-                // ==================================================
-                // PROFILE
-                // ==================================================
-
-                IconButton(
-                    onClick =
-                        onProfile,
-
+                Spacer(
                     modifier =
-                        Modifier.size(44.dp)
+                        Modifier.width(8.dp)
+                )
+
+
+                // ==================================================
+                // PROFILE — avatar bulat berinisial
+                // ==================================================
+
+                Box(
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .background(
+                                color = SoftGreen,
+                                shape = CircleShape
+                            )
+                            .padding(0.dp),
+
+                    contentAlignment =
+                        Alignment.Center
                 ) {
 
-                    Icon(
-                        imageVector =
-                            Icons.Default.Person,
-
-                        contentDescription =
-                            "Profil",
-
-                        tint =
-                            PrimaryGreen,
+                    IconButton(
+                        onClick =
+                            onProfile,
 
                         modifier =
-                            Modifier.size(27.dp)
-                    )
+                            Modifier.size(44.dp)
+                    ) {
+
+                        Text(
+                            text =
+                                namaUser
+                                    .trim()
+                                    .firstOrNull()
+                                    ?.uppercaseChar()
+                                    ?.toString()
+                                    ?: "S",
+
+                            fontSize =
+                                17.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                PrimaryGreen
+                        )
+                    }
                 }
             }
 
@@ -508,7 +552,9 @@ fun StaffDashboardScreen(
 
 
             // ==================================================
-            // JAM REAL-TIME
+            // HERO CARD — jam real-time + status kehadiran
+            // digabung jadi satu kartu supaya lebih ringkas
+            // dan jadi pusat perhatian di Beranda
             // ==================================================
 
             Card(
@@ -516,127 +562,17 @@ fun StaffDashboardScreen(
                     Modifier.fillMaxWidth(),
 
                 shape =
-                    RoundedCornerShape(20.dp),
+                    RoundedCornerShape(24.dp),
 
                 colors =
                     CardDefaults.cardColors(
                         containerColor =
-                            PrimaryGreen
-                    )
-            ) {
-
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = 16.dp,
-                                vertical = 16.dp
-                            ),
-
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.AccessTime,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            Color.White,
-
-                        modifier =
-                            Modifier.size(28.dp)
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text =
-                            jamSekarang,
-
-                        fontSize =
-                            32.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            Color.White
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(2.dp)
-                    )
-
-                    Text(
-                        text =
-                            "Waktu Sekarang",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            Color.White
-                    )
-                }
-            }
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(14.dp)
-            )
-
-
-            // ==================================================
-            // KEHADIRAN HARI INI
-            // ==================================================
-
-            Text(
-                text =
-                    "Kehadiran Hari Ini",
-
-                fontSize =
-                    17.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(7.dp)
-            )
-
-
-            Card(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(17.dp),
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            Color.White
+                            Color.Transparent
                     ),
 
                 elevation =
                     CardDefaults.cardElevation(
-                        defaultElevation =
-                            2.dp
+                        defaultElevation = 0.dp
                     )
             ) {
 
@@ -644,11 +580,20 @@ fun StaffDashboardScreen(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .background(
+                                brush =
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            PrimaryGreen,
+                                            DarkGreen
+                                        )
+                                    )
+                            )
+                            .padding(20.dp)
                 ) {
 
                     // ==========================================
-                    // STATUS
+                    // BARIS ATAS: JAM + STATUS CHIP
                     // ==========================================
 
                     Row(
@@ -656,33 +601,70 @@ fun StaffDashboardScreen(
                             Modifier.fillMaxWidth(),
 
                         verticalAlignment =
-                            Alignment.CenterVertically
+                            Alignment.Top
                     ) {
 
-                        Text(
-                            text =
-                                "Status",
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray,
-
+                        Column(
                             modifier =
                                 Modifier.weight(1f)
-                        )
+                        ) {
+
+                            Row(
+                                verticalAlignment =
+                                    Alignment.CenterVertically
+                            ) {
+
+                                Icon(
+                                    imageVector =
+                                        Icons.Default.AccessTime,
+
+                                    contentDescription = null,
+
+                                    tint =
+                                        Color.White.copy(alpha = 0.85f),
+
+                                    modifier =
+                                        Modifier.size(15.dp)
+                                )
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.width(5.dp)
+                                )
+
+                                Text(
+                                    text =
+                                        "Waktu Sekarang",
+
+                                    fontSize = 12.sp,
+
+                                    color =
+                                        Color.White.copy(alpha = 0.85f)
+                                )
+                            }
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(4.dp)
+                            )
+
+                            Text(
+                                text =
+                                    jamSekarang,
+
+                                fontSize = 34.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    Color.White
+                            )
+                        }
 
                         val statusBackground =
                             if (sudahAbsen) {
-                                Color(0xFFE8F5E9)
-                            } else {
-                                Color(0xFFFFF3E0)
-                            }
-
-                        val statusText =
-                            if (sudahAbsen) {
-                                PrimaryGreen
+                                Color.White.copy(alpha = 0.20f)
                             } else {
                                 Color(0xFFE67E22)
                             }
@@ -694,14 +676,13 @@ fun StaffDashboardScreen(
                                 else
                                     "BELUM ABSEN",
 
-                            fontSize =
-                                11.sp,
+                            fontSize = 11.sp,
 
                             fontWeight =
                                 FontWeight.Bold,
 
                             color =
-                                statusText,
+                                Color.White,
 
                             modifier =
                                 Modifier
@@ -710,9 +691,7 @@ fun StaffDashboardScreen(
                                             statusBackground,
 
                                         shape =
-                                            RoundedCornerShape(
-                                                50.dp
-                                            )
+                                            RoundedCornerShape(50.dp)
                                     )
                                     .padding(
                                         horizontal = 10.dp,
@@ -724,7 +703,17 @@ fun StaffDashboardScreen(
 
                     Spacer(
                         modifier =
-                            Modifier.height(13.dp)
+                            Modifier.height(18.dp)
+                    )
+
+                    HorizontalDivider(
+                        color =
+                            Color.White.copy(alpha = 0.15f)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(16.dp)
                     )
 
 
@@ -746,11 +735,10 @@ fun StaffDashboardScreen(
                                 text =
                                     "Jam Masuk",
 
-                                fontSize =
-                                    11.sp,
+                                fontSize = 11.sp,
 
                                 color =
-                                    TextGray
+                                    Color.White.copy(alpha = 0.7f)
                             )
 
                             Spacer(
@@ -762,14 +750,13 @@ fun StaffDashboardScreen(
                                 text =
                                     jamMasuk,
 
-                                fontSize =
-                                    15.sp,
+                                fontSize = 17.sp,
 
                                 fontWeight =
                                     FontWeight.Bold,
 
                                 color =
-                                    TextDark
+                                    Color.White
                             )
                         }
 
@@ -786,11 +773,10 @@ fun StaffDashboardScreen(
                                 text =
                                     "Jam Pulang",
 
-                                fontSize =
-                                    11.sp,
+                                fontSize = 11.sp,
 
                                 color =
-                                    TextGray
+                                    Color.White.copy(alpha = 0.7f)
                             )
 
                             Spacer(
@@ -802,14 +788,13 @@ fun StaffDashboardScreen(
                                 text =
                                     jamPulang,
 
-                                fontSize =
-                                    15.sp,
+                                fontSize = 17.sp,
 
                                 fontWeight =
                                     FontWeight.Bold,
 
                                 color =
-                                    TextDark
+                                    Color.White
                             )
                         }
                     }
@@ -819,7 +804,7 @@ fun StaffDashboardScreen(
 
             Spacer(
                 modifier =
-                    Modifier.height(16.dp)
+                    Modifier.height(20.dp)
             )
 
 
@@ -827,204 +812,42 @@ fun StaffDashboardScreen(
             // ABSENSI
             // ==================================================
 
+            Text(
+                text = "Absensi Hari Ini",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             if (!sudahAbsen) {
 
                 // ==================================================
                 // SCAN QR ABSEN
                 // ==================================================
 
-                Card(
-                    onClick =
-                        onScan,
-
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(76.dp),
-
-                    shape =
-                        RoundedCornerShape(17.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                PrimaryGreen
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation =
-                                2.dp
-                        )
-                ) {
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(
-                                    horizontal = 16.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.QrCodeScanner,
-
-                            contentDescription =
-                                "Scan QR Absen",
-
-                            tint =
-                                Color.White,
-
-                            modifier =
-                                Modifier.size(32.dp)
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(14.dp)
-                        )
-
-                        Column {
-
-                            Text(
-                                text =
-                                    "Scan QR Absen",
-
-                                fontSize =
-                                    15.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    Color.White
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Scan untuk absen masuk di kantor",
-
-                                fontSize =
-                                    10.sp,
-
-                                color =
-                                    Color.White
-                            )
-                        }
-                    }
-                }
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
+                ActionRowCard(
+                    onClick = onScan,
+                    icon = Icons.Default.QrCodeScanner,
+                    title = "Scan QR Absen",
+                    subtitle = "Scan untuk absen masuk di kantor",
+                    filled = true
                 )
 
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // ==================================================
                 // ABSEN LUAR KANTOR
                 // ==================================================
 
-                Card(
-                    onClick =
-                        onAbsenLuarKantor,
-
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(76.dp),
-
-                    shape =
-                        RoundedCornerShape(17.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color.White
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation =
-                                2.dp
-                        )
-                ) {
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(
-                                    horizontal = 16.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.LocationOn,
-
-                            contentDescription =
-                                "Absen Luar Kantor",
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(31.dp)
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(14.dp)
-                        )
-
-                        Column {
-
-                            Text(
-                                text =
-                                    "Absen Luar Kantor",
-
-                                fontSize =
-                                    15.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Untuk tugas langsung ke klien",
-
-                                fontSize =
-                                    10.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-                    }
-                }
+                ActionRowCard(
+                    onClick = onAbsenLuarKantor,
+                    icon = Icons.Default.LocationOn,
+                    title = "Absen Luar Kantor",
+                    subtitle = "Untuk tugas langsung ke klien",
+                    filled = false
+                )
 
             } else {
 
@@ -1033,102 +856,19 @@ fun StaffDashboardScreen(
                 // QR UNTUK ABSEN PULANG
                 // ==================================================
 
-                Card(
-                    onClick =
-                        onScan,
-
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(76.dp),
-
-                    shape =
-                        RoundedCornerShape(17.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                PrimaryGreen
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation =
-                                2.dp
-                        )
-                ) {
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(
-                                    horizontal = 16.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.QrCodeScanner,
-
-                            contentDescription =
-                                "Scan QR Pulang",
-
-                            tint =
-                                Color.White,
-
-                            modifier =
-                                Modifier.size(32.dp)
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(14.dp)
-                        )
-
-                        Column {
-
-                            Text(
-                                text =
-                                    "Scan QR Absen Pulang",
-
-                                fontSize =
-                                    15.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    Color.White
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Scan QR saat sudah kembali ke kantor",
-
-                                fontSize =
-                                    10.sp,
-
-                                color =
-                                    Color.White
-                            )
-                        }
-                    }
-                }
+                ActionRowCard(
+                    onClick = onScan,
+                    icon = Icons.Default.QrCodeScanner,
+                    title = "Scan QR Absen Pulang",
+                    subtitle = "Scan QR saat sudah kembali ke kantor",
+                    filled = true
+                )
             }
 
 
             Spacer(
                 modifier =
-                    Modifier.height(16.dp)
+                    Modifier.height(20.dp)
             )
 
 
@@ -1233,6 +973,106 @@ fun StaffDashboardScreen(
 
 
 // ==========================================================
+// ACTION ROW CARD
+// Kartu aksi utama (Scan / Absen Luar Kantor) dengan ikon
+// dalam badge bulat + chevron sebagai penanda "bisa diklik"
+// ==========================================================
+
+@Composable
+private fun ActionRowCard(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    filled: Boolean
+) {
+
+    val containerColor =
+        if (filled) PrimaryGreen else Color.White
+
+    val badgeColor =
+        if (filled) Color.White.copy(alpha = 0.18f) else SoftGreen
+
+    val iconTint =
+        if (filled) Color.White else PrimaryGreen
+
+    val titleColor =
+        if (filled) Color.White else TextDark
+
+    val subtitleColor =
+        if (filled) Color.White.copy(alpha = 0.75f) else TextGray
+
+    val chevronTint =
+        if (filled) Color.White.copy(alpha = 0.8f) else TextGray
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(78.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (filled) 3.dp else 1.dp
+        )
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .background(color = badgeColor, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = titleColor
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = subtitleColor
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = chevronTint,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+}
+
+
+// ==========================================================
 // QUICK ACTION CARD
 // ==========================================================
 
@@ -1250,7 +1090,7 @@ private fun QuickActionCard(
             onClick,
 
         modifier =
-            modifier.height(105.dp),
+            modifier.height(108.dp),
 
         shape =
             RoundedCornerShape(16.dp),
@@ -1264,7 +1104,7 @@ private fun QuickActionCard(
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    2.dp
+                    1.dp
             )
     ) {
 
@@ -1281,23 +1121,31 @@ private fun QuickActionCard(
                 Arrangement.Center
         ) {
 
-            Icon(
-                imageVector =
-                    icon,
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(color = SoftGreen, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
 
-                contentDescription =
-                    title,
+                Icon(
+                    imageVector =
+                        icon,
 
-                tint =
-                    PrimaryGreen,
+                    contentDescription =
+                        title,
 
-                modifier =
-                    Modifier.size(28.dp)
-            )
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(20.dp)
+                )
+            }
 
             Spacer(
                 modifier =
-                    Modifier.height(5.dp)
+                    Modifier.height(8.dp)
             )
 
             Text(

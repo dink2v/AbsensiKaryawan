@@ -1,6 +1,7 @@
 package com.example.absensikaryawan.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -893,56 +894,89 @@ fun RiwayatScreen(
                         Modifier.height(6.dp)
                 )
 
-                Button(
-                    onClick = {
-
-                        dropdownTerbuka =
-                            !dropdownTerbuka
-                    },
-
+                Card(
                     modifier =
-                        Modifier.fillMaxWidth(),
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+
+                                dropdownTerbuka =
+                                    !dropdownTerbuka
+                            },
 
                     shape =
-                        RoundedCornerShape(
-                            12.dp
-                        ),
+                        RoundedCornerShape(14.dp),
 
                     colors =
-                        ButtonDefaults.buttonColors(
-
+                        CardDefaults.cardColors(
                             containerColor =
-                                Color.White,
+                                Color.White
+                        ),
 
-                            contentColor =
-                                TextDark
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = 1.dp
                         )
                 ) {
 
-                    Text(
-                        text =
-                            filterAktif.label,
-
+                    Row(
                         modifier =
-                            Modifier.weight(1f),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 16.dp,
+                                    vertical = 13.dp
+                                ),
 
-                        textAlign =
-                            TextAlign.Start,
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
 
-                        fontSize =
-                            14.sp,
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
+                        ) {
 
-                        fontWeight =
-                            FontWeight.Medium
-                    )
+                            Text(
+                                text = "Filter",
+                                fontSize = 10.sp,
+                                color = TextGray
+                            )
 
-                    Icon(
-                        imageVector =
-                            Icons.Default.KeyboardArrowDown,
+                            Spacer(
+                                modifier =
+                                    Modifier.height(2.dp)
+                            )
 
-                        contentDescription =
-                            "Pilih filter"
-                    )
+                            Text(
+                                text =
+                                    filterAktif.label,
+
+                                fontSize =
+                                    14.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextDark
+                            )
+                        }
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.KeyboardArrowDown,
+
+                            contentDescription =
+                                "Pilih filter",
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(24.dp)
+                        )
+                    }
                 }
 
                 DropdownMenu(

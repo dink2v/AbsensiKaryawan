@@ -47,6 +47,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
@@ -650,7 +651,18 @@ fun ScanAbsenScreen(
                         .primary,
 
                 modifier =
-                    Modifier.size(30.dp)
+                    Modifier
+                        .size(40.dp)
+                        .background(
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .primaryContainer,
+
+                            shape =
+                                androidx.compose.foundation.shape.CircleShape
+                        )
+                        .padding(8.dp)
             )
         }
 
@@ -674,6 +686,55 @@ fun ScanAbsenScreen(
             shape =
                 RoundedCornerShape(16.dp)
         ) {
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 14.dp,
+                            vertical = 10.dp
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Info,
+
+                    contentDescription = null,
+
+                    tint =
+                        MaterialTheme
+                            .colorScheme
+                            .primary,
+
+                    modifier =
+                        Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(8.dp)
+                )
+
+                Text(
+                    text =
+                        "Pastikan pencahayaan cukup dan QR terlihat jelas di dalam kotak.",
+
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+
+                    color =
+                        MaterialTheme
+                            .colorScheme
+                            .onPrimaryContainer
+                )
+            }
         }
 
 
