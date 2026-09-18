@@ -285,7 +285,7 @@ fun PengajuanBaruScreen(
 
                     Text(
                         text =
-                            "Pengajuan kamu sudah berhasil dikirim dan sedang menunggu persetujuan admin.",
+                            "Pengajuan kamu sudah berhasil dikirim dan sedang menunggu proses persetujuan sesuai jalur atasan.",
                         fontSize = 14.sp,
                         color = TextGray,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -366,7 +366,7 @@ fun PengajuanBaruScreen(
 
                                 Text(
                                     text =
-                                        "Menunggu Persetujuan Admin",
+                                        "Menunggu Persetujuan Atasan",
                                     fontSize =
                                         14.sp,
                                     fontWeight =

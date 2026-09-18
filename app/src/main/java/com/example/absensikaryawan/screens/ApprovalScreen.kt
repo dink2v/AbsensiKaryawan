@@ -106,7 +106,15 @@ fun ApprovalScreen(
             sedangMemuat = true
             pesanError = ""
 
-            val result = repository.ambilSemuaPengajuan()
+            // ==================================================
+            // HANYA AMBIL PENGAJUAN YANG MENJADI TANGGUNG
+            // JAWAB USER YANG SEDANG LOGIN
+            //
+            // currentApproverUid == UID user login
+            // ==================================================
+
+            val result =
+                repository.ambilPengajuanUntukApproval()
 
             result.onSuccess { data ->
 
@@ -594,6 +602,22 @@ fun ApprovalScreen(
                                 color =
                                     TextDark
                             )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(4.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "Tidak ada pengajuan yang sedang menunggu persetujuan Anda.",
+
+                                fontSize =
+                                    12.sp,
+
+                                color =
+                                    TextGray
+                            )
                         }
                     }
                 }
@@ -666,6 +690,12 @@ fun ApprovalScreen(
                                 ?.lowercase()
                                 ?: "menunggu"
 
+                        val approvalLocked =
+                            pengajuan["approvalLocked"]
+                                ?.toString()
+                                ?.toBoolean()
+                                ?: false
+
 
                         // ==================================================
                         // CARD
@@ -700,6 +730,9 @@ fun ApprovalScreen(
                             status =
                                 status,
 
+                            approvalLocked =
+                                approvalLocked,
+
                             sedangDiproses =
                                 sedangDiproses == documentId,
 
@@ -724,7 +757,8 @@ fun ApprovalScreen(
 
                                 if (
                                     documentId.isNotEmpty() &&
-                                    sedangDiproses.isEmpty()
+                                    sedangDiproses.isEmpty() &&
+                                    !approvalLocked
                                 ) {
 
                                     sedangDiproses =
@@ -773,7 +807,8 @@ fun ApprovalScreen(
 
                                 if (
                                     documentId.isNotEmpty() &&
-                                    sedangDiproses.isEmpty()
+                                    sedangDiproses.isEmpty() &&
+                                    !approvalLocked
                                 ) {
 
                                     sedangDiproses =
@@ -856,6 +891,8 @@ private fun ApprovalRequestCard(
     alasan: String,
 
     status: String,
+
+    approvalLocked: Boolean,
 
     sedangDiproses: Boolean,
 
@@ -1288,9 +1325,20 @@ private fun ApprovalRequestCard(
 
             // ==================================================
             // BUTTON
+            //
+            // Hanya pengajuan yang:
+            //
+            // status == menunggu
+            // DAN
+            // belum terkunci
+            //
+            // yang mempunyai tombol approval.
             // ==================================================
 
-            if (status == "menunggu") {
+            if (
+                status == "menunggu" &&
+                !approvalLocked
+            ) {
 
                 Spacer(
                     modifier =
