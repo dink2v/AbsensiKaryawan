@@ -136,12 +136,9 @@ enum class FilterStatusPengajuan {
 @Composable
 fun RiwayatScreen(
     onBack: () -> Unit,
-
     onDetailClick: (RiwayatPengajuan) -> Unit,
-
     filterStatusAwal: FilterStatusPengajuan =
         FilterStatusPengajuan.SEMUA,
-
     refreshKey: Int = 0
 ) {
 
@@ -162,11 +159,13 @@ fun RiwayatScreen(
     // ======================================================
     // REPOSITORY PENGAJUAN
     // ======================================================
+    // PENTING:
+    // PengajuanRepository adalah object,
+    // jadi TIDAK menggunakan PengajuanRepository().
+    // ======================================================
 
     val pengajuanRepository =
-        remember {
-            PengajuanRepository()
-        }
+        PengajuanRepository
 
     // ======================================================
     // DATA ABSENSI
@@ -331,80 +330,70 @@ fun RiwayatScreen(
 
     suspend fun loadPengajuan() {
 
-        val result =
+        val data: List<Map<String, Any>> =
             pengajuanRepository
                 .ambilPengajuanSaya()
 
-        result.fold(
+        semuaPengajuan =
+            data
+                .map { item: Map<String, Any> ->
 
-            onSuccess = { data ->
+                    RiwayatPengajuan(
 
-                semuaPengajuan =
-                    data
-                        .map { item ->
+                        documentId =
+                            item["documentId"]
+                                ?.toString()
+                                ?: "",
 
-                            RiwayatPengajuan(
+                        jenis =
+                            item["jenis"]
+                                ?.toString()
+                                ?: "-",
 
-                                documentId =
-                                    item["documentId"]
-                                        ?.toString()
-                                        ?: "",
+                        jamPulang =
+                            item["jamPulang"]
+                                ?.toString()
+                                ?: "",
 
-                                jenis =
-                                    item["jenis"]
-                                        ?.toString()
-                                        ?: "-",
+                        jamKeluar =
+                            item["jamKeluar"]
+                                ?.toString()
+                                ?: "",
 
-                                jamPulang =
-                                    item["jamPulang"]
-                                        ?.toString()
-                                        ?: "",
+                        jamKembali =
+                            item["jamKembali"]
+                                ?.toString()
+                                ?: "",
 
-                                jamKeluar =
-                                    item["jamKeluar"]
-                                        ?.toString()
-                                        ?: "",
+                        tanggalMulai =
+                            item["tanggalMulai"]
+                                ?.toString()
+                                ?: "",
 
-                                jamKembali =
-                                    item["jamKembali"]
-                                        ?.toString()
-                                        ?: "",
+                        tanggalSelesai =
+                            item["tanggalSelesai"]
+                                ?.toString()
+                                ?: "",
 
-                                tanggalMulai =
-                                    item["tanggalMulai"]
-                                        ?.toString()
-                                        ?: "",
+                        alasan =
+                            item["alasan"]
+                                ?.toString()
+                                ?: "",
 
-                                tanggalSelesai =
-                                    item["tanggalSelesai"]
-                                        ?.toString()
-                                        ?: "",
+                        status =
+                            item["status"]
+                                ?.toString()
+                                ?: "menunggu",
 
-                                alasan =
-                                    item["alasan"]
-                                        ?.toString()
-                                        ?: "",
-
-                                status =
-                                    item["status"]
-                                        ?.toString()
-                                        ?: "menunggu",
-
-                                catatanAdmin =
-                                    item["catatanAdmin"]
-                                        ?.toString()
-                                        ?: ""
-                            )
-                        }
-                        .sortedByDescending {
-                            it.tanggalMulai
-                        }
-            },
-
-            onFailure = { error ->
-                throw error
-            }
-        )
+                        catatanAdmin =
+                            item["catatanAdmin"]
+                                ?.toString()
+                                ?: ""
+                    )
+                }
+                .sortedByDescending {
+                    it.tanggalMulai
+                }
     }
 
     // ======================================================
@@ -1810,11 +1799,8 @@ private fun RiwayatCard(
 
 @Composable
 private fun RiwayatPengajuanStaffCard(
-
     pengajuan: RiwayatPengajuan,
-
     onClick: () -> Unit
-
 ) {
 
     val statusNormal =
@@ -2240,11 +2226,8 @@ private fun RiwayatPengajuanStaffCard(
 
 @Composable
 private fun PengajuanDetailRow(
-
     label: String,
-
     value: String
-
 ) {
 
     Row(
@@ -2338,3 +2321,4 @@ private fun formatTanggal(
         tanggal
     }
 }
+

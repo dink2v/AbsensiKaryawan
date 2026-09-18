@@ -76,9 +76,7 @@ fun PengajuanScreen(
     // ==========================================================
 
     val repository =
-        remember {
-            PengajuanRepository()
-        }
+        PengajuanRepository
 
 
     // ==========================================================
@@ -141,13 +139,18 @@ fun PengajuanScreen(
 
         sedangMemuat = true
 
-        val result =
-            repository.ambilPengajuanSaya()
+        try {
 
-        result.onSuccess { data ->
+            val data =
+                repository.ambilPengajuanSaya()
 
             daftarPengajuan =
                 data
+
+        } catch (e: Exception) {
+
+            daftarPengajuan =
+                emptyList()
         }
 
         sedangMemuat = false
@@ -758,7 +761,6 @@ fun PengajuanScreen(
 
                     // ==================================================
                     // GRID STATUS: 2 KOLOM x 2 BARIS
-                    // Warna beda per status biar cepat dibaca sekilas
                     // ==================================================
 
                     Row(
@@ -773,7 +775,9 @@ fun PengajuanScreen(
                             number = jumlahMenunggu.toString(),
                             accentColor = Color(0xFFD97706),
                             badgeColor = Color(0xFFFFF3E0),
-                            onClick = { pilihFilter("menunggu") }
+                            onClick = {
+                                pilihFilter("menunggu")
+                            }
                         )
 
                         StatusCard(
@@ -783,11 +787,16 @@ fun PengajuanScreen(
                             number = jumlahDisetujui.toString(),
                             accentColor = PrimaryGreen,
                             badgeColor = SoftGreen,
-                            onClick = { pilihFilter("disetujui") }
+                            onClick = {
+                                pilihFilter("disetujui")
+                            }
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(
+                        modifier =
+                            Modifier.height(10.dp)
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -801,7 +810,9 @@ fun PengajuanScreen(
                             number = jumlahDitolak.toString(),
                             accentColor = Color(0xFFB91C1C),
                             badgeColor = Color(0xFFFCE8E8),
-                            onClick = { pilihFilter("ditolak") }
+                            onClick = {
+                                pilihFilter("ditolak")
+                            }
                         )
 
                         StatusCard(
@@ -811,7 +822,9 @@ fun PengajuanScreen(
                             number = jumlahTotal.toString(),
                             accentColor = TextDark,
                             badgeColor = Color(0xFFF0F1F3),
-                            onClick = { pilihFilter("semua") }
+                            onClick = {
+                                pilihFilter("semua")
+                            }
                         )
                     }
                 }
@@ -1530,8 +1543,11 @@ private fun RiwayatPengajuanCard(
                             shape = RoundedCornerShape(12.dp)
                         ),
 
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement =
+                    Arrangement.Center,
+
+                verticalAlignment =
+                    Alignment.CenterVertically
 
             ) {
 
@@ -1624,7 +1640,10 @@ private fun RiwayatPengajuanCard(
                             color = statusColor.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(50.dp)
                         )
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .padding(
+                            horizontal = 10.dp,
+                            vertical = 5.dp
+                        )
             )
         }
     }

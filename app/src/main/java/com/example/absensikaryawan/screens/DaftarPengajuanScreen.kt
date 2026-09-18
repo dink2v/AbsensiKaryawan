@@ -55,23 +55,16 @@ import com.example.absensikaryawan.data.PengajuanRepository
 
 @Composable
 fun DaftarPengajuanScreen(
-
     statusFilter: String,
-
     onBack: () -> Unit,
-
     onPengajuanClick: (Map<String, Any>) -> Unit
-
 ) {
 
     // ==========================================================
     // REPOSITORY
     // ==========================================================
 
-    val repository =
-        remember {
-            PengajuanRepository()
-        }
+    val repository = PengajuanRepository
 
 
     // ==========================================================
@@ -100,13 +93,10 @@ fun DaftarPengajuanScreen(
 
         sedangMemuat = true
 
-        val result =
-            repository.ambilPengajuanSaya()
-
-        result.onSuccess { data ->
-
-            daftarPengajuan =
-                data
+        try {
+            daftarPengajuan = repository.ambilPengajuanSaya()
+        } catch (e: Exception) {
+            // tangani error sesuai kode yang sudah ada
         }
 
         sedangMemuat = false

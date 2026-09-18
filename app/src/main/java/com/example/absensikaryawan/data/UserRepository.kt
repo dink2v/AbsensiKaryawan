@@ -39,6 +39,7 @@ class UserRepository {
             Result.failure(e)
         }
     }
+
     suspend fun getCurrentUserName(): Result<String> {
 
         return try {
@@ -108,7 +109,6 @@ class UserRepository {
         }
     }
 
-
     // ==========================================
     // AMBIL PROFILE USER
     // ==========================================
@@ -163,7 +163,19 @@ class UserRepository {
 
                     isAdmin =
                         document.getBoolean("isAdmin")
-                            ?: false
+                            ?: false,
+
+                    // ==========================================
+                    // DATA HIRARKI
+                    // ==========================================
+
+                    atasan =
+                        document.getString("atasan")
+                            ?: "",
+
+                    owner =
+                        document.getString("owner")
+                            ?: ""
                 )
             }
 

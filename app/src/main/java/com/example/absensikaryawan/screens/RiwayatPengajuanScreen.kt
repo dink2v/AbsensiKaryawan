@@ -70,10 +70,7 @@ fun RiwayatPengajuanScreen(
     // REPOSITORY
     // ======================================================
 
-    val repository =
-        remember {
-            PengajuanRepository()
-        }
+    val repository = PengajuanRepository
 
 
     // ======================================================
@@ -82,8 +79,8 @@ fun RiwayatPengajuanScreen(
 
     var daftarPengajuan by remember {
 
-        mutableStateOf(
-            emptyList<Map<String, Any>>()
+        mutableStateOf<List<Map<String, Any>>>(
+            emptyList()
         )
     }
 
@@ -102,13 +99,16 @@ fun RiwayatPengajuanScreen(
 
         sedangMemuat = true
 
-        val result =
-            repository.ambilPengajuanSaya()
+        try {
 
-        result.onSuccess { data ->
+            val data: List<Map<String, Any>> =
+                repository.ambilPengajuanSaya()
 
-            daftarPengajuan =
-                data
+            daftarPengajuan = data
+
+        } catch (e: Exception) {
+
+            daftarPengajuan = emptyList()
         }
 
         sedangMemuat = false

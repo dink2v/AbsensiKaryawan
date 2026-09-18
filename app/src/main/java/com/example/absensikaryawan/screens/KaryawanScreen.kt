@@ -1,3 +1,4 @@
+
 package com.example.absensikaryawan.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -37,12 +40,18 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.SupervisorAccount
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -52,6 +61,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.DropdownMenu
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,8 +105,21 @@ data class DataKaryawan(
     val email: String,
     val jabatan: String,
     val divisi: String,
+    val atasan: String,
+    val owner: String,
     val usernameTele: String,
     val isAdmin: Boolean
+)
+
+
+// ==========================================================
+// MODEL PILIHAN ATASAN
+// ==========================================================
+
+private data class PilihanAtasan(
+    val uid: String,
+    val nama: String,
+    val jabatan: String
 )
 
 
@@ -190,6 +214,12 @@ fun KaryawanScreen(
                         divisi = document.getString("divisi")
                             ?: "",
 
+                        atasan = document.getString("atasan")
+                            ?: "",
+
+                        owner = document.getString("owner")
+                            ?: "",
+
                         usernameTele = document
                             .getString("usernameTele")
                             ?: "",
@@ -246,6 +276,8 @@ fun KaryawanScreen(
     if (showTambahData) {
 
         TambahKaryawanDialog(
+
+            daftarKaryawan = daftarKaryawan,
 
             onDismiss = {
                 showTambahData = false
@@ -358,6 +390,14 @@ fun KaryawanScreen(
 
                             normalizeSearchText(
                                 karyawan.divisi
+                            ).contains(query) ||
+
+                            normalizeSearchText(
+                                karyawan.atasan
+                            ).contains(query) ||
+
+                            normalizeSearchText(
+                                karyawan.owner
                             ).contains(query) ||
 
                             normalizeSearchText(
@@ -762,13 +802,13 @@ fun KaryawanScreen(
                             when (selectedFilter) {
 
                                 FilterKaryawan.TOTAL ->
-                                    "Cari nama, email, jabatan, atau divisi"
+                                    "Cari nama, email, jabatan, atasan, owner"
 
                                 FilterKaryawan.STAFF ->
-                                    "Cari staff berdasarkan nama, email, atau divisi"
+                                    "Cari staff berdasarkan nama, email, atasan"
 
                                 FilterKaryawan.ADMIN ->
-                                    "Cari admin berdasarkan nama, email, atau divisi"
+                                    "Cari admin berdasarkan nama atau email"
                             },
 
                         fontSize =
@@ -970,10 +1010,6 @@ fun KaryawanScreen(
 
             when {
 
-                // ==================================================
-                // LOADING
-                // ==================================================
-
                 loading -> {
 
                     Column(
@@ -1018,10 +1054,6 @@ fun KaryawanScreen(
                     }
                 }
 
-
-                // ==================================================
-                // ERROR
-                // ==================================================
 
                 errorMessage.isNotBlank() -> {
 
@@ -1133,10 +1165,6 @@ fun KaryawanScreen(
                 }
 
 
-                // ==================================================
-                // EMPTY
-                // ==================================================
-
                 hasilPencarian.isEmpty() -> {
 
                     Column(
@@ -1225,10 +1253,6 @@ fun KaryawanScreen(
                     }
                 }
 
-
-                // ==================================================
-                // LIST DATA
-                // ==================================================
 
                 else -> {
 
@@ -1675,6 +1699,59 @@ private fun KaryawanCard(
                         }
                     }
                 }
+
+                if (
+                    !karyawan.isAdmin &&
+                    karyawan.atasan.isNotBlank()
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(4.dp)
+                    )
+
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.SupervisorAccount,
+
+                            contentDescription =
+                                null,
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(13.dp)
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(4.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Atasan: ${karyawan.atasan}",
+
+                            fontSize =
+                                10.sp,
+
+                            color =
+                                TextGray,
+
+                            maxLines =
+                                1,
+
+                            overflow =
+                                TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             Spacer(
@@ -1699,7 +1776,9 @@ private fun KaryawanCard(
                         if (karyawan.isAdmin) {
                             "Admin"
                         } else {
-                            "Staff"
+                            karyawan.jabatan.ifBlank {
+                                "Staff"
+                            }
                         },
 
                     modifier =
@@ -2289,7 +2368,11 @@ private fun KaryawanDetailScreen(
                                         if (karyawan.isAdmin) {
                                             "ADMIN"
                                         } else {
-                                            "STAFF"
+                                            karyawan.jabatan
+                                                .ifBlank {
+                                                    "STAFF"
+                                                }
+                                                .uppercase()
                                         },
 
                                     modifier =
@@ -2403,6 +2486,45 @@ private fun KaryawanDetailScreen(
                                     "-"
                                 }
                         )
+
+                        if (!karyawan.isAdmin) {
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(16.dp)
+                            )
+
+                            DetailRow(
+                                icon =
+                                    Icons.Default.SupervisorAccount,
+
+                                title =
+                                    "Atasan",
+
+                                value =
+                                    karyawan.atasan.ifBlank {
+                                        "Belum ditentukan"
+                                    }
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(16.dp)
+                            )
+
+                            DetailRow(
+                                icon =
+                                    Icons.Default.AccountTree,
+
+                                title =
+                                    "Owner",
+
+                                value =
+                                    karyawan.owner.ifBlank {
+                                        "Belum ditentukan"
+                                    }
+                            )
+                        }
 
                         Spacer(
                             modifier =
@@ -3114,8 +3236,10 @@ private fun DetailRow(
 // TAMBAH KARYAWAN DIALOG
 // ==========================================================
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TambahKaryawanDialog(
+    daftarKaryawan: List<DataKaryawan>,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
@@ -3191,6 +3315,14 @@ private fun TambahKaryawanDialog(
         mutableStateOf("")
     }
 
+    var atasan by remember {
+        mutableStateOf("")
+    }
+
+    var owner by remember {
+        mutableStateOf("")
+    }
+
     var isAdmin by remember {
         mutableStateOf(false)
     }
@@ -3209,6 +3341,211 @@ private fun TambahKaryawanDialog(
 
     var focusedField by remember {
         mutableStateOf<String?>(null)
+    }
+
+    var atasanExpanded by remember {
+        mutableStateOf(false)
+    }
+
+    var ownerExpanded by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ======================================================
+    // PILIHAN ATASAN
+    // ======================================================
+
+    val pilihanAtasan =
+        remember(
+            daftarKaryawan,
+            jabatan
+        ) {
+
+            val targetJabatan =
+                when (
+                    jabatan.trim()
+                        .lowercase()
+                ) {
+
+                    "staff" ->
+                        "Supervisor"
+
+                    "supervisor" ->
+                        "Manager"
+
+                    "manager" ->
+                        "HRD"
+
+                    "hrd" ->
+                        "Owner"
+
+                    else ->
+                        ""
+                }
+
+            if (targetJabatan.isBlank()) {
+                emptyList()
+            } else {
+                daftarKaryawan
+                    .filter {
+                        !it.isAdmin &&
+                                it.jabatan.equals(
+                                    targetJabatan,
+                                    ignoreCase = true
+                                )
+                    }
+                    .map {
+                        PilihanAtasan(
+                            uid = it.id,
+                            nama = it.nama,
+                            jabatan = it.jabatan
+                        )
+                    }
+                    .sortedBy {
+                        it.nama.lowercase()
+                    }
+            }
+        }
+
+
+    // ======================================================
+    // PILIHAN OWNER
+    // ======================================================
+
+    val pilihanOwner =
+        remember(daftarKaryawan) {
+
+            daftarKaryawan
+                .filter {
+                    !it.isAdmin &&
+                            it.jabatan.equals(
+                                "Owner",
+                                ignoreCase = true
+                            )
+                }
+                .map {
+                    PilihanAtasan(
+                        uid = it.id,
+                        nama = it.nama,
+                        jabatan = it.jabatan
+                    )
+                }
+                .sortedBy {
+                    it.nama.lowercase()
+                }
+        }
+
+
+    // ======================================================
+    // JIKA JABATAN BERUBAH
+    // ======================================================
+
+    LaunchedEffect(jabatan) {
+
+        val targetJabatan =
+            when (
+                jabatan.trim()
+                    .lowercase()
+            ) {
+
+                "staff" ->
+                    "Supervisor"
+
+                "supervisor" ->
+                    "Manager"
+
+                "manager" ->
+                    "HRD"
+
+                "hrd" ->
+                    "Owner"
+
+                else ->
+                    ""
+            }
+
+        if (
+            atasan.isNotBlank() &&
+            pilihanAtasan.none {
+                it.nama.equals(
+                    atasan,
+                    ignoreCase = true
+                )
+            }
+        ) {
+
+            atasan = ""
+        }
+
+        if (
+            targetJabatan.isBlank()
+        ) {
+
+            atasan = ""
+        }
+
+        if (
+            jabatan.equals(
+                "Owner",
+                ignoreCase = true
+            )
+        ) {
+
+            atasan = ""
+        }
+
+        if (
+            jabatan.equals(
+                "Admin",
+                ignoreCase = true
+            )
+        ) {
+
+            atasan = ""
+            owner = ""
+        }
+    }
+
+
+    // ======================================================
+    // AUTO OWNER DARI PILIHAN ATASAN
+    // ======================================================
+
+    LaunchedEffect(atasan, daftarKaryawan) {
+
+        if (atasan.isBlank()) {
+            return@LaunchedEffect
+        }
+
+        val dataAtasan =
+            daftarKaryawan.firstOrNull {
+                it.nama.equals(
+                    atasan,
+                    ignoreCase = true
+                )
+            }
+
+        if (dataAtasan != null) {
+
+            if (
+                dataAtasan.owner.isNotBlank()
+            ) {
+
+                owner =
+                    dataAtasan.owner
+
+            } else if (
+                dataAtasan.jabatan.equals(
+                    "Owner",
+                    ignoreCase = true
+                )
+            ) {
+
+                owner =
+                    dataAtasan.nama
+            }
+        }
     }
 
 
@@ -3233,6 +3570,12 @@ private fun TambahKaryawanDialog(
 
             "telegram" ->
                 formListState.scrollToItem(7)
+
+            "atasan" ->
+                formListState.scrollToItem(8)
+
+            "owner" ->
+                formListState.scrollToItem(9)
         }
     }
 
@@ -3327,7 +3670,7 @@ private fun TambahKaryawanDialog(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(
-                            max = 450.dp
+                            max = 500.dp
                         ),
 
                 verticalArrangement =
@@ -3551,7 +3894,11 @@ private fun TambahKaryawanDialog(
                                         },
 
                                     contentDescription =
-                                        null
+                                        if (showPassword) {
+                                            "Sembunyikan password"
+                                        } else {
+                                            "Tampilkan password"
+                                        }
                                 )
                             }
                         },
@@ -3642,6 +3989,17 @@ private fun TambahKaryawanDialog(
 
                                 contentDescription =
                                     null
+                            )
+                        },
+
+                        supportingText = {
+
+                            Text(
+                                text =
+                                    "Gunakan: Staff, Supervisor, Manager, HRD, atau Owner",
+
+                                fontSize =
+                                    10.sp
                             )
                         },
 
@@ -3827,6 +4185,392 @@ private fun TambahKaryawanDialog(
 
                     FormSectionLabel(
                         text =
+                            "Struktur Hirarki"
+                    )
+                }
+
+                // ==================================================
+// ATASAN
+// ==================================================
+
+                item {
+
+                    val isHierarchyPosition =
+                        jabatan.equals("Staff", ignoreCase = true) ||
+                                jabatan.equals("Supervisor", ignoreCase = true) ||
+                                jabatan.equals("Manager", ignoreCase = true) ||
+                                jabatan.equals("HRD", ignoreCase = true)
+
+                    if (isHierarchyPosition) {
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            OutlinedTextField(
+
+                                value = atasan,
+
+                                onValueChange = {},
+
+                                readOnly = true,
+
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (pilihanAtasan.isNotEmpty()) {
+                                                atasanExpanded = !atasanExpanded
+                                            }
+                                        },
+
+                                label = {
+                                    Text("Atasan")
+                                },
+
+                                placeholder = {
+                                    Text(
+                                        if (pilihanAtasan.isEmpty()) {
+                                            "Belum ada ${getTargetJabatan(jabatan)}"
+                                        } else {
+                                            "Pilih atasan"
+                                        }
+                                    )
+                                },
+
+                                leadingIcon = {
+
+                                    Icon(
+                                        imageVector =
+                                            Icons.Default.SupervisorAccount,
+
+                                        contentDescription =
+                                            null
+                                    )
+                                },
+
+                                trailingIcon = {
+
+                                    Icon(
+                                        imageVector =
+                                            if (atasanExpanded) {
+                                                Icons.Default.KeyboardArrowUp
+                                            } else {
+                                                Icons.Default.KeyboardArrowDown
+                                            },
+
+                                        contentDescription =
+                                            null
+                                    )
+                                },
+
+                                supportingText = {
+
+                                    Text(
+                                        text =
+                                            "Atasan otomatis mengikuti struktur jabatan",
+
+                                        fontSize =
+                                            10.sp
+                                    )
+                                },
+
+                                shape =
+                                    RoundedCornerShape(12.dp),
+
+                                colors =
+                                    OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor =
+                                            PrimaryGreen,
+
+                                        cursorColor =
+                                            PrimaryGreen
+                                    )
+                            )
+
+                            DropdownMenu(
+
+                                expanded =
+                                    atasanExpanded,
+
+                                onDismissRequest = {
+                                    atasanExpanded = false
+                                },
+
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                            ) {
+
+                                if (pilihanAtasan.isEmpty()) {
+
+                                    DropdownMenuItem(
+
+                                        text = {
+
+                                            Text(
+                                                text =
+                                                    "Belum ada ${getTargetJabatan(jabatan)}"
+                                            )
+                                        },
+
+                                        onClick = {
+                                            atasanExpanded = false
+                                        }
+                                    )
+
+                                } else {
+
+                                    pilihanAtasan.forEach { pilihan ->
+
+                                        DropdownMenuItem(
+
+                                            text = {
+
+                                                Column {
+
+                                                    Text(
+                                                        text =
+                                                            pilihan.nama,
+
+                                                        fontWeight =
+                                                            FontWeight.SemiBold
+                                                    )
+
+                                                    Text(
+                                                        text =
+                                                            pilihan.jabatan,
+
+                                                        fontSize =
+                                                            11.sp,
+
+                                                        color =
+                                                            TextGray
+                                                    )
+                                                }
+                                            },
+
+                                            onClick = {
+
+                                                atasan =
+                                                    pilihan.nama
+
+                                                atasanExpanded =
+                                                    false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                    } else {
+
+                        OutlinedTextField(
+
+                            value =
+                                if (
+                                    jabatan.equals(
+                                        "Owner",
+                                        ignoreCase = true
+                                    )
+                                ) {
+                                    "Tidak ada"
+                                } else {
+                                    ""
+                                },
+
+                            onValueChange = {},
+
+                            readOnly = true,
+
+                            enabled = false,
+
+                            modifier =
+                                Modifier.fillMaxWidth(),
+
+                            label = {
+                                Text("Atasan")
+                            },
+
+                            supportingText = {
+
+                                Text(
+                                    text =
+                                        if (
+                                            jabatan.equals(
+                                                "Owner",
+                                                ignoreCase = true
+                                            )
+                                        ) {
+                                            "Owner merupakan tingkat paling atas."
+                                        } else {
+                                            "Isi jabatan terlebih dahulu."
+                                        },
+
+                                    fontSize =
+                                        10.sp
+                                )
+                            },
+
+                            leadingIcon = {
+
+                                Icon(
+                                    imageVector =
+                                        Icons.Default.SupervisorAccount,
+
+                                    contentDescription =
+                                        null
+                                )
+                            },
+
+                            shape =
+                                RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+
+
+                // ==================================================
+                // OWNER
+                // ==================================================
+
+                item {
+
+                    val showOwnerField =
+                        !isAdmin &&
+                                !jabatan.equals(
+                                    "Admin",
+                                    ignoreCase = true
+                                )
+
+                    if (showOwnerField) {
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            OutlinedTextField(
+
+                                value = owner,
+
+                                onValueChange = {},
+
+                                readOnly = true,
+
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (pilihanOwner.isNotEmpty()) {
+                                                ownerExpanded = !ownerExpanded
+                                            }
+                                        },
+
+                                label = {
+                                    Text("Owner")
+                                },
+
+                                placeholder = {
+                                    Text(
+                                        if (pilihanOwner.isEmpty()) {
+                                            "Belum ada Owner"
+                                        } else {
+                                            "Pilih Owner"
+                                        }
+                                    )
+                                },
+
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountTree,
+                                        contentDescription = null
+                                    )
+                                },
+
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector =
+                                            if (ownerExpanded) {
+                                                Icons.Default.ExpandLess
+                                            } else {
+                                                Icons.Default.ExpandMore
+                                            },
+                                        contentDescription = null
+                                    )
+                                },
+
+                                supportingText = {
+                                    Text(
+                                        text =
+                                            "Owner menjadi tujuan akhir jalur approval",
+                                        fontSize = 10.sp
+                                    )
+                                },
+
+                                shape = RoundedCornerShape(12.dp),
+
+                                colors =
+                                    OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = PrimaryGreen,
+                                        cursorColor = PrimaryGreen
+                                    )
+                            )
+
+                            DropdownMenu(
+                                expanded = ownerExpanded,
+                                onDismissRequest = {
+                                    ownerExpanded = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+
+                                if (pilihanOwner.isEmpty()) {
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text("Belum ada Owner")
+                                        },
+                                        onClick = {
+                                            ownerExpanded = false
+                                        }
+                                    )
+
+                                } else {
+
+                                    pilihanOwner.forEach { pilihan ->
+
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(
+                                                        text = pilihan.nama,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+
+                                                    Text(
+                                                        text = pilihan.jabatan,
+                                                        fontSize = 11.sp,
+                                                        color = TextGray
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                owner = pilihan.nama
+                                                ownerExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                item {
+
+                    FormSectionLabel(
+                        text =
                             "Hak Akses"
                     )
                 }
@@ -3882,7 +4626,15 @@ private fun TambahKaryawanDialog(
                                     isAdmin,
 
                                 onClick = {
-                                    isAdmin = true
+
+                                    isAdmin =
+                                        true
+
+                                    atasan =
+                                        ""
+
+                                    owner =
+                                        ""
                                 }
                             )
 
@@ -3931,6 +4683,22 @@ private fun TambahKaryawanDialog(
                     val passwordClean =
                         password.trim()
 
+                    val jabatanClean =
+                        jabatan.trim()
+
+                    val divisiClean =
+                        divisi.trim()
+
+                    val telegramClean =
+                        usernameTele.trim()
+
+                    val atasanClean =
+                        atasan.trim()
+
+                    val ownerClean =
+                        owner.trim()
+
+
                     if (
                         namaClean.isBlank() ||
                         emailClean.isBlank() ||
@@ -3943,13 +4711,72 @@ private fun TambahKaryawanDialog(
                         return@Button
                     }
 
-                    if (passwordClean.length < 6) {
+                    if (
+                        passwordClean.length < 6
+                    ) {
 
                         errorMessage =
                             "Password minimal 6 karakter."
 
                         return@Button
                     }
+
+                    if (
+                        !isAdmin &&
+                        jabatanClean.isBlank()
+                    ) {
+
+                        errorMessage =
+                            "Jabatan wajib diisi."
+
+                        return@Button
+                    }
+
+
+                    // ==========================================
+                    // VALIDASI HIRARKI
+                    // ==========================================
+
+                    if (!isAdmin) {
+
+                        val targetJabatan =
+                            getTargetJabatan(
+                                jabatanClean
+                            )
+
+                        if (
+                            targetJabatan.isNotBlank() &&
+                            atasanClean.isBlank()
+                        ) {
+
+                            errorMessage =
+                                "Atasan wajib dipilih untuk jabatan $jabatanClean."
+
+                            return@Button
+                        }
+
+                        if (
+                            targetJabatan.isNotBlank() &&
+                            pilihanAtasan.isEmpty()
+                        ) {
+
+                            errorMessage =
+                                "Belum ada $targetJabatan yang tersedia sebagai atasan."
+
+                            return@Button
+                        }
+
+                        if (
+                            ownerClean.isBlank()
+                        ) {
+
+                            errorMessage =
+                                "Owner wajib dipilih."
+
+                            return@Button
+                        }
+                    }
+
 
                     isSaving = true
                     errorMessage = ""
@@ -4005,6 +4832,11 @@ private fun TambahKaryawanDialog(
                                         "UID akun tidak ditemukan."
                                     )
 
+
+                            // ==================================
+                            // DATA USER FIRESTORE
+                            // ==================================
+
                             val userData =
                                 hashMapOf(
 
@@ -4014,20 +4846,43 @@ private fun TambahKaryawanDialog(
 
                                     "email" to emailClean,
 
-                                    "jabatan" to jabatan.trim(),
+                                    "jabatan" to
+                                            if (isAdmin) {
+                                                "Admin"
+                                            } else {
+                                                jabatanClean
+                                            },
 
-                                    "divisi" to divisi.trim(),
+                                    "divisi" to
+                                            divisiClean,
+
+                                    "atasan" to
+                                            if (isAdmin) {
+                                                ""
+                                            } else {
+                                                atasanClean
+                                            },
+
+                                    "owner" to
+                                            if (isAdmin) {
+                                                ""
+                                            } else {
+                                                ownerClean
+                                            },
 
                                     "usernameTele" to
-                                            usernameTele.trim(),
+                                            telegramClean,
 
-                                    "isAdmin" to isAdmin
+                                    "isAdmin" to
+                                            isAdmin
                                 )
+
 
                             db.collection("users")
                                 .document(newUid)
                                 .set(userData)
                                 .await()
+
 
                             secondaryAuth.signOut()
 
@@ -4126,6 +4981,37 @@ private fun TambahKaryawanDialog(
             }
         }
     )
+}
+
+
+// ==========================================================
+// TARGET JABATAN ATASAN
+// ==========================================================
+
+private fun getTargetJabatan(
+    jabatan: String
+): String {
+
+    return when (
+        jabatan.trim()
+            .lowercase()
+    ) {
+
+        "staff" ->
+            "Supervisor"
+
+        "supervisor" ->
+            "Manager"
+
+        "manager" ->
+            "HRD"
+
+        "hrd" ->
+            "Owner"
+
+        else ->
+            ""
+    }
 }
 
 

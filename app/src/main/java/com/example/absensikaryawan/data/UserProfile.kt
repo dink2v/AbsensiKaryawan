@@ -7,5 +7,11 @@ data class UserProfile(
     val divisi: String = "",
     val jabatan: String = "",
     val usernameTele: String = "",
-    val isAdmin: Boolean = false
+    val isAdmin: Boolean = false,
+
+    // ==========================================
+    // DATA HIRARKI
+    // ==========================================
+    val atasan: String = "",
+    val owner: String = ""
 )
