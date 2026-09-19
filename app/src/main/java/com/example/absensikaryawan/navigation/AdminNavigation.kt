@@ -338,10 +338,8 @@ fun AdminNavigation(
                                 "BOTTOM = ${item.label}"
                             )
 
-
                             currentScreen =
                                 item.screen
-
 
                             // ==================================
                             // RESET CHAT
@@ -425,7 +423,6 @@ fun AdminNavigation(
 
     ) { paddingValues ->
 
-
         // ==================================================
         // CONTENT
         // ==================================================
@@ -440,7 +437,6 @@ fun AdminNavigation(
                     )
         ) {
 
-
             // ==================================================
             // ROUTING ADMIN
             // ==================================================
@@ -448,7 +444,6 @@ fun AdminNavigation(
             when (
                 currentScreen
             ) {
-
 
                 // ==================================================
                 // DASHBOARD
@@ -469,7 +464,6 @@ fun AdminNavigation(
                                 AdminScreen.Approval
                         },
 
-
                         onEmployees = {
 
                             Log.d(
@@ -480,7 +474,6 @@ fun AdminNavigation(
                             currentScreen =
                                 AdminScreen.Karyawan
                         },
-
 
                         onRecap = {
 
@@ -493,7 +486,6 @@ fun AdminNavigation(
                                 AdminScreen.Rekap
                         },
 
-
                         onSettings = {
 
                             Log.d(
@@ -505,7 +497,6 @@ fun AdminNavigation(
                                 AdminScreen.Settings
                         },
 
-
                         onChat = {
 
                             Log.d(
@@ -516,7 +507,6 @@ fun AdminNavigation(
                             currentScreen =
                                 AdminScreen.Chat
                         },
-
 
                         onNotification = {
 
@@ -531,7 +521,6 @@ fun AdminNavigation(
                     )
                 }
 
-
                 // ==================================================
                 // NOTIFIKASI
                 // ==================================================
@@ -544,10 +533,20 @@ fun AdminNavigation(
 
                             currentScreen =
                                 AdminScreen.Dashboard
+                        },
+
+                        onApprovalClick = {
+
+                            Log.d(
+                                "ADMIN_NAV",
+                                "NOTIFIKASI -> APPROVAL"
+                            )
+
+                            currentScreen =
+                                AdminScreen.Approval
                         }
                     )
                 }
-
 
                 // ==================================================
                 // CHAT
@@ -557,7 +556,6 @@ fun AdminNavigation(
 
                     val room =
                         chatRoomTerpilih
-
 
                     if (
                         room == null
@@ -595,7 +593,6 @@ fun AdminNavigation(
                     }
                 }
 
-
                 // ==================================================
                 // APPROVAL
                 // ==================================================
@@ -614,7 +611,6 @@ fun AdminNavigation(
                     )
                 }
 
-
                 // ==================================================
                 // KARYAWAN
                 // ==================================================
@@ -631,7 +627,6 @@ fun AdminNavigation(
                     )
                 }
 
-
                 // ==================================================
                 // REKAP
                 // ==================================================
@@ -640,7 +635,6 @@ fun AdminNavigation(
 
                     RekapAdminScreen()
                 }
-
 
                 // ==================================================
                 // SETTINGS
@@ -686,7 +680,6 @@ fun AdminNavigation(
                     )
                 }
 
-
                 // ==================================================
                 // QR KANTOR
                 // ==================================================
@@ -702,7 +695,6 @@ fun AdminNavigation(
                         }
                     )
                 }
-
 
                 // ==================================================
                 // PROFILE
@@ -720,7 +712,6 @@ fun AdminNavigation(
                     )
                 }
 
-
                 // ==================================================
                 // TAMPILAN
                 // ==================================================
@@ -731,7 +722,6 @@ fun AdminNavigation(
 
                         selectedMode =
                             selectedThemeMode,
-
 
                         onModeSelected = { mode ->
 
@@ -744,7 +734,6 @@ fun AdminNavigation(
                             }
                         },
 
-
                         onBack = {
 
                             currentScreen =
@@ -752,7 +741,6 @@ fun AdminNavigation(
                         }
                     )
                 }
-
 
                 // ==================================================
                 // BANTUAN
@@ -768,7 +756,6 @@ fun AdminNavigation(
                                 AdminScreen.Settings
                         },
 
-
                         onChatAdmin = {
 
                             currentScreen =
@@ -776,7 +763,6 @@ fun AdminNavigation(
                         }
                     )
                 }
-
 
                 // ==================================================
                 // TENTANG APLIKASI

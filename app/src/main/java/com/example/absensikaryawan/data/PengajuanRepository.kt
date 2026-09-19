@@ -70,6 +70,10 @@ object PengajuanRepository {
                 .orEmpty()
                 .trim()
 
+            // ====================================================
+            // BUILD APPROVAL CHAIN
+            // ====================================================
+
             val approvalChain =
                 buildApprovalChain(userDocument)
 
@@ -147,25 +151,130 @@ object PengajuanRepository {
                     .add(dataPengajuan)
                     .await()
 
-            if (firstApprover != null) {
+            // ====================================================
+            // NOTIFIKASI KE SELURUH APPROVAL CHAIN
+            // ====================================================
 
-                createNotification(
-                    targetUid = firstApprover.uid,
-                    title = "Pengajuan Baru",
-                    message =
+            approvalChain.forEach { approver ->
+
+                val isCurrentApprover =
+                    approver.uid == firstApprover?.uid
+
+                val message =
+                    if (isCurrentApprover) {
+
                         "$nama mengajukan $jenis. " +
                                 "Menunggu persetujuan Anda sebagai " +
-                                firstApprover.jabatan + ".",
-                    type = "PENGAJUAN_BARU",
-                    pengajuanId = documentReference.id
+                                "${approver.jabatan}."
+
+                    } else {
+
+                        "$nama mengajukan $jenis. " +
+                                "Anda termasuk dalam jalur approval sebagai " +
+                                "${approver.jabatan}. " +
+                                "Pengajuan akan diteruskan kepada Anda " +
+                                "sesuai urutan approval."
+                    }
+
+                createNotification(
+                    targetUid =
+                        approver.uid,
+
+                    title =
+                        "Pengajuan Baru",
+
+                    message =
+                        message,
+
+                    type =
+                        "PENGAJUAN_BARU",
+
+                    pengajuanId =
+                        documentReference.id
                 )
             }
+
+            // ====================================================
+            // NOTIFIKASI KE ADMIN
+            //
+            // Admin bukan bagian approval chain.
+            // Semua user dengan isAdmin=true mendapatkan
+            // informasi bahwa ada pengajuan baru.
+            // ====================================================
+
+            notifyAdminsPengajuanBaru(
+                namaPengaju =
+                    nama,
+
+                jenis =
+                    jenis,
+
+                pengajuanId =
+                    documentReference.id
+            )
 
             Result.success(Unit)
 
         } catch (e: Exception) {
 
             Result.failure(e)
+        }
+    }
+
+    // ============================================================
+    // NOTIFIKASI ADMIN - PENGAJUAN BARU
+    // ============================================================
+
+    private suspend fun notifyAdminsPengajuanBaru(
+        namaPengaju: String,
+        jenis: String,
+        pengajuanId: String
+    ) {
+
+        try {
+
+            val adminSnapshot =
+                db
+                    .collection("users")
+                    .whereEqualTo(
+                        "isAdmin",
+                        true
+                    )
+                    .get()
+                    .await()
+
+            adminSnapshot.documents.forEach { adminDocument ->
+
+                val adminUid =
+                    adminDocument.id
+
+                if (adminUid.isBlank()) {
+                    return@forEach
+                }
+
+                createNotification(
+                    targetUid =
+                        adminUid,
+
+                    title =
+                        "Pengajuan Baru",
+
+                    message =
+                        "$namaPengaju mengajukan $jenis. " +
+                                "Terdapat pengajuan baru pada sistem.",
+
+                    type =
+                        "PENGAJUAN_BARU",
+
+                    pengajuanId =
+                        pengajuanId
+                )
+            }
+
+        } catch (_: Exception) {
+
+            // Kegagalan notifikasi Admin tidak membatalkan
+            // proses penyimpanan pengajuan.
         }
     }
 
@@ -260,10 +369,17 @@ object PengajuanRepository {
 
             result.add(
                 ApprovalPerson(
-                    uid = superiorUid,
-                    nama = superiorName,
-                    jabatan = superiorJabatan,
-                    urutan = urutan
+                    uid =
+                        superiorUid,
+
+                    nama =
+                        superiorName,
+
+                    jabatan =
+                        superiorJabatan,
+
+                    urutan =
+                        urutan
                 )
             )
 
@@ -387,11 +503,30 @@ object PengajuanRepository {
                     .get()
                     .await()
 
-            snapshot.documents.map { document ->
+            snapshot.documents.mapNotNull { document ->
 
                 val data =
                     document.data?.toMutableMap()
-                        ?: mutableMapOf()
+                        ?: return@mapNotNull null
+
+                val status =
+                    data["status"]
+                        ?.toString()
+                        ?.trim()
+                        ?.lowercase()
+                        .orEmpty()
+
+                val locked =
+                    data["approvalLocked"]
+                            as? Boolean
+                        ?: false
+
+                if (
+                    status != "menunggu" ||
+                    locked
+                ) {
+                    return@mapNotNull null
+                }
 
                 data["documentId"] =
                     document.id
@@ -407,11 +542,6 @@ object PengajuanRepository {
 
     // ============================================================
     // H-1 OTOMATIS DISETUJUI
-    //
-    // Aturan:
-    // Jika tanggal mulai = besok
-    // dan Owner belum memberikan keputusan,
-    // maka pengajuan otomatis disetujui.
     // ============================================================
 
     private suspend fun prosesOtomatisH1() {
@@ -464,7 +594,7 @@ object PengajuanRepository {
                 }
 
                 prosesH1SatuPengajuan(
-                    document = document
+                    document
                 )
             }
 
@@ -512,7 +642,6 @@ object PengajuanRepository {
                 .getBoolean("approvalLocked")
                 ?: false
 
-        // Sudah diproses pihak lain.
         if (
             latestStatus != "menunggu" ||
             latestLocked
@@ -547,23 +676,20 @@ object PengajuanRepository {
                     is Map<*, *>
         ) {
 
-            approvalStatusesRaw
-                .forEach { (key, value) ->
+            approvalStatusesRaw.forEach { (key, value) ->
 
-                    if (key != null) {
+                if (key != null) {
 
-                        approvalStatuses[
-                            key.toString()
-                        ] =
-                            value
-                                ?.toString()
-                                .orEmpty()
-                    }
+                    approvalStatuses[
+                        key.toString()
+                    ] =
+                        value
+                            ?.toString()
+                            .orEmpty()
                 }
+            }
         }
 
-        // Semua tahap yang belum selesai dianggap
-        // selesai/disetujui karena aturan H-1.
         approvalStatuses.keys.forEach { uid ->
 
             approvalStatuses[uid] =
@@ -572,38 +698,79 @@ object PengajuanRepository {
 
         val updateData =
             hashMapOf<String, Any>(
-                "status" to "disetujui",
-                "approvalStatuses" to approvalStatuses,
-                "approvalLocked" to true,
-                "currentApproverUid" to "",
-                "currentApproverName" to "",
-                "currentApproverJabatan" to "",
-                "approvedBy" to "SYSTEM_H1",
+
+                "status" to
+                        "disetujui",
+
+                "approvalStatuses" to
+                        approvalStatuses,
+
+                "approvalLocked" to
+                        true,
+
+                "currentApproverUid" to
+                        "",
+
+                "currentApproverName" to
+                        "",
+
+                "currentApproverJabatan" to
+                        "",
+
+                "approvedBy" to
+                        "SYSTEM_H1",
+
                 "approvedAt" to
                         FieldValue.serverTimestamp(),
+
                 "catatanAdmin" to
-                        "Otomatis disetujui pada H-1 karena belum mendapat keputusan Owner."
+                        "Otomatis disetujui pada H-1 karena " +
+                        "belum mendapat keputusan Owner."
             )
 
         reference
             .update(updateData)
             .await()
 
-        // Notifikasi hasil final kepada pengaju.
         createNotification(
-            targetUid = pengajuUid,
-            title = "Pengajuan Disetujui",
+            targetUid =
+                pengajuUid,
+
+            title =
+                "Pengajuan Disetujui",
+
             message =
                 "Pengajuan $jenis milik $namaPengaju " +
                         "otomatis disetujui pada H-1 karena " +
                         "belum mendapat keputusan Owner.",
-            type = "PENGAJUAN_DISETUJUI_H1",
-            pengajuanId = documentId
+
+            type =
+                "PENGAJUAN_DISETUJUI_H1",
+
+            pengajuanId =
+                documentId
         )
     }
 
     // ============================================================
     // UPDATE STATUS APPROVAL
+    //
+    // ATURAN:
+    //
+    // Supervisor → Manager → HRD → Owner
+    //
+    // Jika Supervisor/Manager/HRD MENOLAK:
+    // - status mereka dicatat "ditolak"
+    // - TIDAK mengunci pengajuan
+    // - pengajuan tetap lanjut ke approver berikutnya
+    //
+    // Jika Owner MENOLAK:
+    // - status final "ditolak"
+    // - approvalLocked = true
+    //
+    // Jika Owner MENYETUJUI:
+    // - status final "disetujui"
+    // - approvalLocked = true
     // ============================================================
 
     suspend fun updateStatusPengajuan(
@@ -727,26 +894,31 @@ object PengajuanRepository {
                         is Map<*, *>
             ) {
 
-                approvalStatusesRaw
-                    .forEach { (key, value) ->
+                approvalStatusesRaw.forEach { (key, value) ->
 
-                        if (key != null) {
+                    if (key != null) {
 
-                            approvalStatuses[
-                                key.toString()
-                            ] =
-                                value
-                                    ?.toString()
-                                    .orEmpty()
-                        }
+                        approvalStatuses[
+                            key.toString()
+                        ] =
+                            value
+                                ?.toString()
+                                .orEmpty()
                     }
+                }
             }
+
+            // ====================================================
+            // CATAT KEPUTUSAN APPROVER SAAT INI
+            // ====================================================
 
             approvalStatuses[currentUid] =
                 statusNormal
 
             // ====================================================
-            // OWNER = KEPUTUSAN FINAL
+            // OWNER = FINAL
+            //
+            // Hanya Owner yang mengunci pengajuan.
             // ====================================================
 
             if (
@@ -756,14 +928,28 @@ object PengajuanRepository {
 
                 val updateData =
                     hashMapOf<String, Any>(
-                        "status" to statusNormal,
+
+                        "status" to
+                                statusNormal,
+
                         "approvalStatuses" to
                                 approvalStatuses,
-                        "approvalLocked" to true,
-                        "currentApproverUid" to "",
-                        "currentApproverName" to "",
-                        "currentApproverJabatan" to "",
-                        "approvedBy" to currentUid,
+
+                        "approvalLocked" to
+                                true,
+
+                        "currentApproverUid" to
+                                "",
+
+                        "currentApproverName" to
+                                "",
+
+                        "currentApproverJabatan" to
+                                "",
+
+                        "approvedBy" to
+                                currentUid,
+
                         "approvedAt" to
                                 FieldValue.serverTimestamp()
                     )
@@ -773,11 +959,20 @@ object PengajuanRepository {
                     .await()
 
                 createResultNotification(
-                    targetUid = pengajuUid,
-                    namaPengaju = namaPengaju,
-                    jenis = jenis,
-                    status = statusNormal,
-                    pengajuanId = documentId
+                    targetUid =
+                        pengajuUid,
+
+                    namaPengaju =
+                        namaPengaju,
+
+                    jenis =
+                        jenis,
+
+                    status =
+                        statusNormal,
+
+                    pengajuanId =
+                        documentId
                 )
 
                 return Result.success(Unit)
@@ -799,69 +994,72 @@ object PengajuanRepository {
                         is List<*>
             ) {
 
-                approvalChainRaw
-                    .forEach { item ->
+                approvalChainRaw.forEach { item ->
 
-                        if (
-                            item is Map<*, *>
-                        ) {
+                    if (item is Map<*, *>) {
 
-                            val uid =
-                                item["uid"]
-                                    ?.toString()
-                                    .orEmpty()
+                        val uid =
+                            item["uid"]
+                                ?.toString()
+                                .orEmpty()
 
-                            val nama =
-                                item["nama"]
-                                    ?.toString()
-                                    .orEmpty()
+                        val nama =
+                            item["nama"]
+                                ?.toString()
+                                .orEmpty()
 
-                            val jabatan =
-                                item["jabatan"]
-                                    ?.toString()
-                                    .orEmpty()
-                                    .trim()
-                                    .uppercase()
+                        val jabatan =
+                            item["jabatan"]
+                                ?.toString()
+                                .orEmpty()
+                                .trim()
+                                .uppercase()
 
-                            val urutan =
-                                when (
-                                    val value =
-                                        item["urutan"]
-                                ) {
-
-                                    is Long ->
-                                        value.toInt()
-
-                                    is Int ->
-                                        value
-
-                                    is Double ->
-                                        value.toInt()
-
-                                    is String ->
-                                        value
-                                            .toIntOrNull()
-                                            ?: 0
-
-                                    else ->
-                                        0
-                                }
-
-                            if (
-                                uid.isNotBlank()
+                        val urutan =
+                            when (
+                                val value =
+                                    item["urutan"]
                             ) {
 
-                                approvalChain.add(
-                                    ApprovalPerson(
-                                        uid = uid,
-                                        nama = nama,
-                                        jabatan = jabatan,
-                                        urutan = urutan
-                                    )
-                                )
+                                is Long ->
+                                    value.toInt()
+
+                                is Int ->
+                                    value
+
+                                is Double ->
+                                    value.toInt()
+
+                                is String ->
+                                    value.toIntOrNull()
+                                        ?: 0
+
+                                else ->
+                                    0
                             }
+
+                        if (
+                            uid.isNotBlank()
+                        ) {
+
+                            approvalChain.add(
+                                ApprovalPerson(
+                                    uid =
+                                        uid,
+
+                                    nama =
+                                        nama,
+
+                                    jabatan =
+                                        jabatan,
+
+                                    urutan =
+                                        urutan
+                                )
+                            )
                         }
                     }
+                }
             }
 
             val currentIndex =
@@ -899,16 +1097,31 @@ object PengajuanRepository {
                 )
             }
 
+            // ====================================================
+            // INTERMEDIATE APPROVER
+            //
+            // Baik SETUJUI maupun TOLAK:
+            // tetap lanjut ke tahap berikutnya.
+            // ====================================================
+
             val updateData =
                 hashMapOf<String, Any>(
-                    "status" to "menunggu",
+
+                    "status" to
+                            "menunggu",
+
                     "approvalStatuses" to
                             approvalStatuses,
-                    "approvalLocked" to false,
+
+                    "approvalLocked" to
+                            false,
+
                     "currentApproverUid" to
                             nextApprover.uid,
+
                     "currentApproverName" to
                             nextApprover.nama,
+
                     "currentApproverJabatan" to
                             nextApprover.jabatan
                 )
@@ -920,12 +1133,16 @@ object PengajuanRepository {
             createNextApproverNotification(
                 targetUid =
                     nextApprover.uid,
+
                 namaPengaju =
                     namaPengaju,
+
                 jenis =
                     jenis,
+
                 jabatanApprover =
                     nextApprover.jabatan,
+
                 pengajuanId =
                     documentId
             )
@@ -966,26 +1183,33 @@ object PengajuanRepository {
 
         val message =
             if (disetujui) {
-                "Pengajuan $jenis milik " +
-                        "$namaPengaju telah disetujui Owner."
+
+                "Pengajuan $jenis milik $namaPengaju " +
+                        "telah disetujui Owner."
+
             } else {
-                "Pengajuan $jenis milik " +
-                        "$namaPengaju telah ditolak Owner."
+
+                "Pengajuan $jenis milik $namaPengaju " +
+                        "telah ditolak oleh Owner."
             }
 
         createNotification(
             targetUid =
                 targetUid,
+
             title =
                 title,
+
             message =
                 message,
+
             type =
                 if (disetujui) {
                     "PENGAJUAN_DISETUJUI"
                 } else {
                     "PENGAJUAN_DITOLAK"
                 },
+
             pengajuanId =
                 pengajuanId
         )
@@ -1010,14 +1234,18 @@ object PengajuanRepository {
         createNotification(
             targetUid =
                 targetUid,
+
             title =
                 "Menunggu Approval",
+
             message =
                 "Pengajuan $jenis dari $namaPengaju " +
                         "menunggu persetujuan Anda sebagai " +
                         "$jabatanApprover.",
+
             type =
                 "PENGAJUAN_APPROVAL",
+
             pengajuanId =
                 pengajuanId
         )
@@ -1041,12 +1269,25 @@ object PengajuanRepository {
 
         val data =
             hashMapOf<String, Any>(
-                "userId" to targetUid,
-                "title" to title,
-                "message" to message,
-                "type" to type,
-                "relatedId" to pengajuanId,
-                "isRead" to false,
+
+                "userId" to
+                        targetUid,
+
+                "title" to
+                        title,
+
+                "message" to
+                        message,
+
+                "type" to
+                        type,
+
+                "relatedId" to
+                        pengajuanId,
+
+                "isRead" to
+                        false,
+
                 "timestamp" to
                         FieldValue.serverTimestamp()
             )

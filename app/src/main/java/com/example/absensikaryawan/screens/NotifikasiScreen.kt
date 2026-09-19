@@ -254,10 +254,6 @@ fun NotifikasiScreen(
                 )
             }
 
-            // ==============================================
-            // CLEAR ALL
-            // ==============================================
-
             if (notifications.isNotEmpty()) {
 
                 Text(
@@ -410,29 +406,17 @@ fun NotifikasiScreen(
                     }
                 ) { notification ->
 
-                    // ==========================================
-                    // TENTUKAN ICON
-                    // ==========================================
-
                     val icon =
                         getNotificationIcon(
                             notification.type,
                             notification.title
                         )
 
-                    // ==========================================
-                    // TENTUKAN WARNA
-                    // ==========================================
-
                     val iconColor =
                         getNotificationColor(
                             notification.type,
                             notification.title
                         )
-
-                    // ==========================================
-                    // CARD
-                    // ==========================================
 
                     Card(
                         modifier = Modifier
@@ -502,10 +486,6 @@ fun NotifikasiScreen(
                                 Alignment.Top
                         ) {
 
-                            // ==========================================
-                            // ICON
-                            // ==========================================
-
                             Box(
                                 modifier = Modifier
                                     .size(43.dp)
@@ -536,10 +516,6 @@ fun NotifikasiScreen(
                                 modifier =
                                     Modifier.width(11.dp)
                             )
-
-                            // ==========================================
-                            // TEXT
-                            // ==========================================
 
                             Column(
                                 modifier =
@@ -573,10 +549,6 @@ fun NotifikasiScreen(
                                         modifier =
                                             Modifier.weight(1f)
                                     )
-
-                                    // ==================================
-                                    // UNREAD DOT
-                                    // ==================================
 
                                     if (
                                         !notification.isRead
@@ -620,10 +592,6 @@ fun NotifikasiScreen(
                                         Modifier.height(6.dp)
                                 )
 
-                                // ==================================
-                                // WAKTU
-                                // ==================================
-
                                 Row(
                                     verticalAlignment =
                                         Alignment.CenterVertically
@@ -665,10 +633,6 @@ fun NotifikasiScreen(
                         }
                     }
                 }
-
-                // ==============================================
-                // BOTTOM SPACE
-                // ==============================================
 
                 item {
 
@@ -777,27 +741,36 @@ private fun getNotificationIcon(
     title: String
 ): androidx.compose.ui.graphics.vector.ImageVector {
 
-    val value =
-        "$type $title".uppercase(Locale.getDefault())
+    val normalizedType =
+        type.trim().uppercase(Locale.getDefault())
+
+    val normalizedTitle =
+        title.trim().uppercase(Locale.getDefault())
 
     return when {
 
-        value.contains("ABSENSI") ->
+        normalizedType == "ABSENSI" ->
             Icons.Default.CheckCircle
 
-        value.contains("PENGAJUAN") ->
-            if (value.contains("DISETUJUI")) {
-                Icons.Default.CheckCircle
-            } else if (value.contains("DITOLAK")) {
-                Icons.Default.Info
-            } else {
-                Icons.Default.Description
-            }
+        normalizedType == "PENGAJUAN_DISETUJUI" ||
+                normalizedType == "PENGAJUAN_DISETUJUI_H1" ->
+            Icons.Default.CheckCircle
 
-        value.contains("CHAT") ||
-                value.contains("PESAN") ||
-                value.contains("BALASAN") ->
+        normalizedType == "PENGAJUAN_DITOLAK" ->
+            Icons.Default.Info
+
+        normalizedType == "PENGAJUAN_BARU" ||
+                normalizedType == "PENGAJUAN_APPROVAL" ->
+            Icons.Default.Description
+
+        normalizedType == "CHAT" ||
+                normalizedType.contains("CHAT") ||
+                normalizedType.contains("BALASAN") ||
+                normalizedType.contains("PESAN") ->
             Icons.Default.NotificationsNone
+
+        normalizedTitle.contains("PENGAJUAN") ->
+            Icons.Default.Description
 
         else ->
             Icons.Default.Info
@@ -813,24 +786,34 @@ private fun getNotificationColor(
     title: String
 ): Color {
 
-    val value =
-        "$type $title".uppercase(Locale.getDefault())
+    val normalizedType =
+        type.trim().uppercase(Locale.getDefault())
+
+    val normalizedTitle =
+        title.trim().uppercase(Locale.getDefault())
 
     return when {
 
-        value.contains("DITOLAK") ->
+        normalizedType == "PENGAJUAN_DITOLAK" ||
+                normalizedTitle.contains("DITOLAK") ->
             Color(0xFFD64545)
 
-        value.contains("MENUNGGU") ->
+        normalizedType == "PENGAJUAN_BARU" ||
+                normalizedType == "PENGAJUAN_APPROVAL" ||
+                normalizedTitle.contains("MENUNGGU") ->
             Color(0xFFD89B00)
 
-        value.contains("CHAT") ||
-                value.contains("PESAN") ||
-                value.contains("BALASAN") ->
+        normalizedType == "PENGAJUAN_DISETUJUI" ||
+                normalizedType == "PENGAJUAN_DISETUJUI_H1" ||
+                normalizedTitle.contains("DISETUJUI") ->
+            PrimaryGreen
+
+        normalizedType.contains("CHAT") ||
+                normalizedType.contains("PESAN") ||
+                normalizedType.contains("BALASAN") ->
             Color(0xFF2878D8)
 
-        value.contains("ABSENSI") ||
-                value.contains("DISETUJUI") ->
+        normalizedType.contains("ABSENSI") ->
             PrimaryGreen
 
         else ->
@@ -846,129 +829,84 @@ private fun getNotificationTarget(
     notification: Notification
 ): NotificationTarget {
 
-    return when (
+    val type =
         notification.type
+            .trim()
             .uppercase(Locale.getDefault())
-    ) {
-
-        "ABSENSI" ->
-            NotificationTarget.RIWAYAT_ABSENSI
-
-        "PENGAJUAN" -> {
-
-            when (
-                notification.targetValue()
-            ) {
-
-                "PENGAJUAN_DISETUJUI" ->
-                    NotificationTarget.PENGAJUAN_DISETUJUI
-
-                "PENGAJUAN_DITOLAK" ->
-                    NotificationTarget.PENGAJUAN_DITOLAK
-
-                "PENGAJUAN_MENUNGGU" ->
-                    NotificationTarget.PENGAJUAN_MENUNGGU
-
-                "PENGAJUAN_BARU" ->
-                    NotificationTarget.PENGAJUAN_MENUNGGU
-
-                else -> {
-
-                    val title =
-                        notification.title
-                            .uppercase(
-                                Locale.getDefault()
-                            )
-
-                    when {
-
-                        title.contains("DISETUJUI") ->
-                            NotificationTarget.PENGAJUAN_DISETUJUI
-
-                        title.contains("DITOLAK") ->
-                            NotificationTarget.PENGAJUAN_DITOLAK
-
-                        title.contains("MENUNGGU") ->
-                            NotificationTarget.PENGAJUAN_MENUNGGU
-
-                        else ->
-                            NotificationTarget.PENGAJUAN_MENUNGGU
-                    }
-                }
-            }
-        }
-
-        "CHAT" ->
-            NotificationTarget.CHAT_ADMIN
-
-        else -> {
-
-            val value =
-                "${notification.type} ${notification.title}"
-                    .uppercase(Locale.getDefault())
-
-            when {
-
-                value.contains("BALASAN") ->
-                    NotificationTarget.CHAT_ADMIN
-
-                value.contains("PESAN") ->
-                    NotificationTarget.CHAT_ADMIN
-
-                value.contains("ABSENSI") ->
-                    NotificationTarget.RIWAYAT_ABSENSI
-
-                value.contains("DISETUJUI") ->
-                    NotificationTarget.PENGAJUAN_DISETUJUI
-
-                value.contains("DITOLAK") ->
-                    NotificationTarget.PENGAJUAN_DITOLAK
-
-                value.contains("MENUNGGU") ->
-                    NotificationTarget.PENGAJUAN_MENUNGGU
-
-                else ->
-                    NotificationTarget.NONE
-            }
-        }
-    }
-}
-
-// ==========================================================
-// NOTIFICATION TARGET VALUE
-// ==========================================================
-//
-// Karena model Notification saat ini hanya punya relatedId,
-// kita gunakan relatedId/type/title untuk kompatibilitas dengan
-// data Firestore yang sudah ada.
-//
-
-private fun Notification.targetValue(): String {
 
     val title =
-        title.uppercase(
-            Locale.getDefault()
-        )
+        notification.title
+            .trim()
+            .uppercase(Locale.getDefault())
 
-    return when {
+    // ======================================================
+    // ABSENSI
+    // ======================================================
 
-        title.contains("DISETUJUI") ->
-            "PENGAJUAN_DISETUJUI"
-
-        title.contains("DITOLAK") ->
-            "PENGAJUAN_DITOLAK"
-
-        title.contains("MENUNGGU") ->
-            "PENGAJUAN_MENUNGGU"
-
-        title.contains("BARU") &&
-                type.uppercase(Locale.getDefault())
-                    .contains("PENGAJUAN") ->
-            "PENGAJUAN_BARU"
-
-        else ->
-            ""
+    if (type == "ABSENSI") {
+        return NotificationTarget.RIWAYAT_ABSENSI
     }
+
+    // ======================================================
+    // PENGAJUAN
+    // ======================================================
+
+    when (type) {
+
+        "PENGAJUAN_BARU",
+        "PENGAJUAN_APPROVAL",
+        "PENGAJUAN_MENUNGGU" -> {
+            return NotificationTarget.PENGAJUAN_MENUNGGU
+        }
+
+        "PENGAJUAN_DISETUJUI",
+        "PENGAJUAN_DISETUJUI_H1" -> {
+            return NotificationTarget.PENGAJUAN_DISETUJUI
+        }
+
+        "PENGAJUAN_DITOLAK" -> {
+            return NotificationTarget.PENGAJUAN_DITOLAK
+        }
+    }
+
+    // ======================================================
+    // CHAT
+    // ======================================================
+
+    if (
+        type == "CHAT" ||
+        type.contains("CHAT") ||
+        type.contains("BALASAN") ||
+        type.contains("PESAN")
+    ) {
+        return NotificationTarget.CHAT_ADMIN
+    }
+
+    // ======================================================
+    // FALLBACK BERDASARKAN JUDUL
+    // Untuk menjaga kompatibilitas data lama.
+    // ======================================================
+
+    if (title.contains("ABSENSI")) {
+        return NotificationTarget.RIWAYAT_ABSENSI
+    }
+
+    if (title.contains("DISETUJUI")) {
+        return NotificationTarget.PENGAJUAN_DISETUJUI
+    }
+
+    if (title.contains("DITOLAK")) {
+        return NotificationTarget.PENGAJUAN_DITOLAK
+    }
+
+    if (
+        title.contains("MENUNGGU") ||
+        title.contains("PENGAJUAN BARU")
+    ) {
+        return NotificationTarget.PENGAJUAN_MENUNGGU
+    }
+
+    return NotificationTarget.NONE
 }
 
 // ==========================================================

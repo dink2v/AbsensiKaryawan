@@ -49,28 +49,6 @@ import java.util.Locale
 
 
 // ==========================================================
-// TARGET NOTIFIKASI
-// ==========================================================
-
-enum class NotificationTarget {
-
-    NONE,
-
-    RIWAYAT_ABSENSI,
-
-    RIWAYAT_PENGAJUAN,
-
-    PENGAJUAN_DISETUJUI,
-
-    PENGAJUAN_DITOLAK,
-
-    PENGAJUAN_MENUNGGU,
-
-    CHAT_ADMIN
-}
-
-
-// ==========================================================
 // STAFF NAVIGATION
 // ==========================================================
 
@@ -156,6 +134,7 @@ fun StaffNavigation(
         mutableStateOf<String?>(null)
     }
 
+
     // ======================================================
     // RESET SCANNER QR
     // ======================================================
@@ -163,6 +142,7 @@ fun StaffNavigation(
     var scanResetKey by remember {
         mutableIntStateOf(0)
     }
+
 
     // ======================================================
     // SCAFFOLD
@@ -756,6 +736,7 @@ fun StaffNavigation(
                                                     "STAFF_NAV",
                                                     "ABSEN MASUK DITOLAK → Sudah masuk waktu pulang"
                                                 )
+
                                                 attendanceMessage =
                                                     "Absen pulang belum dibuka.\n\n" +
                                                             "Absen pulang dapat dilakukan mulai pukul 16.00."

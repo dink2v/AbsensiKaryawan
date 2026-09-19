@@ -11,26 +11,41 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import com.example.absensikaryawan.models.Notification
+import com.example.absensikaryawan.repository.NotificationRepository
+import com.google.firebase.auth.FirebaseAuth
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // ==========================================================
 // ADMIN NOTIFIKASI
@@ -38,8 +53,91 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun AdminNotifikasiScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onApprovalClick: () -> Unit
 ) {
+
+    val auth =
+        remember {
+            FirebaseAuth.getInstance()
+        }
+
+    val notificationRepository =
+        remember {
+            NotificationRepository()
+        }
+
+    val currentUserId =
+        auth.currentUser?.uid.orEmpty()
+
+    var notifications by remember {
+        mutableStateOf<List<Notification>>(emptyList())
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    // ======================================================
+    // REALTIME FIRESTORE LISTENER
+    // ======================================================
+
+    DisposableEffect(currentUserId) {
+
+        if (currentUserId.isBlank()) {
+
+            isLoading = false
+
+            errorMessage =
+                "Admin belum login."
+
+            onDispose { }
+
+        } else {
+
+            val listener =
+                notificationRepository.listenNotifications(
+
+                    userId =
+                        currentUserId,
+
+                    onNotificationsChanged = { data ->
+
+                        notifications =
+                            data
+
+                        isLoading =
+                            false
+
+                        errorMessage =
+                            null
+                    },
+
+                    onError = { exception ->
+
+                        isLoading =
+                            false
+
+                        errorMessage =
+                            exception.message
+                                ?: "Gagal mengambil notifikasi."
+                    }
+                )
+
+            onDispose {
+                listener.remove()
+            }
+        }
+    }
+
+    val unreadCount =
+        notifications.count {
+            !it.isRead
+        }
 
     Column(
 
@@ -91,31 +189,49 @@ fun AdminNotifikasiScreen(
                 )
             }
 
-
             Spacer(
                 modifier =
                     Modifier.width(4.dp)
             )
 
-
-            Text(
-
-                text =
-                    "Notifikasi",
-
+            Column(
                 modifier =
-                    Modifier.weight(1f),
+                    Modifier.weight(1f)
+            ) {
 
-                fontSize =
-                    24.sp,
+                Text(
 
-                fontWeight =
-                    FontWeight.Bold,
+                    text =
+                        "Notifikasi",
 
-                color =
-                    TextDark
-            )
+                    fontSize =
+                        24.sp,
 
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+
+                if (unreadCount > 0) {
+
+                    Text(
+
+                        text =
+                            "$unreadCount belum dibaca",
+
+                        fontSize =
+                            11.sp,
+
+                        color =
+                            PrimaryGreen,
+
+                        fontWeight =
+                            FontWeight.Medium
+                    )
+                }
+            }
 
             Icon(
 
@@ -134,7 +250,6 @@ fun AdminNotifikasiScreen(
                     )
             )
         }
-
 
         // ==================================================
         // SUBTITLE
@@ -157,114 +272,182 @@ fun AdminNotifikasiScreen(
                 )
         )
 
-
         Spacer(
             modifier =
-                Modifier.size(20.dp)
+                Modifier.size(16.dp)
         )
 
+        // ==================================================
+        // ERROR
+        // ==================================================
+
+        if (errorMessage != null) {
+
+            AdminNotificationMessage(
+
+                icon =
+                    Icons.Default.Error,
+
+                title =
+                    "Gagal memuat notifikasi",
+
+                description =
+                    errorMessage
+                        ?: "Terjadi kesalahan."
+            )
+        }
 
         // ==================================================
-        // NOTIFIKASI PENGAJUAN
+        // LOADING
         // ==================================================
 
-        AdminNotificationItem(
+        else if (isLoading) {
 
-            icon =
-                Icons.Default.PendingActions,
+            Column(
 
-            iconBackground =
-                Color(0xFFFFF3E0),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            top = 40.dp
+                        ),
 
-            iconColor =
-                Color(0xFFD97706),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
 
-            title =
-                "Pengajuan Menunggu",
+                CircularProgressIndicator(
 
-            description =
-                "Terdapat pengajuan karyawan yang menunggu persetujuan.",
+                    color =
+                        PrimaryGreen,
 
-            onClick = {
+                    modifier =
+                        Modifier.size(
+                            32.dp
+                        )
+                )
 
-                // Untuk sementara belum diarahkan
-                // ke halaman tertentu.
+                Spacer(
+                    modifier =
+                        Modifier.size(12.dp)
+                )
+
+                Text(
+
+                    text =
+                        "Memuat notifikasi...",
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextGray
+                )
             }
-        )
-
-
-        Spacer(
-            modifier =
-                Modifier.size(12.dp)
-        )
-
+        }
 
         // ==================================================
-        // NOTIFIKASI INFORMASI
+        // EMPTY
         // ==================================================
 
-        AdminNotificationItem(
+        else if (notifications.isEmpty()) {
 
-            icon =
-                Icons.Default.Info,
+            AdminNotificationMessage(
 
-            iconBackground =
-                Color(0xFFE8F5E9),
+                icon =
+                    Icons.Default.Notifications,
 
-            iconColor =
-                PrimaryGreen,
+                title =
+                    "Belum ada notifikasi",
 
-            title =
-                "Informasi Sistem",
+                description =
+                    "Belum ada aktivitas yang perlu ditampilkan."
+            )
+        }
 
-            description =
-                "Data dashboard admin diperbarui berdasarkan data terbaru.",
+        // ==================================================
+        // LIST NOTIFIKASI
+        // ==================================================
 
-            onClick = {
+        else {
 
-                // Informasi sistem.
+            LazyColumn(
+
+                modifier =
+                    Modifier.fillMaxSize(),
+
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                items(
+
+                    items =
+                        notifications,
+
+                    key = {
+                        it.id
+                    }
+
+                ) { notification ->
+
+                    AdminNotificationItem(
+
+                        notification =
+                            notification,
+
+                        onClick = {
+
+                            // ==========================================
+                            // TANDAI SUDAH DIBACA
+                            // ==========================================
+
+                            if (!notification.isRead) {
+
+                                notificationRepository.markAsRead(
+
+                                    notificationId =
+                                        notification.id
+                                )
+                            }
+
+                            // ==========================================
+                            // ROUTING NOTIFIKASI
+                            // ==========================================
+
+                            when {
+
+                                notification.type.equals(
+                                    "PENGAJUAN_BARU",
+                                    ignoreCase = true
+                                ) -> {
+
+                                    onApprovalClick()
+                                }
+
+                                notification.type.equals(
+                                    "PENGAJUAN_APPROVAL",
+                                    ignoreCase = true
+                                ) -> {
+
+                                    onApprovalClick()
+                                }
+                            }
+                        }
+                    )
+                }
+
+                item {
+
+                    Spacer(
+                        modifier =
+                            Modifier.size(20.dp)
+                    )
+                }
             }
-        )
-
-
-        Spacer(
-            modifier =
-                Modifier.size(12.dp)
-        )
-
-
-        // ==================================================
-        // NOTIFIKASI KEHADIRAN
-        // ==================================================
-
-        AdminNotificationItem(
-
-            icon =
-                Icons.Default.CheckCircle,
-
-            iconBackground =
-                Color(0xFFE8F5E9),
-
-            iconColor =
-                PrimaryGreen,
-
-            title =
-                "Kehadiran Hari Ini",
-
-            description =
-                "Data kehadiran karyawan hari ini tersedia di dashboard.",
-
-            onClick = {
-
-                // Informasi kehadiran.
-            }
-        )
-
-
-        Spacer(
-            modifier =
-                Modifier.weight(1f)
-        )
+        }
     }
 }
 
@@ -276,25 +459,29 @@ fun AdminNotifikasiScreen(
 @Composable
 private fun AdminNotificationItem(
 
-    icon:
-    androidx.compose.ui.graphics.vector.ImageVector,
-
-    iconBackground:
-    Color,
-
-    iconColor:
-    Color,
-
-    title:
-    String,
-
-    description:
-    String,
+    notification:
+    Notification,
 
     onClick:
         () -> Unit
 
 ) {
+
+    val (
+        icon,
+        iconBackground,
+        iconColor
+    ) =
+        getAdminNotificationStyle(
+            notification.type
+        )
+
+    val backgroundColor =
+        if (notification.isRead) {
+            Color.White
+        } else {
+            Color(0xFFF1F8F3)
+        }
 
     Card(
 
@@ -314,13 +501,17 @@ private fun AdminNotificationItem(
             CardDefaults.cardColors(
 
                 containerColor =
-                    Color.White
+                    backgroundColor
             ),
 
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    2.dp
+                    if (notification.isRead) {
+                        2.dp
+                    } else {
+                        4.dp
+                    }
             )
     ) {
 
@@ -348,8 +539,347 @@ private fun AdminNotificationItem(
                     Modifier
                         .size(46.dp)
                         .background(
+
                             color =
                                 iconBackground,
+
+                            shape =
+                                RoundedCornerShape(
+                                    12.dp
+                                )
+                        ),
+
+                horizontalArrangement =
+                    Arrangement.Center,
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Icon(
+
+                    imageVector =
+                        icon,
+
+                    contentDescription =
+                        notification.title,
+
+                    tint =
+                        iconColor,
+
+                    modifier =
+                        Modifier.size(
+                            23.dp
+                        )
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.width(14.dp)
+            )
+
+            // ==================================================
+            // TEXT
+            // ==================================================
+
+            Column(
+
+                modifier =
+                    Modifier.weight(1f)
+            ) {
+
+                Row(
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+
+                        text =
+                            notification.title,
+
+                        modifier =
+                            Modifier.weight(1f),
+
+                        fontSize =
+                            15.sp,
+
+                        fontWeight =
+                            if (notification.isRead) {
+                                FontWeight.SemiBold
+                            } else {
+                                FontWeight.Bold
+                            },
+
+                        color =
+                            TextDark
+                    )
+
+                    if (!notification.isRead) {
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Default.Notifications,
+
+                            contentDescription =
+                                "Belum dibaca",
+
+                            tint =
+                                PrimaryGreen,
+
+                            modifier =
+                                Modifier.size(
+                                    15.dp
+                                )
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.size(4.dp)
+                )
+
+                Text(
+
+                    text =
+                        notification.message,
+
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.size(6.dp)
+                )
+
+                Text(
+
+                    text =
+                        formatNotificationTime(
+                            notification.timestamp
+                        ),
+
+                    fontSize =
+                        10.sp,
+
+                    color =
+                        TextGray
+                )
+            }
+        }
+    }
+}
+
+
+// ==========================================================
+// STYLE NOTIFIKASI
+// ==========================================================
+
+private fun getAdminNotificationStyle(
+
+    type:
+    String
+
+): Triple<ImageVector, Color, Color> {
+
+    return when {
+
+        type.equals(
+            "PENGAJUAN_BARU",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.PendingActions,
+
+                Color(0xFFFFF3E0),
+
+                Color(0xFFD97706)
+            )
+        }
+
+        type.equals(
+            "PENGAJUAN_APPROVAL",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.PendingActions,
+
+                Color(0xFFFFF3E0),
+
+                Color(0xFFD97706)
+            )
+        }
+
+        type.equals(
+            "PENGAJUAN_DISETUJUI",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.CheckCircle,
+
+                Color(0xFFE8F5E9),
+
+                PrimaryGreen
+            )
+        }
+
+        type.equals(
+            "PENGAJUAN_DISETUJUI_H1",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.CheckCircle,
+
+                Color(0xFFE8F5E9),
+
+                PrimaryGreen
+            )
+        }
+
+        type.equals(
+            "PENGAJUAN_DITOLAK",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.Error,
+
+                Color(0xFFFFEBEE),
+
+                Color(0xFFC62828)
+            )
+        }
+
+        type.equals(
+            "ABSENSI",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.CheckCircle,
+
+                Color(0xFFE8F5E9),
+
+                PrimaryGreen
+            )
+        }
+
+        type.contains(
+            "CHAT",
+            ignoreCase = true
+        ) -> {
+
+            Triple(
+
+                Icons.Default.Info,
+
+                Color(0xFFE8F5E9),
+
+                PrimaryGreen
+            )
+        }
+
+        else -> {
+
+            Triple(
+
+                Icons.Default.Info,
+
+                Color(0xFFE8F5E9),
+
+                PrimaryGreen
+            )
+        }
+    }
+}
+
+
+// ==========================================================
+// EMPTY / ERROR MESSAGE
+// ==========================================================
+
+@Composable
+private fun AdminNotificationMessage(
+
+    icon:
+    ImageVector,
+
+    title:
+    String,
+
+    description:
+    String
+
+) {
+
+    Card(
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(
+                18.dp
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
+    ) {
+
+        Row(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 17.dp,
+                        vertical = 18.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Row(
+
+                modifier =
+                    Modifier
+                        .size(46.dp)
+                        .background(
+
+                            color =
+                                Color(0xFFE8F5E9),
 
                             shape =
                                 RoundedCornerShape(
@@ -373,7 +903,7 @@ private fun AdminNotificationItem(
                         title,
 
                     tint =
-                        iconColor,
+                        PrimaryGreen,
 
                     modifier =
                         Modifier.size(
@@ -382,22 +912,12 @@ private fun AdminNotificationItem(
                 )
             }
 
-
             Spacer(
                 modifier =
                     Modifier.width(14.dp)
             )
 
-
-            // ==================================================
-            // TEXT
-            // ==================================================
-
-            Column(
-
-                modifier =
-                    Modifier.weight(1f)
-            ) {
+            Column {
 
                 Text(
 
@@ -414,12 +934,10 @@ private fun AdminNotificationItem(
                         TextDark
                 )
 
-
                 Spacer(
                     modifier =
                         Modifier.size(4.dp)
                 )
-
 
                 Text(
 
@@ -434,5 +952,35 @@ private fun AdminNotificationItem(
                 )
             }
         }
+    }
+}
+
+
+// ==========================================================
+// FORMAT WAKTU
+// ==========================================================
+
+private fun formatNotificationTime(
+    timestamp: Long
+): String {
+
+    if (timestamp <= 0L) {
+        return ""
+    }
+
+    return try {
+
+        SimpleDateFormat(
+            "dd MMM yyyy • HH:mm",
+            Locale("id", "ID")
+        ).format(
+            Date(timestamp)
+        )
+
+    } catch (
+        exception: Exception
+    ) {
+
+        ""
     }
 }
