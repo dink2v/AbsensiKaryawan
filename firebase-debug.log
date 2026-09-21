@@ -1,0 +1,229 @@
+[debug] [2026-09-19T14:38:59.624Z] ----------------------------------------------------------------------
+[debug] [2026-09-19T14:38:59.627Z] Command:       D:\NODE\node.exe C:\Users\WINDOWS\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init functions
+[debug] [2026-09-19T14:38:59.627Z] CLI Version:   15.30.0
+[debug] [2026-09-19T14:38:59.627Z] Platform:      win32
+[debug] [2026-09-19T14:38:59.628Z] Node Version:  v24.21.0
+[debug] [2026-09-19T14:38:59.628Z] Detected Agent: unknown
+[debug] [2026-09-19T14:38:59.628Z] Time:          Sat Sep 19 2026 21:38:59 GMT+0700 (Western Indonesia Time)
+[debug] [2026-09-19T14:38:59.628Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  U:\AbsensiKaryawan
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-09-19T14:39:03.657Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-19T14:39:03.657Z] > authorizing via signed-in user (qomarudinmohammad9@gmail.com)
+[debug] [2026-09-19T14:39:03.679Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:03.679Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:03.680Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 [none]
+[debug] [2026-09-19T14:39:04.384Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 200
+[debug] [2026-09-19T14:39:04.384Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 {"projectId":"absensi-karyawan-2b712","projectNumber":"313053109006","displayName":"Absensi Karyawan","name":"projects/absensi-karyawan-2b712","resources":{"hostingSite":"absensi-karyawan-2b712"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_02b53995-36ad-4efb-a70f-6104f43c63c7"}
+[info] i  Using project absensi-karyawan-2b712 (Absensi Karyawan) . 
+[info] 
+=== Functions Setup
+[debug] [2026-09-19T14:39:04.391Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-19T14:39:04.392Z] > authorizing via signed-in user (qomarudinmohammad9@gmail.com)
+[debug] [2026-09-19T14:39:04.392Z] [iam] checking project absensi-karyawan-2b712 for permissions ["firebase.projects.get"]
+[debug] [2026-09-19T14:39:04.393Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:04.393Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:04.393Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions [none]
+[debug] [2026-09-19T14:39:04.393Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions  x-goog-user-project=absensi-karyawan-2b712
+[debug] [2026-09-19T14:39:04.393Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-09-19T14:39:04.721Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions 200
+[debug] [2026-09-19T14:39:04.721Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions {"permissions":["firebase.projects.get"]}
+[info] 
+Detected existing codebase(s): default
+
+[info] Let's create a new codebase for your functions.
+[info] A directory corresponding to the codebase will be created in your project
+[info] with sample code pre-configured.
+
+[info] See https://firebase.google.com/docs/functions/organize-functions for
+[info] more information on organizing your functions using codebases.
+
+[info] Functions can be deployed with firebase deploy.
+
+[debug] [2026-09-19T14:39:27.670Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\WINDOWS\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:514:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1343:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:289:20)
+    at ReadStream.emit (node:events:526:24)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:514:28)
+    at addChunk (node:internal/streams/readable:568:12)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-09-19T14:39:33.368Z] ----------------------------------------------------------------------
+[debug] [2026-09-19T14:39:33.373Z] Command:       D:\NODE\node.exe C:\Users\WINDOWS\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init functions
+[debug] [2026-09-19T14:39:33.374Z] CLI Version:   15.30.0
+[debug] [2026-09-19T14:39:33.374Z] Platform:      win32
+[debug] [2026-09-19T14:39:33.374Z] Node Version:  v24.21.0
+[debug] [2026-09-19T14:39:33.374Z] Detected Agent: unknown
+[debug] [2026-09-19T14:39:33.375Z] Time:          Sat Sep 19 2026 21:39:33 GMT+0700 (Western Indonesia Time)
+[debug] [2026-09-19T14:39:33.375Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  U:\AbsensiKaryawan
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-09-19T14:39:37.997Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-19T14:39:37.997Z] > authorizing via signed-in user (qomarudinmohammad9@gmail.com)
+[debug] [2026-09-19T14:39:38.021Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:38.021Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:38.023Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 [none]
+[debug] [2026-09-19T14:39:38.704Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 200
+[debug] [2026-09-19T14:39:38.704Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 {"projectId":"absensi-karyawan-2b712","projectNumber":"313053109006","displayName":"Absensi Karyawan","name":"projects/absensi-karyawan-2b712","resources":{"hostingSite":"absensi-karyawan-2b712"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_02b53995-36ad-4efb-a70f-6104f43c63c7"}
+[info] i  Using project absensi-karyawan-2b712 (Absensi Karyawan) . 
+[info] 
+=== Functions Setup
+[debug] [2026-09-19T14:39:38.710Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-19T14:39:38.710Z] > authorizing via signed-in user (qomarudinmohammad9@gmail.com)
+[debug] [2026-09-19T14:39:38.710Z] [iam] checking project absensi-karyawan-2b712 for permissions ["firebase.projects.get"]
+[debug] [2026-09-19T14:39:38.711Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:38.711Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:39:38.711Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions [none]
+[debug] [2026-09-19T14:39:38.711Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions  x-goog-user-project=absensi-karyawan-2b712
+[debug] [2026-09-19T14:39:38.711Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-09-19T14:39:39.035Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions 200
+[debug] [2026-09-19T14:39:39.035Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions {"permissions":["firebase.projects.get"]}
+[info] 
+Detected existing codebase(s): default
+
+[info] Let's create a new codebase for your functions.
+[info] A directory corresponding to the codebase will be created in your project
+[info] with sample code pre-configured.
+
+[info] See https://firebase.google.com/docs/functions/organize-functions for
+[info] more information on organizing your functions using codebases.
+
+[info] Functions can be deployed with firebase deploy.
+
+[error] Invalid codebase name. Codebase must be less than 64 characters and can contain only lowercase letters, numeric characters, underscores, and dashes.
+[error] Invalid codebase name. Codebase must be less than 64 characters and can contain only lowercase letters, numeric characters, underscores, and dashes.
+[error] functions.source must be unique but 'functions' was used more than once.
+[debug] [2026-09-19T14:40:29.431Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\WINDOWS\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:514:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1343:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:289:20)
+    at ReadStream.emit (node:events:526:24)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:514:28)
+    at addChunk (node:internal/streams/readable:568:12)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-09-19T14:40:37.514Z] ----------------------------------------------------------------------
+[debug] [2026-09-19T14:40:37.517Z] Command:       D:\NODE\node.exe C:\Users\WINDOWS\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init functions
+[debug] [2026-09-19T14:40:37.518Z] CLI Version:   15.30.0
+[debug] [2026-09-19T14:40:37.518Z] Platform:      win32
+[debug] [2026-09-19T14:40:37.518Z] Node Version:  v24.21.0
+[debug] [2026-09-19T14:40:37.518Z] Detected Agent: unknown
+[debug] [2026-09-19T14:40:37.518Z] Time:          Sat Sep 19 2026 21:40:37 GMT+0700 (Western Indonesia Time)
+[debug] [2026-09-19T14:40:37.519Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  U:\AbsensiKaryawan
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-09-19T14:40:41.536Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-19T14:40:41.537Z] > authorizing via signed-in user (qomarudinmohammad9@gmail.com)
+[debug] [2026-09-19T14:40:41.561Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:40:41.561Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:40:41.564Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 [none]
+[debug] [2026-09-19T14:40:42.337Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 200
+[debug] [2026-09-19T14:40:42.337Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/absensi-karyawan-2b712 {"projectId":"absensi-karyawan-2b712","projectNumber":"313053109006","displayName":"Absensi Karyawan","name":"projects/absensi-karyawan-2b712","resources":{"hostingSite":"absensi-karyawan-2b712"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_02b53995-36ad-4efb-a70f-6104f43c63c7"}
+[info] i  Using project absensi-karyawan-2b712 (Absensi Karyawan) . 
+[info] 
+=== Functions Setup
+[debug] [2026-09-19T14:40:42.356Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-19T14:40:42.356Z] > authorizing via signed-in user (qomarudinmohammad9@gmail.com)
+[debug] [2026-09-19T14:40:42.357Z] [iam] checking project absensi-karyawan-2b712 for permissions ["firebase.projects.get"]
+[debug] [2026-09-19T14:40:42.358Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:40:42.358Z] Checked if tokens are valid: true, expires at: 1789832009470
+[debug] [2026-09-19T14:40:42.358Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions [none]
+[debug] [2026-09-19T14:40:42.359Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions  x-goog-user-project=absensi-karyawan-2b712
+[debug] [2026-09-19T14:40:42.359Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-09-19T14:40:42.677Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions 200
+[debug] [2026-09-19T14:40:42.677Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/absensi-karyawan-2b712:testIamPermissions {"permissions":["firebase.projects.get"]}
+[info] 
+Detected existing codebase(s): default
+
+[info] Let's create a new codebase for your functions.
+[info] A directory corresponding to the codebase will be created in your project
+[info] with sample code pre-configured.
+
+[info] See https://firebase.google.com/docs/functions/organize-functions for
+[info] more information on organizing your functions using codebases.
+
+[info] Functions can be deployed with firebase deploy.
+
+[error] functions.source must be unique but 'functions' was used more than once.
+[debug] [2026-09-19T14:41:15.449Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\WINDOWS\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:514:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1343:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:289:20)
+    at ReadStream.emit (node:events:526:24)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:514:28)
+    at addChunk (node:internal/streams/readable:568:12)
+[error] 
+[error] Error: An unexpected error has occurred.
