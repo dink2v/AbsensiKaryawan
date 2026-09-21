@@ -921,47 +921,125 @@ fun StaffNavigation(
 
                     if (data != null) {
 
+                        val approvalChain =
+                            (data["approvalChain"] as? List<*>)
+                                ?.mapNotNull { item ->
+
+                                    val map =
+                                        item as? Map<*, *>
+                                            ?: return@mapNotNull null
+
+                                    map.entries.associate { entry ->
+
+                                        entry.key.toString() to
+                                                (entry.value ?: "")
+                                    }
+                                }
+                                ?: emptyList()
+
+                        val approvalStatuses =
+                            (data["approvalStatuses"] as? Map<*, *>)
+                                ?.entries
+                                ?.associate { entry ->
+
+                                    entry.key.toString() to
+                                            (entry.value ?: "")
+                                }
+                                ?: emptyMap()
+
+                        val approvalLocked =
+                            when (
+                                val value =
+                                    data["approvalLocked"]
+                            ) {
+
+                                is Boolean ->
+                                    value
+
+                                else ->
+                                    value
+                                        ?.toString()
+                                        ?.toBoolean()
+                                        ?: false
+                            }
+
+
                         DetailPengajuanScreen(
 
                             jenis =
-                                data["jenis"] as? String
-                                    ?: "",
+                                data["jenis"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             tanggal =
-                                data["tanggal"] as? String
-                                    ?: "",
+                                data["tanggal"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             status =
-                                data["status"] as? String
-                                    ?: "",
+                                data["status"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             jamPulang =
-                                data["jamPulang"] as? String
-                                    ?: "",
+                                data["jamPulang"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             jamKeluar =
-                                data["jamKeluar"] as? String
-                                    ?: "",
+                                data["jamKeluar"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             jamKembali =
-                                data["jamKembali"] as? String
-                                    ?: "",
+                                data["jamKembali"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             tanggalMulai =
-                                data["tanggalMulai"] as? String
-                                    ?: "",
+                                data["tanggalMulai"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             tanggalSelesai =
-                                data["tanggalSelesai"] as? String
-                                    ?: "",
+                                data["tanggalSelesai"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             alasan =
-                                data["alasan"] as? String
-                                    ?: "",
+                                data["alasan"]
+                                    ?.toString()
+                                    .orEmpty(),
 
                             catatanAdmin =
-                                data["catatanAdmin"] as? String
-                                    ?: "",
+                                data["catatanAdmin"]
+                                    ?.toString()
+                                    .orEmpty(),
+
+                            approvalChain =
+                                approvalChain,
+
+                            approvalStatuses =
+                                approvalStatuses,
+
+                            currentApproverUid =
+                                data["currentApproverUid"]
+                                    ?.toString()
+                                    .orEmpty(),
+
+                            currentApproverName =
+                                data["currentApproverName"]
+                                    ?.toString()
+                                    .orEmpty(),
+
+                            currentApproverJabatan =
+                                data["currentApproverJabatan"]
+                                    ?.toString()
+                                    ?.uppercase()
+                                    .orEmpty(),
+
+                            approvalLocked =
+                                approvalLocked,
 
                             onBack = {
 
@@ -1019,7 +1097,6 @@ fun StaffNavigation(
 
                             selectedPengajuan =
                                 mapOf(
-
                                     "documentId" to
                                             pengajuan.documentId,
 
@@ -1051,7 +1128,29 @@ fun StaffNavigation(
                                             pengajuan.alasan,
 
                                     "catatanAdmin" to
-                                            pengajuan.catatanAdmin
+                                            pengajuan.catatanAdmin,
+
+                                    // ==========================================
+                                    // DATA APPROVAL
+                                    // ==========================================
+
+                                    "approvalChain" to
+                                            pengajuan.approvalChain,
+
+                                    "approvalStatuses" to
+                                            pengajuan.approvalStatuses,
+
+                                    "currentApproverUid" to
+                                            pengajuan.currentApproverUid,
+
+                                    "currentApproverName" to
+                                            pengajuan.currentApproverName,
+
+                                    "currentApproverJabatan" to
+                                            pengajuan.currentApproverJabatan,
+
+                                    "approvalLocked" to
+                                            pengajuan.approvalLocked
                                 )
 
                             detailReturnScreen =

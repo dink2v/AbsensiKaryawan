@@ -54,7 +54,9 @@ import java.util.Locale
 @Composable
 fun AdminNotifikasiScreen(
     onBack: () -> Unit,
-    onApprovalClick: () -> Unit
+    onApprovalClick: () -> Unit,
+    onRekapClick: () -> Unit,
+    onChatClick: () -> Unit
 ) {
 
     val auth =
@@ -419,6 +421,10 @@ fun AdminNotifikasiScreen(
 
                             when {
 
+                                // --------------------------------------
+                                // PENGAJUAN
+                                // --------------------------------------
+
                                 notification.type.equals(
                                     "PENGAJUAN_BARU",
                                     ignoreCase = true
@@ -433,6 +439,30 @@ fun AdminNotifikasiScreen(
                                 ) -> {
 
                                     onApprovalClick()
+                                }
+
+                                // --------------------------------------
+                                // ABSENSI STAFF
+                                // --------------------------------------
+
+                                notification.type.equals(
+                                    "ABSENSI",
+                                    ignoreCase = true
+                                ) -> {
+
+                                    onRekapClick()
+                                }
+
+                                // --------------------------------------
+                                // CHAT STAFF
+                                // --------------------------------------
+
+                                notification.type.equals(
+                                    "CHAT",
+                                    ignoreCase = true
+                                ) -> {
+
+                                    onChatClick()
                                 }
                             }
                         }

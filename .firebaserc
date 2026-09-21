@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "absensi-karyawan-2b712"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

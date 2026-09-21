@@ -528,22 +528,23 @@ fun AdminNavigation(
                 AdminScreen.Notifikasi -> {
 
                     AdminNotifikasiScreen(
-
                         onBack = {
-
-                            currentScreen =
-                                AdminScreen.Dashboard
+                            currentScreen = AdminScreen.Dashboard
                         },
 
                         onApprovalClick = {
+                            Log.d("ADMIN_NAV", "NOTIFIKASI -> APPROVAL")
+                            currentScreen = AdminScreen.Approval
+                        },
 
-                            Log.d(
-                                "ADMIN_NAV",
-                                "NOTIFIKASI -> APPROVAL"
-                            )
+                        onRekapClick = {
+                            Log.d("ADMIN_NAV", "NOTIFIKASI -> REKAP")
+                            currentScreen = AdminScreen.Rekap
+                        },
 
-                            currentScreen =
-                                AdminScreen.Approval
+                        onChatClick = {
+                            Log.d("ADMIN_NAV", "NOTIFIKASI -> CHAT")
+                            currentScreen = AdminScreen.Chat
                         }
                     )
                 }

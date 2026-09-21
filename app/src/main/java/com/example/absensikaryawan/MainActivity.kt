@@ -1,14 +1,18 @@
 package com.example.absensikaryawan
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.content.ContextCompat
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -21,6 +25,26 @@ import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : ComponentActivity() {
+
+    // ==========================================================
+    // NOTIFICATION PERMISSION
+    // Android 13 / API 33+
+    // ==========================================================
+
+    private val requestNotificationPermission =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+
+            // Permission sudah diproses.
+            //
+            // Jika true:
+            // notifikasi Android diizinkan.
+            //
+            // Jika false:
+            // aplikasi tetap berjalan normal.
+        }
+
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -36,6 +60,16 @@ class MainActivity : ComponentActivity() {
         // ======================================================
 
         enableEdgeToEdge()
+
+
+        // ======================================================
+        // REQUEST NOTIFICATION PERMISSION
+        //
+        // Android 13+ membutuhkan permission runtime
+        // POST_NOTIFICATIONS.
+        // ======================================================
+
+        requestNotificationPermissionIfNeeded()
 
 
         // ======================================================
@@ -86,7 +120,6 @@ class MainActivity : ComponentActivity() {
         // ======================================================
 
         setContent {
-
 
             // ==================================================
             // THEME DATA STORE
@@ -161,7 +194,6 @@ class MainActivity : ComponentActivity() {
 
             ) {
 
-
                 // ==============================================
                 // NAVIGATION
                 //
@@ -174,6 +206,34 @@ class MainActivity : ComponentActivity() {
                 // ==============================================
 
                 AppNavigation()
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // REQUEST NOTIFICATION PERMISSION
+    // ==========================================================
+
+    private fun requestNotificationPermissionIfNeeded() {
+
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.TIRAMISU
+        ) {
+
+            val permissionGranted =
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+
+            if (!permissionGranted) {
+
+                requestNotificationPermission.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
             }
         }
     }

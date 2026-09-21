@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -442,6 +444,35 @@ fun LoginScreen(
                                         }
 
                                         // ==================================================
+                                        // SIMPAN FCM TOKEN
+                                        // ==================================================
+
+                                        try {
+
+                                            val fcmToken =
+                                                FirebaseMessaging
+                                                    .getInstance()
+                                                    .token
+                                                    .await()
+
+                                            FirebaseFirestore
+                                                .getInstance()
+                                                .collection("users")
+                                                .document(currentUser.uid)
+                                                .update(
+                                                    "fcmToken",
+                                                    fcmToken
+                                                )
+                                                .await()
+
+                                        } catch (e: Exception) {
+
+                                            println(
+                                                "FCM TOKEN ERROR: ${e.message}"
+                                            )
+                                        }
+
+                                        // ==================================================
                                         // ROLE
                                         // ==================================================
 
@@ -590,7 +621,7 @@ fun LoginScreen(
 
             // ==================================================
             // ERROR
-            // ==================================================
+            // ==========================================================
 
             if (errorMessage.isNotBlank()) {
 

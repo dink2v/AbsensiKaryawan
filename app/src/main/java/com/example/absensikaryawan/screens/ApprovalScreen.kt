@@ -355,11 +355,9 @@ fun ApprovalScreen(
 
                         Text(
                             text =
-                                "Supervisor → Manager → HRD → Owner",
-
+                                "Jalur approval mengikuti struktur atasan pengaju dan diproses secara berurutan sampai Owner.",
                             fontSize =
                                 12.sp,
-
                             color =
                                 TextGray
                         )
@@ -1374,7 +1372,7 @@ private fun ApprovalRequestCard(
 
                             Text(
                                 text =
-                                    "Setujui untuk meneruskan. Tolak untuk mengakhiri pengajuan.",
+                                    "Setujui atau tolak untuk mencatat keputusan, lalu pengajuan lanjut ke tahap berikutnya.",
 
                                 fontSize =
                                     11.sp,

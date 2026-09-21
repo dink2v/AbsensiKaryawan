@@ -82,7 +82,23 @@ data class RiwayatPengajuan(
     val tanggalSelesai: String,
     val alasan: String,
     val status: String,
-    val catatanAdmin: String
+    val catatanAdmin: String,
+
+    // ======================================================
+    // DATA APPROVAL
+    // ======================================================
+
+    val approvalChain: List<Map<String, Any>> = emptyList(),
+
+    val approvalStatuses: Map<String, Any> = emptyMap(),
+
+    val currentApproverUid: String = "",
+
+    val currentApproverName: String = "",
+
+    val currentApproverJabatan: String = "",
+
+    val approvalLocked: Boolean = false
 )
 
 // ==========================================================
@@ -158,10 +174,6 @@ fun RiwayatScreen(
 
     // ======================================================
     // REPOSITORY PENGAJUAN
-    // ======================================================
-    // PENTING:
-    // PengajuanRepository adalah object,
-    // jadi TIDAK menggunakan PengajuanRepository().
     // ======================================================
 
     val pengajuanRepository =
@@ -338,6 +350,62 @@ fun RiwayatScreen(
             data
                 .map { item: Map<String, Any> ->
 
+                    // ==================================================
+                    // APPROVAL CHAIN
+                    // ==================================================
+
+                    val approvalChain =
+                        (item["approvalChain"] as? List<*>)
+                            ?.mapNotNull { approvalItem ->
+
+                                val map =
+                                    approvalItem as? Map<*, *>
+                                        ?: return@mapNotNull null
+
+                                map.entries.associate { entry ->
+                                    entry.key.toString() to
+                                            (entry.value ?: "")
+                                }
+                            }
+                            ?: emptyList()
+
+                    // ==================================================
+                    // APPROVAL STATUSES
+                    // ==================================================
+
+                    val approvalStatuses =
+                        (item["approvalStatuses"] as? Map<*, *>)
+                            ?.entries
+                            ?.associate { entry ->
+                                entry.key.toString() to
+                                        (entry.value ?: "")
+                            }
+                            ?: emptyMap()
+
+                    // ==================================================
+                    // APPROVAL LOCKED
+                    // ==================================================
+
+                    val approvalLocked =
+                        when (
+                            val value =
+                                item["approvalLocked"]
+                        ) {
+
+                            is Boolean ->
+                                value
+
+                            else ->
+                                value
+                                    ?.toString()
+                                    ?.toBoolean()
+                                    ?: false
+                        }
+
+                    // ==================================================
+                    // MODEL
+                    // ==================================================
+
                     RiwayatPengajuan(
 
                         documentId =
@@ -388,7 +456,36 @@ fun RiwayatScreen(
                         catatanAdmin =
                             item["catatanAdmin"]
                                 ?.toString()
-                                ?: ""
+                                ?: "",
+
+                        // ==================================================
+                        // DATA APPROVAL
+                        // ==================================================
+
+                        approvalChain =
+                            approvalChain,
+
+                        approvalStatuses =
+                            approvalStatuses,
+
+                        currentApproverUid =
+                            item["currentApproverUid"]
+                                ?.toString()
+                                ?: "",
+
+                        currentApproverName =
+                            item["currentApproverName"]
+                                ?.toString()
+                                ?: "",
+
+                        currentApproverJabatan =
+                            item["currentApproverJabatan"]
+                                ?.toString()
+                                ?.uppercase()
+                                ?: "",
+
+                        approvalLocked =
+                            approvalLocked
                     )
                 }
                 .sortedByDescending {
@@ -2152,6 +2249,238 @@ private fun RiwayatPengajuanStaffCard(
             }
 
             // ==================================================
+// JALUR APPROVAL
+// ==================================================
+
+            if (pengajuan.approvalChain.isNotEmpty()) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(14.dp)
+                )
+
+                Text(
+                    text =
+                        "Jalur Approval",
+
+                    fontSize =
+                        11.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        TextGray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(8.dp)
+                )
+
+                val approvalStages =
+                    pengajuan.approvalChain
+                        .sortedBy {
+                            (it["urutan"] as? Number)
+                                ?.toInt()
+                                ?: it["urutan"]
+                                    ?.toString()
+                                    ?.toIntOrNull()
+                                ?: 0
+                        }
+
+                approvalStages.forEachIndexed { index, stage ->
+
+                    val uid =
+                        stage["uid"]
+                            ?.toString()
+                            .orEmpty()
+
+                    val nama =
+                        stage["nama"]
+                            ?.toString()
+                            .orEmpty()
+                            .ifBlank {
+                                "Approver"
+                            }
+
+                    val jabatan =
+                        stage["jabatan"]
+                            ?.toString()
+                            ?.uppercase()
+                            .orEmpty()
+
+                    val savedStatus =
+                        pengajuan.approvalStatuses[uid]
+                            ?.toString()
+                            ?.trim()
+                            ?.lowercase()
+                            .orEmpty()
+
+                    val stageStatus =
+                        when {
+
+                            savedStatus == "disetujui" ->
+                                "disetujui"
+
+                            savedStatus == "ditolak" ->
+                                "ditolak"
+
+                            uid ==
+                                    pengajuan.currentApproverUid ->
+                                "sedang_diproses"
+
+                            else ->
+                                "menunggu"
+                        }
+
+                    val statusText =
+                        when (stageStatus) {
+
+                            "disetujui" ->
+                                "Disetujui"
+
+                            "ditolak" ->
+                                "Ditolak"
+
+                            "sedang_diproses" ->
+                                "Sedang diproses"
+
+                            else ->
+                                "Menunggu"
+                        }
+
+                    val statusColor =
+                        when (stageStatus) {
+
+                            "disetujui" ->
+                                PrimaryGreen
+
+                            "ditolak" ->
+                                Color(0xFFB91C1C)
+
+                            "sedang_diproses" ->
+                                Color(0xFF2563EB)
+
+                            else ->
+                                TextGray
+                        }
+
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Surface(
+                            modifier =
+                                Modifier.size(30.dp),
+
+                            shape =
+                                CircleShape,
+
+                            color =
+                                when (stageStatus) {
+
+                                    "disetujui" ->
+                                        Color(0xFFE8F5E9)
+
+                                    "ditolak" ->
+                                        Color(0xFFFFEBEE)
+
+                                    "sedang_diproses" ->
+                                        Color(0xFFEFF6FF)
+
+                                    else ->
+                                        Color(0xFFF3F4F6)
+                                }
+                        ) {
+
+                            Icon(
+                                imageVector =
+                                    when (stageStatus) {
+
+                                        "disetujui" ->
+                                            Icons.Default.CheckCircle
+
+                                        "ditolak" ->
+                                            Icons.Default.Warning
+
+                                        "sedang_diproses" ->
+                                            Icons.Default.Schedule
+
+                                        else ->
+                                            Icons.Default.Schedule
+                                    },
+
+                                contentDescription =
+                                    null,
+
+                                tint =
+                                    statusColor,
+
+                                modifier =
+                                    Modifier.padding(7.dp)
+                            )
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(10.dp)
+                        )
+
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
+                        ) {
+
+                            Text(
+                                text =
+                                    if (jabatan.isNotBlank()) {
+                                        "$jabatan • $nama"
+                                    } else {
+                                        nama
+                                    },
+
+                                fontSize =
+                                    12.sp,
+
+                                fontWeight =
+                                    FontWeight.SemiBold,
+
+                                color =
+                                    TextDark
+                            )
+
+                            Text(
+                                text =
+                                    statusText,
+
+                                fontSize =
+                                    11.sp,
+
+                                color =
+                                    statusColor
+                            )
+                        }
+                    }
+
+                    if (
+                        index <
+                        approvalStages.lastIndex
+                    ) {
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(6.dp)
+                        )
+                    }
+                }
+            }
+
+            // ==================================================
             // CATATAN ADMIN
             // ==================================================
 
@@ -2321,4 +2650,3 @@ private fun formatTanggal(
         tanggal
     }
 }
-

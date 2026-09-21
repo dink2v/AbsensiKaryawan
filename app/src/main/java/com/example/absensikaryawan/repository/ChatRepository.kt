@@ -1,6 +1,7 @@
 package com.example.absensikaryawan.repository
 
 import com.example.absensikaryawan.models.ChatMessage
+import com.example.absensikaryawan.models.Notification
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -16,6 +17,12 @@ class ChatRepository {
 
     private val chatRoomsCollection =
         firestore.collection("chatRooms")
+
+    private val usersCollection =
+        firestore.collection("users")
+
+    private val notificationRepository =
+        NotificationRepository()
 
     fun listenMessages(
         uid: String,
@@ -156,11 +163,63 @@ class ChatRepository {
             }
             .addOnSuccessListener {
 
+                // Chat berhasil disimpan.
+                // Selanjutnya kirim notifikasi ke semua Admin.
+                notifyAdminsNewMessage(
+                    staffId = uid,
+                    staffName = userName,
+                    message = cleanMessage,
+                    relatedId = uid
+                )
+
+                // Notifikasi tidak boleh mengganggu keberhasilan chat.
                 onSuccess()
             }
             .addOnFailureListener { exception ->
 
                 onError(exception)
+            }
+    }
+
+    /**
+     * Mengirim notifikasi pesan baru kepada semua user Admin.
+     */
+    private fun notifyAdminsNewMessage(
+        staffId: String,
+        staffName: String,
+        message: String,
+        relatedId: String
+    ) {
+
+        usersCollection
+            .whereEqualTo("isAdmin", true)
+            .get()
+            .addOnSuccessListener { snapshot ->
+
+                snapshot.documents.forEach { adminDocument ->
+
+                    val adminUid =
+                        adminDocument.id
+
+                    val notification =
+                        Notification(
+                            userId = adminUid,
+                            type = "CHAT",
+                            title = "Pesan Baru dari Staff",
+                            message = "$staffName: $message",
+                            timestamp = System.currentTimeMillis(),
+                            isRead = false,
+                            relatedId = relatedId
+                        )
+
+                    notificationRepository.createNotification(
+                        notification = notification
+                    )
+                }
+            }
+            .addOnFailureListener {
+                // Sengaja dikosongkan.
+                // Kegagalan notifikasi tidak membatalkan chat.
             }
     }
 }

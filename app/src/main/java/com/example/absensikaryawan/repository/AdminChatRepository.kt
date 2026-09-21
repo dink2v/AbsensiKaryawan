@@ -1,9 +1,12 @@
 package com.example.absensikaryawan.repository
 
 import com.example.absensikaryawan.models.ChatMessage
+import com.example.absensikaryawan.models.Notification
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 
 class AdminChatRepository {
 
@@ -11,7 +14,10 @@ class AdminChatRepository {
         FirebaseFirestore.getInstance()
 
     private val chatRoomsCollection =
-        firestore.collection("chatRooms")
+        firestore.collection("chatRoomas")
+
+    private val notificationRepository =
+        NotificationRepository()
 
 
     // ============================================================
@@ -158,7 +164,7 @@ class AdminChatRepository {
         }
 
         val currentUser =
-            com.google.firebase.auth.FirebaseAuth
+            FirebaseAuth
                 .getInstance()
                 .currentUser
 
@@ -223,17 +229,65 @@ class AdminChatRepository {
                 batch.set(
                     chatRoomRef,
                     roomData,
-                    com.google.firebase.firestore.SetOptions.merge()
+                    SetOptions.merge()
                 )
             }
             .addOnSuccessListener {
 
+                // =================================================
+                // CHAT BERHASIL
+                // KIRIM NOTIFIKASI KE STAFF
+                // =================================================
+
+                notifyStaffNewMessage(
+                    staffUid = staffUid,
+                    adminName = adminName,
+                    message = cleanMessage,
+                    relatedId = staffUid
+                )
+
+                // Notifikasi tidak boleh membuat chat dianggap gagal.
                 onSuccess()
             }
             .addOnFailureListener { exception ->
 
                 onError(exception)
             }
+    }
+
+
+    // ============================================================
+    // NOTIFIKASI PESAN ADMIN KE STAFF
+    // ============================================================
+
+    private fun notifyStaffNewMessage(
+        staffUid: String,
+        adminName: String,
+        message: String,
+        relatedId: String
+    ) {
+
+        val notification =
+            Notification(
+                userId = staffUid,
+
+                type = "CHAT",
+
+                title = "Pesan Baru dari Admin",
+
+                message = "$adminName: $message",
+
+                timestamp =
+                    System.currentTimeMillis(),
+
+                isRead = false,
+
+                relatedId = relatedId
+            )
+
+        notificationRepository.createNotification(
+            notification = notification
+        )
     }
 }
 

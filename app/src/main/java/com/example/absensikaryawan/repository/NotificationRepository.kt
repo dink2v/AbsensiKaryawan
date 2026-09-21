@@ -28,7 +28,18 @@ class NotificationRepository {
         )
 
         document
-            .set(notificationWithId)
+            .set(
+                mapOf(
+                    "id" to notificationWithId.id,
+                    "userId" to notificationWithId.userId,
+                    "type" to notificationWithId.type,
+                    "title" to notificationWithId.title,
+                    "message" to notificationWithId.message,
+                    "timestamp" to notificationWithId.timestamp,
+                    "read" to notificationWithId.isRead,
+                    "relatedId" to notificationWithId.relatedId
+                )
+            )
             .addOnSuccessListener {
                 onSuccess()
             }
@@ -55,102 +66,100 @@ class NotificationRepository {
             )
             .addSnapshotListener { snapshot, exception ->
 
-                // ==============================================
-                // ERROR
-                // ==============================================
-
                 if (exception != null) {
                     onError(exception)
                     return@addSnapshotListener
                 }
-
-                // ==============================================
-                // SNAPSHOT KOSONG
-                // ==============================================
 
                 if (snapshot == null) {
                     onNotificationsChanged(emptyList())
                     return@addSnapshotListener
                 }
 
-                // ==============================================
-                // CONVERT FIRESTORE -> MODEL
-                // ==============================================
-
                 val notifications =
                     snapshot.documents.mapNotNull { document ->
 
                         try {
 
-                            // ----------------------------------
-                            // TIMESTAMP FIRESTORE
-                            // ----------------------------------
-
-                            val firestoreTimestamp =
-                                document.getTimestamp("timestamp")
+                            // ==================================
+                            // TIMESTAMP
+                            // ==================================
 
                             val timestampMillis =
-                                firestoreTimestamp
-                                    ?.toDate()
-                                    ?.time
-                                    ?: 0L
+                                when (
+                                    val timestamp =
+                                        document.get("timestamp")
+                                ) {
 
-                            // ----------------------------------
-                            // MODEL NOTIFICATION
-                            // ----------------------------------
+                                    is Number ->
+                                        timestamp.toLong()
+
+                                    else ->
+                                        document
+                                            .getTimestamp("timestamp")
+                                            ?.toDate()
+                                            ?.time
+                                            ?: 0L
+                                }
+
+                            // ==================================
+                            // READ STATUS
+                            // Mendukung:
+                            // - read
+                            // - isRead
+                            // ==================================
+
+                            val isRead =
+                                document.getBoolean("read")
+                                    ?: document.getBoolean("isRead")
+                                    ?: false
+
+                            // ==================================
+                            // MODEL
+                            // ==================================
 
                             Notification(
-                                id =
-                                    document.id,
+                                id = document.id,
 
                                 userId =
-                                    document.getString(
-                                        "userId"
-                                    ).orEmpty(),
+                                    document
+                                        .getString("userId")
+                                        .orEmpty(),
 
                                 type =
-                                    document.getString(
-                                        "type"
-                                    ).orEmpty(),
+                                    document
+                                        .getString("type")
+                                        .orEmpty(),
 
                                 title =
-                                    document.getString(
-                                        "title"
-                                    ).orEmpty(),
+                                    document
+                                        .getString("title")
+                                        .orEmpty(),
 
                                 message =
-                                    document.getString(
-                                        "message"
-                                    ).orEmpty(),
+                                    document
+                                        .getString("message")
+                                        .orEmpty(),
 
                                 timestamp =
                                     timestampMillis,
 
                                 isRead =
-                                    document.getBoolean(
-                                        "isRead"
-                                    ) ?: false,
+                                    isRead,
 
                                 relatedId =
-                                    document.getString(
-                                        "relatedId"
-                                    ).orEmpty()
+                                    document
+                                        .getString("relatedId")
+                                        .orEmpty()
                             )
 
                         } catch (
                             exception: Exception
                         ) {
 
-                            // Jika satu dokumen bermasalah,
-                            // jangan sampai seluruh list gagal.
-
                             null
                         }
                     }
-
-                // ==============================================
-                // KIRIM HASIL
-                // ==============================================
 
                 onNotificationsChanged(
                     notifications
@@ -171,7 +180,7 @@ class NotificationRepository {
         notificationsCollection
             .document(notificationId)
             .update(
-                "isRead",
+                "read",
                 true
             )
             .addOnSuccessListener {
@@ -198,7 +207,7 @@ class NotificationRepository {
                 userId
             )
             .whereEqualTo(
-                "isRead",
+                "read",
                 false
             )
             .get()
@@ -211,7 +220,7 @@ class NotificationRepository {
 
                     batch.update(
                         document.reference,
-                        "isRead",
+                        "read",
                         true
                     )
                 }

@@ -1,9 +1,11 @@
 const { setGlobalOptions } = require("firebase-functions");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
 const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore } = require("firebase-admin/firestore");
+const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
 
@@ -11,6 +13,10 @@ setGlobalOptions({
     maxInstances: 10
 });
 
+
+// =====================================================
+// HAPUS AKUN KARYAWAN
+// =====================================================
 
 exports.hapusAkunKaryawan = onCall(async (request) => {
 
@@ -203,3 +209,221 @@ exports.hapusAkunKaryawan = onCall(async (request) => {
         message: "Akun berhasil dihapus."
     };
 });
+
+
+// =====================================================
+// FCM PUSH NOTIFICATION
+// =====================================================
+//
+// Trigger setiap ada dokumen baru:
+//
+// notifications/{notificationId}
+//
+// =====================================================
+
+exports.kirimNotifikasiFCM = onDocumentCreated(
+    "notifications/{notificationId}",
+    async (event) => {
+
+        // =================================================
+        // AMBIL SNAPSHOT
+        // =================================================
+
+        const snapshot = event.data;
+
+        if (!snapshot) {
+            console.log(
+                "Snapshot notification tidak ditemukan."
+            );
+            return;
+        }
+
+
+        // =================================================
+        // AMBIL DATA NOTIFICATION
+        // =================================================
+
+        const notificationData = snapshot.data();
+
+        const userId = notificationData.userId;
+
+
+        // =================================================
+        // CEK USER ID
+        // =================================================
+
+        if (
+            typeof userId !== "string" ||
+            userId.trim() === ""
+        ) {
+            console.log(
+                "Notification tidak memiliki userId yang valid."
+            );
+            return;
+        }
+
+
+        const db = getFirestore();
+
+
+        // =================================================
+        // AMBIL USER
+        // =================================================
+
+        const userRef = db
+            .collection("users")
+            .doc(userId);
+
+        const userSnapshot = await userRef.get();
+
+
+        if (!userSnapshot.exists) {
+
+            console.log(
+                "User tidak ditemukan:",
+                userId
+            );
+
+            return;
+        }
+
+
+        // =================================================
+        // AMBIL FCM TOKEN
+        // =================================================
+
+        const userData = userSnapshot.data();
+
+        const fcmToken = userData.fcmToken;
+
+
+        if (
+            typeof fcmToken !== "string" ||
+            fcmToken.trim() === ""
+        ) {
+
+            console.log(
+                "User belum memiliki FCM token:",
+                userId
+            );
+
+            return;
+        }
+
+
+        // =================================================
+        // DATA NOTIFIKASI
+        // =================================================
+
+        const title =
+            typeof notificationData.title === "string" &&
+            notificationData.title.trim() !== ""
+                ? notificationData.title
+                : "Absensi Karyawan";
+
+
+        const message =
+            typeof notificationData.message === "string" &&
+            notificationData.message.trim() !== ""
+                ? notificationData.message
+                : "Ada aktivitas baru.";
+
+
+        const type =
+            typeof notificationData.type === "string"
+                ? notificationData.type
+                : "";
+
+
+        const relatedId =
+            typeof notificationData.relatedId === "string"
+                ? notificationData.relatedId
+                : "";
+
+
+        // =================================================
+        // KIRIM PUSH NOTIFICATION
+        // =================================================
+
+        try {
+
+            const response = await getMessaging().send({
+
+                token: fcmToken,
+
+                notification: {
+                    title: title,
+                    body: message
+                },
+
+                data: {
+                    title: title,
+                    message: message,
+                    type: type,
+                    relatedId: relatedId
+                },
+
+                android: {
+                    priority: "high",
+
+                    notification: {
+                        channelId:
+                            "absensi_karyawan_notifications"
+                    }
+                }
+
+            });
+
+
+            console.log(
+                "FCM berhasil dikirim:",
+                response
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Gagal mengirim FCM:",
+                error
+            );
+
+
+            // =============================================
+            // HAPUS TOKEN YANG SUDAH TIDAK VALID
+            // =============================================
+
+            const errorCode =
+                error?.errorInfo?.code;
+
+
+            if (
+                errorCode ===
+                    "messaging/registration-token-not-registered" ||
+                errorCode ===
+                    "messaging/invalid-registration-token"
+            ) {
+
+                try {
+
+                    await userRef.update({
+                        fcmToken: null
+                    });
+
+
+                    console.log(
+                        "FCM token tidak valid dan sudah dihapus:",
+                        userId
+                    );
+
+                } catch (deleteTokenError) {
+
+                    console.error(
+                        "Gagal menghapus FCM token:",
+                        deleteTokenError
+                    );
+                }
+            }
+        }
+    }
+);

@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- CAMERA -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- NOTIFIKASI ANDROID 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
-    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -17,18 +22,48 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AbsensiKaryawan">
+
+        <!-- MAIN ACTIVITY -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.AbsensiKaryawan"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
+            <intent-filter>
+
+                <action
+                    android:name="android.intent.action.MAIN" />
+
+                <category
+                    android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
+
         </activity>
+
+
+        <!-- FIREBASE CLOUD MESSAGING SERVICE -->
+        <service
+            android:name=".service.MyFirebaseMessagingService"
+            android:exported="false">
+
+            <intent-filter>
+
+                <action
+                    android:name="com.google.firebase.MESSAGING_EVENT" />
+
+            </intent-filter>
+
+        </service>
+
+
+        <!-- DEFAULT FCM NOTIFICATION CHANNEL -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="absensi_karyawan_notifications" />
+
     </application>
 
 </manifest>

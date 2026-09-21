@@ -1,5 +1,8 @@
 package com.example.absensikaryawan.data
 
+import com.example.absensikaryawan.models.ChatMessage
+import com.example.absensikaryawan.models.Notification
+import com.example.absensikaryawan.repository.NotificationRepository
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -13,6 +16,9 @@ import kotlinx.coroutines.tasks.await
 class FirestoreRepository {
 
     private val db = FirebaseFirestore.getInstance()
+
+    private val notificationRepository =
+        NotificationRepository()
 
     // ==========================================================
     // COLLECTION ABSENSI
@@ -68,6 +74,18 @@ class FirestoreRepository {
                 .add(data)
                 .await()
 
+            // =================================================
+            // NOTIFIKASI KE SEMUA ADMIN
+            // =================================================
+
+            notifyAdminsAbsen(
+                uid = uid,
+                nama = nama,
+                tanggal = tanggal,
+                jamMasuk = jamMasuk,
+                kantor = kantor
+            )
+
             Result.success(Unit)
 
         } catch (e: Exception) {
@@ -108,12 +126,73 @@ class FirestoreRepository {
                 .add(data)
                 .await()
 
+            // =================================================
+            // NOTIFIKASI KE SEMUA ADMIN
+            // =================================================
+
+            notifyAdminsAbsen(
+                uid = uid,
+                nama = nama,
+                tanggal = tanggal,
+                jamMasuk = jamMasuk,
+                kantor = "Luar Kantor"
+            )
+
             Result.success(Unit)
 
         } catch (e: Exception) {
 
             Result.failure(e)
         }
+    }
+
+
+    // ==========================================================
+    // NOTIFIKASI ABSENSI KE SEMUA ADMIN
+    // ==========================================================
+
+    private fun notifyAdminsAbsen(
+        uid: String,
+        nama: String,
+        tanggal: String,
+        jamMasuk: String,
+        kantor: String
+    ) {
+
+        usersCollection
+            .whereEqualTo("isAdmin", true)
+            .get()
+            .addOnSuccessListener { snapshot ->
+
+                snapshot.documents.forEach { adminDocument ->
+
+                    val adminUid =
+                        adminDocument.id
+
+                    val lokasi =
+                        kantor.ifBlank {
+                            "Kantor"
+                        }
+
+                    val notification =
+                        Notification(
+                            userId = adminUid,
+                            type = "ABSENSI",
+                            title = "Absensi Staff",
+                            message =
+                                "$nama melakukan absensi masuk " +
+                                        "pada $jamMasuk di $lokasi.",
+                            timestamp =
+                                System.currentTimeMillis(),
+                            isRead = false,
+                            relatedId = uid
+                        )
+
+                    notificationRepository.createNotification(
+                        notification = notification
+                    )
+                }
+            }
     }
 
 
@@ -148,9 +227,10 @@ class FirestoreRepository {
         )
     }
 
-// ==========================================================
-// DATA REKAP ABSENSI
-// ==========================================================
+
+    // ==========================================================
+    // DATA REKAP ABSENSI
+    // ==========================================================
 
     suspend fun getRekapAbsensi(
         tanggalMulai: String,
@@ -227,6 +307,7 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
 
     // ==========================================================
     // SIMPAN ABSEN PULANG
@@ -726,6 +807,7 @@ data class KaryawanData(
     val isAdmin: Boolean
 )
 
+
 // ==========================================================
 // DATA REKAP ABSENSI
 // ==========================================================
@@ -741,6 +823,7 @@ data class RekapAbsensiData(
     val qrData: String,
     val kantor: String
 )
+
 
 // ==========================================================
 // DATA CHAT
