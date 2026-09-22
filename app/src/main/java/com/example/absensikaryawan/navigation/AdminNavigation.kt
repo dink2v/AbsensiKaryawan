@@ -724,6 +724,28 @@ fun AdminNavigation(
                             alasan =
                                 pengajuan.alasan,
 
+                            // ==========================================
+                            // DATA JALUR APPROVAL
+                            // ==========================================
+
+                            approvalChain =
+                                pengajuan.approvalChain,
+
+                            approvalStatuses =
+                                pengajuan.approvalStatuses,
+
+                            currentApproverUid =
+                                pengajuan.currentApproverUid,
+
+                            currentApproverName =
+                                pengajuan.currentApproverName,
+
+                            currentApproverJabatan =
+                                pengajuan.currentApproverJabatan,
+
+                            approvalLocked =
+                                pengajuan.approvalLocked,
+
                             onBack = {
 
                                 selectedApproval =

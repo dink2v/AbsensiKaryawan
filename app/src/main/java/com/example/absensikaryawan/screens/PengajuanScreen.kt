@@ -26,8 +26,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,6 +75,19 @@ private object PengajuanScreenColors {
 
     val RedSoft = Color(0xFFFFEBEE)
     val Red = Color(0xFFDC2626)
+
+    val BlueSoft = Color(0xFFEFF6FF)
+    val Blue = Color(0xFF2563EB)
+}
+
+// ==========================================================
+// SUMBER PENGAJUAN
+// ==========================================================
+
+private enum class PengajuanSource {
+    SAYA,
+    MENUNGGU_APPROVAL,
+    TEAM
 }
 
 // ==========================================================
@@ -112,7 +127,11 @@ fun PengajuanScreen(
         mutableStateOf("")
     }
 
-    var filter by remember {
+    var source by remember {
+        mutableStateOf(PengajuanSource.SAYA)
+    }
+
+    var filterStatus by remember {
         mutableStateOf("Semua")
     }
 
@@ -127,8 +146,7 @@ fun PengajuanScreen(
 
         try {
 
-            val uid =
-                firebaseAuth.currentUser?.uid
+            val uid = firebaseAuth.currentUser?.uid
 
             if (uid.isNullOrBlank()) {
 
@@ -137,22 +155,70 @@ fun PengajuanScreen(
                 errorMessage =
                     "Sesi login tidak ditemukan. Silakan login kembali."
 
-            } else {
+                return
+            }
 
-                val result =
-                    repository.getPengajuanSaya(uid)
+            when (source) {
 
-                result.onSuccess { data ->
+                // ==================================================
+                // PENGAJUAN SAYA
+                // ==================================================
 
-                    daftarPengajuan = data
+                PengajuanSource.SAYA -> {
 
-                }.onFailure { exception ->
+                    val result =
+                        repository.getPengajuanSaya(uid)
 
+                    result.onSuccess { data ->
+
+                        daftarPengajuan = data
+
+                    }.onFailure { exception ->
+
+                        daftarPengajuan = emptyList()
+
+                        errorMessage =
+                            exception.message
+                                ?: "Gagal mengambil data pengajuan."
+                    }
+                }
+
+                // ==================================================
+                // MENUNGGU APPROVAL
+                // ==================================================
+
+                PengajuanSource.MENUNGGU_APPROVAL -> {
+
+                    val result =
+                        repository.getPengajuanMenungguApproval(uid)
+
+                    result.onSuccess { data ->
+
+                        daftarPengajuan = data
+
+                    }.onFailure { exception ->
+
+                        daftarPengajuan = emptyList()
+
+                        errorMessage =
+                            exception.message
+                                ?: "Gagal mengambil pengajuan yang menunggu approval."
+                    }
+                }
+
+                // ==================================================
+                // TEAM
+                // ==================================================
+
+                PengajuanSource.TEAM -> {
+
+                    /*
+                     * Relasi Team belum tersedia di collection users.
+                     *
+                     * Kita sengaja tidak mengambil semua pengajuan
+                     * karena itu akan membuat data Team menjadi salah.
+                     */
                     daftarPengajuan = emptyList()
-
-                    errorMessage =
-                        exception.message
-                            ?: "Gagal mengambil data pengajuan."
                 }
             }
 
@@ -171,10 +237,13 @@ fun PengajuanScreen(
     }
 
     // ======================================================
-    // LOAD PERTAMA
+    // LOAD SAAT SUMBER BERUBAH
     // ======================================================
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(source) {
+
+        filterStatus = "Semua"
+
         loadData()
     }
 
@@ -198,11 +267,11 @@ fun PengajuanScreen(
         }
 
     // ======================================================
-    // FILTER
+    // FILTER STATUS
     // ======================================================
 
     val filteredList =
-        when (filter) {
+        when (filterStatus) {
 
             "Menunggu" ->
                 daftarPengajuan.filter {
@@ -274,7 +343,17 @@ fun PengajuanScreen(
                 )
 
                 Text(
-                    text = "Riwayat dan status pengajuan",
+                    text = when (source) {
+
+                        PengajuanSource.SAYA ->
+                            "Pengajuan yang kamu buat"
+
+                        PengajuanSource.MENUNGGU_APPROVAL ->
+                            "Pengajuan yang menunggu persetujuanmu"
+
+                        PengajuanSource.TEAM ->
+                            "Pengajuan anggota Team"
+                    },
                     fontSize = 12.sp,
                     color = PengajuanScreenColors.Gray
                 )
@@ -359,6 +438,58 @@ fun PengajuanScreen(
         )
 
         // ==================================================
+        // SUMBER PENGAJUAN
+        // ==================================================
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(
+                    rememberScrollState()
+                )
+                .padding(
+                    horizontal = 16.dp
+                ),
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            SourceChip(
+                text = "Pengajuan Saya",
+                icon = Icons.Default.Description,
+                selected =
+                    source == PengajuanSource.SAYA,
+                onClick = {
+                    source = PengajuanSource.SAYA
+                }
+            )
+
+            SourceChip(
+                text = "Menunggu Approval",
+                icon = Icons.Default.SupervisorAccount,
+                selected =
+                    source == PengajuanSource.MENUNGGU_APPROVAL,
+                onClick = {
+                    source = PengajuanSource.MENUNGGU_APPROVAL
+                }
+            )
+
+            SourceChip(
+                text = "Team",
+                icon = Icons.Default.Groups,
+                selected =
+                    source == PengajuanSource.TEAM,
+                onClick = {
+                    source = PengajuanSource.TEAM
+                }
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.height(10.dp)
+        )
+
+        // ==================================================
         // RINGKASAN STATUS
         // ==================================================
 
@@ -409,7 +540,7 @@ fun PengajuanScreen(
         )
 
         // ==================================================
-        // FILTER
+        // FILTER STATUS
         // ==================================================
 
         Row(
@@ -427,33 +558,37 @@ fun PengajuanScreen(
 
             FilterChip(
                 text = "Semua",
-                selected = filter == "Semua",
+                selected =
+                    filterStatus == "Semua",
                 onClick = {
-                    filter = "Semua"
+                    filterStatus = "Semua"
                 }
             )
 
             FilterChip(
                 text = "Menunggu",
-                selected = filter == "Menunggu",
+                selected =
+                    filterStatus == "Menunggu",
                 onClick = {
-                    filter = "Menunggu"
+                    filterStatus = "Menunggu"
                 }
             )
 
             FilterChip(
                 text = "Disetujui",
-                selected = filter == "Disetujui",
+                selected =
+                    filterStatus == "Disetujui",
                 onClick = {
-                    filter = "Disetujui"
+                    filterStatus = "Disetujui"
                 }
             )
 
             FilterChip(
                 text = "Ditolak",
-                selected = filter == "Ditolak",
+                selected =
+                    filterStatus == "Ditolak",
                 onClick = {
-                    filter = "Ditolak"
+                    filterStatus = "Ditolak"
                 }
             )
         }
@@ -482,7 +617,8 @@ fun PengajuanScreen(
                     text = errorMessage,
                     modifier = Modifier.padding(14.dp),
                     fontSize = 13.sp,
-                    color = PengajuanScreenColors.Red
+                    color =
+                        PengajuanScreenColors.Red
                 )
             }
         }
@@ -501,80 +637,81 @@ fun PengajuanScreen(
             ) {
 
                 CircularProgressIndicator(
-                    color = PengajuanScreenColors.Green
+                    color =
+                        PengajuanScreenColors.Green
                 )
             }
 
+        } else if (
+            source == PengajuanSource.TEAM
+        ) {
+
+            // ==================================================
+            // TEAM BELUM TERSEDIA
+            // ==================================================
+
+            EmptyState(
+                icon = Icons.Default.Groups,
+                title = "Team belum tersedia",
+                message =
+                    "Struktur Team belum diatur. " +
+                            "Data anggota Team akan ditampilkan setelah " +
+                            "relasi Team tersedia."
+            )
+
         } else if (filteredList.isEmpty()) {
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+            EmptyState(
+                icon = Icons.Default.Description,
+                title =
+                    if (filterStatus == "Semua") {
+                        "Belum ada pengajuan"
+                    } else {
+                        "Tidak ada pengajuan"
+                    },
+                message =
+                    when (source) {
 
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 30.dp)
-                        .verticalScroll(
-                            rememberScrollState()
-                        ),
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
+                        PengajuanSource.SAYA -> {
 
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint =
-                            PengajuanScreenColors.Green,
-                        modifier = Modifier.size(42.dp)
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
-
-                    Text(
-                        text =
-                            if (filter == "Semua") {
-                                "Belum ada pengajuan"
-                            } else {
-                                "Tidak ada pengajuan"
-                            },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color =
-                            PengajuanScreenColors.Dark
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text =
-                            when (filter) {
+                            when (filterStatus) {
 
                                 "Menunggu" ->
-                                    "Belum ada pengajuan yang menunggu keputusan Admin."
+                                    "Belum ada pengajuan yang menunggu approval."
 
                                 "Disetujui" ->
-                                    "Belum ada pengajuan yang disetujui Admin."
+                                    "Belum ada pengajuan yang disetujui seluruh approver."
 
                                 "Ditolak" ->
-                                    "Belum ada pengajuan yang ditolak Admin."
+                                    "Belum ada pengajuan yang ditolak."
 
                                 else ->
                                     "Pengajuan yang kamu buat akan muncul di sini."
-                            },
-                        fontSize = 13.sp,
-                        color =
-                            PengajuanScreenColors.Gray
-                    )
-                }
-            }
+                            }
+                        }
+
+                        PengajuanSource.MENUNGGU_APPROVAL -> {
+
+                            when (filterStatus) {
+
+                                "Menunggu" ->
+                                    "Tidak ada pengajuan yang sedang menunggu persetujuanmu."
+
+                                "Disetujui" ->
+                                    "Tidak ada pengajuan disetujui pada daftar ini."
+
+                                "Ditolak" ->
+                                    "Tidak ada pengajuan ditolak pada daftar ini."
+
+                                else ->
+                                    "Tidak ada pengajuan yang sedang menunggu persetujuanmu."
+                            }
+                        }
+
+                        else ->
+                            ""
+                    }
+            )
 
         } else {
 
@@ -601,12 +738,74 @@ fun PengajuanScreen(
 
                     PengajuanCard(
                         data = item,
+                        source = source,
                         onClick = {
                             onStatusClick(item)
                         }
                     )
                 }
             }
+        }
+    }
+}
+
+// ==========================================================
+// EMPTY STATE
+// ==========================================================
+
+@Composable
+private fun EmptyState(
+    icon: ImageVector,
+    title: String,
+    message: String
+) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxSize(),
+    ) {
+
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 30.dp)
+                .verticalScroll(
+                    rememberScrollState()
+                ),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint =
+                    PengajuanScreenColors.Green,
+                modifier = Modifier.size(44.dp)
+            )
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color =
+                    PengajuanScreenColors.Dark
+            )
+
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
+
+            Text(
+                text = message,
+                fontSize = 13.sp,
+                color =
+                    PengajuanScreenColors.Gray
+            )
         }
     }
 }
@@ -652,13 +851,91 @@ private fun SummaryCard(
                 text = count.toString(),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = PengajuanScreenColors.Dark
+                color =
+                    PengajuanScreenColors.Dark
             )
 
             Text(
                 text = title,
                 fontSize = 11.sp,
-                color = PengajuanScreenColors.Gray
+                color =
+                    PengajuanScreenColors.Gray
+            )
+        }
+    }
+}
+
+// ==========================================================
+// SOURCE CHIP
+// ==========================================================
+
+@Composable
+private fun SourceChip(
+    text: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier.clickable {
+            onClick()
+        },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                if (selected) {
+                    PengajuanScreenColors.Green
+                } else {
+                    PengajuanScreenColors.Card
+                }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation =
+                if (selected) 1.dp else 0.dp
+        )
+    ) {
+
+        Row(
+            modifier = Modifier.padding(
+                horizontal = 14.dp,
+                vertical = 9.dp
+            ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint =
+                    if (selected) {
+                        Color.White
+                    } else {
+                        PengajuanScreenColors.Gray
+                    },
+                modifier = Modifier.size(16.dp)
+            )
+
+            Spacer(
+                modifier = Modifier.width(6.dp)
+            )
+
+            Text(
+                text = text,
+                fontSize = 12.sp,
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Medium
+                    },
+                color =
+                    if (selected) {
+                        Color.White
+                    } else {
+                        PengajuanScreenColors.Gray
+                    }
             )
         }
     }
@@ -724,6 +1001,7 @@ private fun FilterChip(
 @Composable
 private fun PengajuanCard(
     data: PengajuanData,
+    source: PengajuanSource,
     onClick: () -> Unit
 ) {
 
@@ -748,13 +1026,34 @@ private fun PengajuanCard(
         when (status) {
 
             "disetujui" ->
-                "Pengajuan telah disetujui Admin."
+                "Pengajuan telah disetujui seluruh approver."
 
             "ditolak" ->
-                "Pengajuan telah ditolak Admin."
+                "Pengajuan ditolak pada salah satu tahap approval."
 
-            else ->
-                "Menunggu keputusan Admin."
+            else -> {
+
+                if (
+                    source ==
+                    PengajuanSource.MENUNGGU_APPROVAL
+                ) {
+
+                    "Menunggu persetujuan Anda."
+
+                } else {
+
+                    if (
+                        data.currentApproverJabatan.isNotBlank()
+                    ) {
+
+                        "Menunggu approval ${data.currentApproverJabatan}."
+
+                    } else {
+
+                        "Menunggu proses approval."
+                    }
+                }
+            }
         }
 
     Card(
@@ -844,6 +1143,25 @@ private fun PengajuanCard(
                         color =
                             PengajuanScreenColors.Gray
                     )
+
+                    // Nama pemohon untuk tampilan approval
+                    if (
+                        source ==
+                        PengajuanSource.MENUNGGU_APPROVAL &&
+                        data.nama.isNotBlank()
+                    ) {
+
+                        Spacer(
+                            modifier = Modifier.height(3.dp)
+                        )
+
+                        Text(
+                            text = "Pemohon: ${data.nama}",
+                            fontSize = 11.sp,
+                            color =
+                                PengajuanScreenColors.Blue
+                        )
+                    }
                 }
 
                 StatusBadge(
@@ -895,6 +1213,29 @@ private fun PengajuanCard(
                     fontWeight = FontWeight.Medium,
                     color =
                         statusColor(status)
+                )
+            }
+
+            // ==================================================
+            // DETAIL APPROVER
+            // ==================================================
+
+            if (
+                status == "menunggu" &&
+                data.currentApproverJabatan.isNotBlank() &&
+                source != PengajuanSource.MENUNGGU_APPROVAL
+            ) {
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+
+                Text(
+                    text =
+                        "Tahap saat ini: ${data.currentApproverJabatan}",
+                    fontSize = 11.sp,
+                    color =
+                        PengajuanScreenColors.Gray
                 )
             }
 
@@ -989,7 +1330,7 @@ private fun PengajuanCard(
 }
 
 // ==========================================================
-// ICON STATUS
+// ICON
 // ==========================================================
 
 @Composable

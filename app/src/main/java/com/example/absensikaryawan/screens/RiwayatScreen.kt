@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
@@ -26,36 +29,64 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.FirestoreRepository
 import com.example.absensikaryawan.data.PengajuanData
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
+// ==========================================================
+// WARNA
+// ==========================================================
+
+private object RiwayatScreenColors {
+
+    val Green = PrimaryGreen
+    val GreenSoft = SoftGreen
+    val Dark = TextDark
+    val Gray = TextGray
+    val Background = com.example.absensikaryawan.screens.Background
+    val Card = Color.White
+
+    val OrangeSoft = Color(0xFFFFF4E5)
+    val Orange = Color(0xFFF59E0B)
+
+    val RedSoft = Color(0xFFFFEBEE)
+    val Red = Color(0xFFDC2626)
+
+    val BlueSoft = Color(0xFFEFF6FF)
+    val Blue = Color(0xFF2563EB)
+}
 
 // ==========================================================
 // MODEL RIWAYAT ABSENSI
@@ -127,7 +158,7 @@ enum class FilterStatusPengajuan {
 enum class FilterSumberPengajuan {
     SAYA,
     MENUNGGU_APPROVAL,
-    BAWAHAN,
+    TEAM,
     SEMUA
 }
 
@@ -143,6 +174,8 @@ fun RiwayatScreen(
         FilterStatusPengajuan.SEMUA,
     refreshKey: Int = 0
 ) {
+
+    val scope = rememberCoroutineScope()
 
     val firebaseAuth = remember {
         FirebaseAuth.getInstance()
@@ -193,10 +226,6 @@ fun RiwayatScreen(
     }
 
     var roleUser by remember {
-        mutableStateOf("")
-    }
-
-    var namaUser by remember {
         mutableStateOf("")
     }
 
@@ -279,14 +308,9 @@ fun RiwayatScreen(
                         ?.uppercase()
                         ?: ""
 
-                namaUser =
-                    document
-                        .getString("nama")
-                        ?: ""
-
                 Log.d(
                     "RiwayatScreen",
-                    "User: $namaUser | Role: $roleUser | UID: $uidUser"
+                    "Role: $roleUser | UID: $uidUser"
                 )
             }
 
@@ -298,6 +322,18 @@ fun RiwayatScreen(
                 e
             )
         }
+    }
+
+    // ======================================================
+    // CEK APPROVER
+    // ======================================================
+
+    fun isApprover(): Boolean {
+
+        return roleUser == "SUPERVISOR" ||
+                roleUser == "MANAGER" ||
+                roleUser == "HRD" ||
+                roleUser == "OWNER"
     }
 
     // ======================================================
@@ -396,7 +432,7 @@ fun RiwayatScreen(
     }
 
     // ======================================================
-    // KONVERSI PENGAJUAN DATA
+    // KONVERSI PENGAJUAN
     // ======================================================
 
     fun convertPengajuan(
@@ -446,14 +482,13 @@ fun RiwayatScreen(
 
                     FilterSumberPengajuan.SAYA -> {
 
-                        val result =
-                            repository.getPengajuanSaya(
+                        repository
+                            .getPengajuanSaya(
                                 firebaseUser.uid
                             )
-
-                        result.getOrElse {
-                            emptyList()
-                        }
+                            .getOrElse {
+                                emptyList()
+                            }
                     }
 
                     // --------------------------------------
@@ -462,55 +497,43 @@ fun RiwayatScreen(
 
                     FilterSumberPengajuan.MENUNGGU_APPROVAL -> {
 
-                        val result =
-                            repository.getPengajuanMenunggu()
-
-                        result.getOrElse {
-                            emptyList()
-                        }
+                        repository
+                            .getPengajuanMenungguApproval(
+                                firebaseUser.uid
+                            )
+                            .getOrElse {
+                                emptyList()
+                            }
                     }
 
                     // --------------------------------------
-                    // BAWAHAN
-                    // --------------------------------------
-                    //
-                    // Struktur PengajuanData saat ini belum
-                    // memiliki approvalChain / approverUid.
-                    //
-                    // Untuk sementara gunakan data pengajuan
-                    // yang sedang menunggu approval.
+                    // TEAM
                     // --------------------------------------
 
-                    FilterSumberPengajuan.BAWAHAN -> {
+                    FilterSumberPengajuan.TEAM -> {
 
-                        val result =
-                            repository.getPengajuanMenunggu()
-
-                        result.getOrElse {
-                            emptyList()
-                        }
+                        /*
+                         * Struktur Team belum tersedia di users.
+                         *
+                         * Jangan mengambil seluruh pengajuan,
+                         * karena itu akan membuat data Team salah.
+                         */
+                        emptyList()
                     }
 
                     // --------------------------------------
                     // SEMUA
                     // --------------------------------------
-                    //
-                    // Repository saat ini belum menyediakan
-                    // getSemuaPengajuan().
-                    //
-                    // Gunakan pengajuan menunggu agar tidak
-                    // memanggil API repository yang sudah tidak
-                    // tersedia.
-                    // --------------------------------------
 
                     FilterSumberPengajuan.SEMUA -> {
 
-                        val result =
-                            repository.getPengajuanMenunggu()
-
-                        result.getOrElse {
-                            emptyList()
-                        }
+                        /*
+                         * Belum ada repository getSemuaPengajuan().
+                         *
+                         * Untuk sementara kosong agar tidak
+                         * menampilkan data yang salah.
+                         */
+                        emptyList()
                     }
                 }
 
@@ -532,7 +555,7 @@ fun RiwayatScreen(
     }
 
     // ======================================================
-    // LOAD SEMUA DATA
+    // LOAD DATA
     // ======================================================
 
     LaunchedEffect(
@@ -550,7 +573,7 @@ fun RiwayatScreen(
     }
 
     // ======================================================
-    // DEFAULT FILTER DARI NOTIFIKASI APPROVAL
+    // DEFAULT DARI NOTIFIKASI
     // ======================================================
 
     LaunchedEffect(
@@ -560,19 +583,12 @@ fun RiwayatScreen(
 
         if (
             filterStatusAwal ==
-            FilterStatusPengajuan.MENUNGGU
+            FilterStatusPengajuan.MENUNGGU &&
+            isApprover()
         ) {
 
-            if (
-                roleUser == "SUPERVISOR" ||
-                roleUser == "MANAGER" ||
-                roleUser == "HRD" ||
-                roleUser == "OWNER"
-            ) {
-
-                filterSumberPengajuan =
-                    FilterSumberPengajuan.MENUNGGU_APPROVAL
-            }
+            filterSumberPengajuan =
+                FilterSumberPengajuan.MENUNGGU_APPROVAL
         }
     }
 
@@ -588,10 +604,6 @@ fun RiwayatScreen(
 
             when (filterAktif) {
 
-                // ------------------------------------------
-                // 7 HARI
-                // ------------------------------------------
-
                 FilterRiwayat.TUJUH_HARI -> {
 
                     filterAbsensiByDays(
@@ -600,10 +612,6 @@ fun RiwayatScreen(
                     )
                 }
 
-                // ------------------------------------------
-                // 1 BULAN
-                // ------------------------------------------
-
                 FilterRiwayat.SATU_BULAN -> {
 
                     filterAbsensiByDays(
@@ -611,10 +619,6 @@ fun RiwayatScreen(
                         jumlahHari = 30
                     )
                 }
-
-                // ------------------------------------------
-                // SEMUA
-                // ------------------------------------------
 
                 FilterRiwayat.SEMUA -> {
 
@@ -635,55 +639,44 @@ fun RiwayatScreen(
 
             when (filterStatusPengajuan) {
 
-                FilterStatusPengajuan.SEMUA -> {
-
+                FilterStatusPengajuan.SEMUA ->
                     semuaPengajuan
-                }
 
-                FilterStatusPengajuan.MENUNGGU -> {
-
-                    semuaPengajuan.filter { item ->
-
-                        item.status.equals(
+                FilterStatusPengajuan.MENUNGGU ->
+                    semuaPengajuan.filter {
+                        it.status.equals(
                             "menunggu",
                             ignoreCase = true
                         )
                     }
-                }
 
-                FilterStatusPengajuan.DISETUJUI -> {
-
-                    semuaPengajuan.filter { item ->
-
-                        item.status.equals(
+                FilterStatusPengajuan.DISETUJUI ->
+                    semuaPengajuan.filter {
+                        it.status.equals(
                             "disetujui",
                             ignoreCase = true
                         )
                     }
-                }
 
-                FilterStatusPengajuan.DITOLAK -> {
-
-                    semuaPengajuan.filter { item ->
-
-                        item.status.equals(
+                FilterStatusPengajuan.DITOLAK ->
+                    semuaPengajuan.filter {
+                        it.status.equals(
                             "ditolak",
                             ignoreCase = true
                         )
                     }
-                }
             }
         }
 
     // ======================================================
-    // UI
+    // MAIN UI
     // ======================================================
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Color(0xFFF7F9FC)
+                RiwayatScreenColors.Background
             )
             .statusBarsPadding()
     ) {
@@ -696,8 +689,10 @@ fun RiwayatScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    horizontal = 16.dp,
-                    vertical = 10.dp
+                    start = 8.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = 8.dp
                 ),
             verticalAlignment =
                 Alignment.CenterVertically
@@ -713,27 +708,69 @@ fun RiwayatScreen(
                     contentDescription =
                         "Kembali",
                     tint =
-                        Color(0xFF1F2937)
+                        RiwayatScreenColors.Dark
                 )
             }
 
-            Spacer(
+            Column(
                 modifier =
-                    Modifier.width(4.dp)
-            )
+                    Modifier.weight(1f)
+            ) {
 
-            Text(
-                text = "Riwayat",
-                fontSize = 22.sp,
-                fontWeight =
-                    FontWeight.Bold,
-                color =
-                    Color(0xFF1F2937)
-            )
+                Text(
+                    text = "Riwayat",
+                    fontSize = 22.sp,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        RiwayatScreenColors.Dark
+                )
+
+                Text(
+                    text =
+                        if (
+                            tabAktif ==
+                            TabRiwayat.ABSENSI
+                        ) {
+                            "Riwayat kehadiran"
+                        } else {
+                            "Riwayat dan status pengajuan"
+                        },
+                    fontSize = 12.sp,
+                    color =
+                        RiwayatScreenColors.Gray
+                )
+            }
+
+            IconButton(
+                onClick = {
+
+                    scope.launch {
+
+                        isLoading = true
+
+                        loadRoleUser()
+                        loadAbsensi()
+                        loadPengajuan()
+
+                        isLoading = false
+                    }
+                }
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Refresh,
+                    contentDescription =
+                        "Refresh",
+                    tint =
+                        RiwayatScreenColors.Green
+                )
+            }
         }
 
         // ==================================================
-        // TAB ABSENSI / PENGAJUAN
+        // TAB UTAMA
         // ==================================================
 
         Row(
@@ -746,7 +783,7 @@ fun RiwayatScreen(
                 Arrangement.spacedBy(8.dp)
         ) {
 
-            TabButtonRiwayat(
+            MainTab(
                 text = "Absensi",
                 selected =
                     tabAktif ==
@@ -760,7 +797,7 @@ fun RiwayatScreen(
                     Modifier.weight(1f)
             )
 
-            TabButtonRiwayat(
+            MainTab(
                 text = "Pengajuan",
                 selected =
                     tabAktif ==
@@ -793,13 +830,16 @@ fun RiwayatScreen(
                     Alignment.Center
             ) {
 
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    color =
+                        RiwayatScreenColors.Green
+                )
             }
 
         } else {
 
             // ==================================================
-            // ABSENSI
+            // TAB ABSENSI
             // ==================================================
 
             if (
@@ -825,7 +865,7 @@ fun RiwayatScreen(
                             Arrangement.spacedBy(8.dp)
                     ) {
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "7 Hari",
                             selected =
                                 filterAktif ==
@@ -837,7 +877,7 @@ fun RiwayatScreen(
                             }
                         )
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "1 Bulan",
                             selected =
                                 filterAktif ==
@@ -849,7 +889,7 @@ fun RiwayatScreen(
                             }
                         )
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "Semua",
                             selected =
                                 filterAktif ==
@@ -872,8 +912,12 @@ fun RiwayatScreen(
                     ) {
 
                         EmptyRiwayatState(
-                            text =
-                                "Belum ada riwayat absensi."
+                            icon =
+                                Icons.Default.CalendarMonth,
+                            title =
+                                "Belum ada riwayat absensi",
+                            message =
+                                "Data kehadiran akan muncul di sini."
                         )
 
                     } else {
@@ -883,12 +927,14 @@ fun RiwayatScreen(
                                 Modifier.fillMaxSize(),
                             contentPadding =
                                 PaddingValues(
-                                    horizontal = 16.dp,
-                                    vertical = 8.dp
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 8.dp,
+                                    bottom = 24.dp
                                 ),
                             verticalArrangement =
                                 Arrangement.spacedBy(
-                                    10.dp
+                                    12.dp
                                 )
                         ) {
 
@@ -911,7 +957,7 @@ fun RiwayatScreen(
             } else {
 
                 // ==================================================
-                // PENGAJUAN
+                // TAB PENGAJUAN
                 // ==================================================
 
                 Column(
@@ -919,48 +965,48 @@ fun RiwayatScreen(
                         Modifier.fillMaxSize()
                 ) {
 
-                    // --------------------------------------
-                    // FILTER SUMBER
-                    // --------------------------------------
+                    // ----------------------------------------------
+                    // SUMBER
+                    // ----------------------------------------------
 
-                    if (
-                        roleUser == "SUPERVISOR" ||
-                        roleUser == "MANAGER" ||
-                        roleUser == "HRD" ||
-                        roleUser == "OWNER"
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(
+                                horizontal = 16.dp
+                            ),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(8.dp)
                     ) {
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(
-                                    rememberScrollState()
-                                )
-                                .padding(
-                                    horizontal = 16.dp
-                                ),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(
-                                    8.dp
-                                )
-                        ) {
+                        SourceChip(
+                            text =
+                                "Pengajuan Saya",
+                            icon =
+                                Icons.Default.Description,
+                            selected =
+                                filterSumberPengajuan ==
+                                        FilterSumberPengajuan.SAYA,
+                            onClick = {
 
-                            FilterChipSimple(
-                                text =
-                                    "Pengajuan Saya",
-                                selected =
-                                    filterSumberPengajuan ==
-                                            FilterSumberPengajuan.SAYA,
-                                onClick = {
+                                filterSumberPengajuan =
+                                    FilterSumberPengajuan.SAYA
 
-                                    filterSumberPengajuan =
-                                        FilterSumberPengajuan.SAYA
-                                }
-                            )
+                                filterStatusPengajuan =
+                                    FilterStatusPengajuan.SEMUA
+                            }
+                        )
 
-                            FilterChipSimple(
+                        if (isApprover()) {
+
+                            SourceChip(
                                 text =
                                     "Menunggu Approval",
+                                icon =
+                                    Icons.Default.SupervisorAccount,
                                 selected =
                                     filterSumberPengajuan ==
                                             FilterSumberPengajuan.MENUNGGU_APPROVAL,
@@ -974,52 +1020,33 @@ fun RiwayatScreen(
                                 }
                             )
 
-                            if (
-                                roleUser != "OWNER"
-                            ) {
+                            SourceChip(
+                                text = "Team",
+                                icon =
+                                    Icons.Default.Groups,
+                                selected =
+                                    filterSumberPengajuan ==
+                                            FilterSumberPengajuan.TEAM,
+                                onClick = {
 
-                                FilterChipSimple(
-                                    text =
-                                        "Bawahan",
-                                    selected =
-                                        filterSumberPengajuan ==
-                                                FilterSumberPengajuan.BAWAHAN,
-                                    onClick = {
+                                    filterSumberPengajuan =
+                                        FilterSumberPengajuan.TEAM
 
-                                        filterSumberPengajuan =
-                                            FilterSumberPengajuan.BAWAHAN
-                                    }
-                                )
-                            }
-
-                            if (
-                                roleUser == "OWNER"
-                            ) {
-
-                                FilterChipSimple(
-                                    text =
-                                        "Semua",
-                                    selected =
-                                        filterSumberPengajuan ==
-                                                FilterSumberPengajuan.SEMUA,
-                                    onClick = {
-
-                                        filterSumberPengajuan =
-                                            FilterSumberPengajuan.SEMUA
-                                    }
-                                )
-                            }
+                                    filterStatusPengajuan =
+                                        FilterStatusPengajuan.SEMUA
+                                }
+                            )
                         }
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
                     }
 
-                    // --------------------------------------
-                    // FILTER STATUS
-                    // --------------------------------------
+                    Spacer(
+                        modifier =
+                            Modifier.height(10.dp)
+                    )
+
+                    // ----------------------------------------------
+                    // STATUS
+                    // ----------------------------------------------
 
                     Row(
                         modifier = Modifier
@@ -1031,12 +1058,10 @@ fun RiwayatScreen(
                                 horizontal = 16.dp
                             ),
                         horizontalArrangement =
-                            Arrangement.spacedBy(
-                                8.dp
-                            )
+                            Arrangement.spacedBy(8.dp)
                     ) {
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "Semua",
                             selected =
                                 filterStatusPengajuan ==
@@ -1048,7 +1073,7 @@ fun RiwayatScreen(
                             }
                         )
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "Menunggu",
                             selected =
                                 filterStatusPengajuan ==
@@ -1060,7 +1085,7 @@ fun RiwayatScreen(
                             }
                         )
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "Disetujui",
                             selected =
                                 filterStatusPengajuan ==
@@ -1072,7 +1097,7 @@ fun RiwayatScreen(
                             }
                         )
 
-                        FilterChipSimple(
+                        SimpleChip(
                             text = "Ditolak",
                             selected =
                                 filterStatusPengajuan ==
@@ -1090,34 +1115,68 @@ fun RiwayatScreen(
                             Modifier.height(12.dp)
                     )
 
-                    // --------------------------------------
-                    // LIST PENGAJUAN
-                    // --------------------------------------
+                    // ----------------------------------------------
+                    // TEAM EMPTY
+                    // ----------------------------------------------
 
                     if (
+                        filterSumberPengajuan ==
+                        FilterSumberPengajuan.TEAM
+                    ) {
+
+                        EmptyRiwayatState(
+                            icon =
+                                Icons.Default.Groups,
+                            title =
+                                "Team belum tersedia",
+                            message =
+                                "Struktur Team belum diatur. " +
+                                        "Data Team akan ditampilkan setelah " +
+                                        "relasi Team tersedia."
+                        )
+
+                    } else if (
                         pengajuanFiltered.isEmpty()
                     ) {
 
-                        val emptyText =
+                        val title =
+                            when (
+                                filterStatusPengajuan
+                            ) {
+
+                                FilterStatusPengajuan.SEMUA ->
+                                    "Belum ada pengajuan"
+
+                                FilterStatusPengajuan.MENUNGGU ->
+                                    "Tidak ada pengajuan menunggu"
+
+                                FilterStatusPengajuan.DISETUJUI ->
+                                    "Tidak ada pengajuan disetujui"
+
+                                FilterStatusPengajuan.DITOLAK ->
+                                    "Tidak ada pengajuan ditolak"
+                            }
+
+                        val message =
                             when (
                                 filterSumberPengajuan
                             ) {
 
                                 FilterSumberPengajuan.SAYA ->
-                                    "Belum ada pengajuan."
+                                    "Pengajuan yang kamu buat akan muncul di sini."
 
                                 FilterSumberPengajuan.MENUNGGU_APPROVAL ->
-                                    "Tidak ada pengajuan yang menunggu approval."
+                                    "Tidak ada pengajuan yang sedang menunggu persetujuanmu."
 
-                                FilterSumberPengajuan.BAWAHAN ->
-                                    "Belum ada pengajuan dari bawahan."
-
-                                FilterSumberPengajuan.SEMUA ->
-                                    "Belum ada data pengajuan."
+                                else ->
+                                    "Data pengajuan akan muncul di sini."
                             }
 
                         EmptyRiwayatState(
-                            text = emptyText
+                            icon =
+                                Icons.Default.Description,
+                            title = title,
+                            message = message
                         )
 
                     } else {
@@ -1127,12 +1186,14 @@ fun RiwayatScreen(
                                 Modifier.fillMaxSize(),
                             contentPadding =
                                 PaddingValues(
-                                    horizontal = 16.dp,
-                                    vertical = 8.dp
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 8.dp,
+                                    bottom = 24.dp
                                 ),
                             verticalArrangement =
                                 Arrangement.spacedBy(
-                                    10.dp
+                                    12.dp
                                 )
                         ) {
 
@@ -1147,8 +1208,10 @@ fun RiwayatScreen(
                                 RiwayatPengajuanCard(
                                     item = item,
                                     tampilkanPemohon =
-                                        filterSumberPengajuan !=
-                                                FilterSumberPengajuan.SAYA,
+                                        filterSumberPengajuan ==
+                                                FilterSumberPengajuan.MENUNGGU_APPROVAL ||
+                                                filterSumberPengajuan ==
+                                                FilterSumberPengajuan.TEAM,
                                     onClick = {
 
                                         onDetailClick(
@@ -1166,8 +1229,7 @@ fun RiwayatScreen(
 }
 
 // ==========================================================
-// FILTER TANGGAL ABSENSI
-// Aman untuk minSdk 24
+// FILTER ABSENSI BY DAYS
 // ==========================================================
 
 private fun filterAbsensiByDays(
@@ -1196,6 +1258,11 @@ private fun filterAbsensiByDays(
             calendar.time
         )
 
+    val today =
+        formatter.format(
+            Calendar.getInstance().time
+        )
+
     return data.filter { item ->
 
         try {
@@ -1204,7 +1271,9 @@ private fun filterAbsensiByDays(
                 item.tanggal.trim()
 
             if (tanggal.isBlank()) {
+
                 false
+
             } else {
 
                 val parsedDate =
@@ -1217,9 +1286,7 @@ private fun filterAbsensiByDays(
 
                 parsedText != null &&
                         parsedText >= startDate &&
-                        parsedText <= formatter.format(
-                    Calendar.getInstance().time
-                )
+                        parsedText <= today
             }
 
         } catch (
@@ -1232,58 +1299,222 @@ private fun filterAbsensiByDays(
 }
 
 // ==========================================================
-// TAB BUTTON
+// MAIN TAB
 // ==========================================================
 
 @Composable
-private fun TabButtonRiwayat(
+private fun MainTab(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
+    Card(
+        modifier =
+            modifier.clickableNoRipple {
+                onClick()
+            },
+        shape =
+            RoundedCornerShape(12.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (selected) {
+                        RiwayatScreenColors.Green
+                    } else {
+                        RiwayatScreenColors.Card
+                    }
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    if (selected) {
+                        1.dp
+                    } else {
+                        0.dp
+                    }
+            )
+    ) {
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        vertical = 11.dp
+                    ),
+            contentAlignment =
+                Alignment.Center
+        ) {
 
             Text(
                 text = text,
+                fontSize = 13.sp,
                 fontWeight =
                     if (selected) {
                         FontWeight.Bold
                     } else {
-                        FontWeight.Normal
+                        FontWeight.Medium
+                    },
+                color =
+                    if (selected) {
+                        Color.White
+                    } else {
+                        RiwayatScreenColors.Gray
                     }
             )
-        },
-        modifier = modifier
-    )
+        }
+    }
 }
 
 // ==========================================================
-// FILTER CHIP
+// SOURCE CHIP
 // ==========================================================
 
 @Composable
-private fun FilterChipSimple(
+private fun SourceChip(
+    text: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier =
+            Modifier.clickableNoRipple {
+                onClick()
+            },
+        shape =
+            RoundedCornerShape(20.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (selected) {
+                        RiwayatScreenColors.Green
+                    } else {
+                        RiwayatScreenColors.Card
+                    }
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    if (selected) {
+                        1.dp
+                    } else {
+                        0.dp
+                    }
+            )
+    ) {
+
+        Row(
+            modifier =
+                Modifier.padding(
+                    horizontal = 14.dp,
+                    vertical = 9.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint =
+                    if (selected) {
+                        Color.White
+                    } else {
+                        RiwayatScreenColors.Gray
+                    },
+                modifier =
+                    Modifier.size(16.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(6.dp)
+            )
+
+            Text(
+                text = text,
+                fontSize = 12.sp,
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Medium
+                    },
+                color =
+                    if (selected) {
+                        Color.White
+                    } else {
+                        RiwayatScreenColors.Gray
+                    }
+            )
+        }
+    }
+}
+
+// ==========================================================
+// SIMPLE CHIP
+// ==========================================================
+
+@Composable
+private fun SimpleChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
 
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-
-            Text(
-                text = text,
-                fontSize = 13.sp
+    Card(
+        modifier =
+            Modifier.clickableNoRipple {
+                onClick()
+            },
+        shape =
+            RoundedCornerShape(20.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (selected) {
+                        RiwayatScreenColors.Green
+                    } else {
+                        RiwayatScreenColors.Card
+                    }
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    if (selected) {
+                        1.dp
+                    } else {
+                        0.dp
+                    }
             )
-        }
-    )
+    ) {
+
+        Text(
+            text = text,
+            modifier =
+                Modifier.padding(
+                    horizontal = 14.dp,
+                    vertical = 8.dp
+                ),
+            fontSize = 12.sp,
+            fontWeight =
+                if (selected) {
+                    FontWeight.Bold
+                } else {
+                    FontWeight.Medium
+                },
+            color =
+                if (selected) {
+                    Color.White
+                } else {
+                    RiwayatScreenColors.Gray
+                }
+        )
+    }
 }
 
 // ==========================================================
@@ -1292,7 +1523,9 @@ private fun FilterChipSimple(
 
 @Composable
 private fun EmptyRiwayatState(
-    text: String
+    icon: ImageVector,
+    title: String,
+    message: String
 ) {
 
     Box(
@@ -1302,12 +1535,50 @@ private fun EmptyRiwayatState(
             Alignment.Center
     ) {
 
-        Text(
-            text = text,
-            color =
-                Color(0xFF6B7280),
-            fontSize = 14.sp
-        )
+        Column(
+            modifier =
+                Modifier.padding(
+                    horizontal = 30.dp
+                ),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint =
+                    RiwayatScreenColors.Green,
+                modifier =
+                    Modifier.size(44.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight =
+                    FontWeight.SemiBold,
+                color =
+                    RiwayatScreenColors.Dark
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(5.dp)
+            )
+
+            Text(
+                text = message,
+                fontSize = 13.sp,
+                color =
+                    RiwayatScreenColors.Gray
+            )
+        }
     }
 }
 
@@ -1323,10 +1594,12 @@ private fun RiwayatAbsensiCard(
     Card(
         modifier =
             Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(18.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    Color.White
+                    RiwayatScreenColors.Card
             ),
         elevation =
             CardDefaults.cardElevation(
@@ -1340,124 +1613,236 @@ private fun RiwayatAbsensiCard(
         ) {
 
             Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
-                Icon(
-                    imageVector =
+                SurfaceIcon(
+                    icon =
                         Icons.Default.CalendarMonth,
-                    contentDescription =
-                        null,
+                    background =
+                        RiwayatScreenColors.GreenSoft,
                     tint =
-                        Color(0xFF16A34A)
+                        RiwayatScreenColors.Green
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.width(8.dp)
+                        Modifier.width(12.dp)
                 )
 
-                Text(
-                    text =
-                        item.tanggal.ifBlank {
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            item.tanggal.ifBlank {
+                                "-"
+                            },
+                        fontSize = 16.sp,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            RiwayatScreenColors.Dark
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(3.dp)
+                    )
+
+                    Text(
+                        text =
+                            if (item.kantor.isNotBlank()) {
+                                item.kantor
+                            } else {
+                                "Kehadiran"
+                            },
+                        fontSize = 12.sp,
+                        color =
+                            RiwayatScreenColors.Gray
+                    )
+                }
+
+                if (item.status.isNotBlank()) {
+
+                    AttendanceStatusBadge(
+                        status =
+                            item.status
+                    )
+                }
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+
+                TimeInfo(
+                    label = "Masuk",
+                    value =
+                        item.jamMasuk.ifBlank {
                             "-"
                         },
+                    modifier =
+                        Modifier.weight(1f)
+                )
+
+                TimeInfo(
+                    label = "Pulang",
+                    value =
+                        item.jamPulang.ifBlank {
+                            "-"
+                        },
+                    modifier =
+                        Modifier.weight(1f)
+                )
+            }
+
+            if (item.catatan.isNotBlank()) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(10.dp)
+                )
+
+                Text(
+                    text = "Catatan",
+                    fontSize = 11.sp,
                     fontWeight =
-                        FontWeight.Bold,
-                    fontSize = 16.sp,
+                        FontWeight.SemiBold,
                     color =
-                        Color(0xFF1F2937)
-                )
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
-
-            Row {
-
-                Icon(
-                    imageVector =
-                        Icons.Default.AccessTime,
-                    contentDescription =
-                        null,
-                    tint =
-                        Color(0xFF6B7280)
+                        RiwayatScreenColors.Gray
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.width(8.dp)
+                        Modifier.height(3.dp)
                 )
 
                 Text(
-                    text =
-                        "Masuk: ${
-                            item.jamMasuk.ifBlank {
-                                "-"
-                            }
-                        }",
+                    text = item.catatan,
+                    fontSize = 12.sp,
                     color =
-                        Color(0xFF4B5563)
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(16.dp)
-                )
-
-                Text(
-                    text =
-                        "Pulang: ${
-                            item.jamPulang.ifBlank {
-                                "-"
-                            }
-                        }",
-                    color =
-                        Color(0xFF4B5563)
-                )
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
-
-            if (
-                item.kantor.isNotBlank()
-            ) {
-
-                Text(
-                    text =
-                        "Kantor: ${item.kantor}",
-                    fontSize = 13.sp,
-                    color =
-                        Color(0xFF6B7280)
-                )
-            }
-
-            if (
-                item.status.isNotBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(6.dp)
-                )
-
-                Text(
-                    text =
-                        "Status: ${item.status}",
-                    fontSize = 13.sp,
-                    fontWeight =
-                        FontWeight.Medium,
-                    color =
-                        Color(0xFF374151)
+                        RiwayatScreenColors.Dark,
+                    maxLines = 3,
+                    overflow =
+                        TextOverflow.Ellipsis
                 )
             }
         }
+    }
+}
+
+// ==========================================================
+// TIME INFO
+// ==========================================================
+
+@Composable
+private fun TimeInfo(
+    label: String,
+    value: String,
+    modifier: Modifier
+) {
+
+    Card(
+        modifier = modifier,
+        shape =
+            RoundedCornerShape(10.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    RiwayatScreenColors.Background
+            )
+    ) {
+
+        Row(
+            modifier =
+                Modifier.padding(10.dp),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Icon(
+                imageVector =
+                    Icons.Default.AccessTime,
+                contentDescription = null,
+                tint =
+                    RiwayatScreenColors.Gray,
+                modifier =
+                    Modifier.size(17.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(7.dp)
+            )
+
+            Column {
+
+                Text(
+                    text = label,
+                    fontSize = 10.sp,
+                    color =
+                        RiwayatScreenColors.Gray
+                )
+
+                Text(
+                    text = value,
+                    fontSize = 12.sp,
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        RiwayatScreenColors.Dark
+                )
+            }
+        }
+    }
+}
+
+// ==========================================================
+// ATTENDANCE STATUS
+// ==========================================================
+
+@Composable
+private fun AttendanceStatusBadge(
+    status: String
+) {
+
+    Box(
+        modifier =
+            Modifier
+                .background(
+                    color =
+                        RiwayatScreenColors.GreenSoft,
+                    shape =
+                        RoundedCornerShape(20.dp)
+                )
+                .padding(
+                    horizontal = 9.dp,
+                    vertical = 5.dp
+                )
+    ) {
+
+        Text(
+            text = status,
+            fontSize = 10.sp,
+            fontWeight =
+                FontWeight.Bold,
+            color =
+                RiwayatScreenColors.Green
+        )
     }
 }
 
@@ -1472,43 +1857,24 @@ private fun RiwayatPengajuanCard(
     onClick: () -> Unit
 ) {
 
-    val statusLower =
-        item.status.lowercase()
-
-    val statusIcon =
-        when {
-
-            statusLower.contains("setuju") ->
-                Icons.Default.CheckCircle
-
-            statusLower.contains("tolak") ->
-                Icons.Default.Close
-
-            else ->
-                Icons.Default.Pending
-        }
-
-    val statusColor =
-        when {
-
-            statusLower.contains("setuju") ->
-                Color(0xFF16A34A)
-
-            statusLower.contains("tolak") ->
-                Color(0xFFDC2626)
-
-            else ->
-                Color(0xFFD97706)
-        }
+    val status =
+        normalizePengajuanStatus(
+            item.status
+        )
 
     Card(
         modifier =
-            Modifier.fillMaxWidth(),
-        onClick = onClick,
+            Modifier
+                .fillMaxWidth()
+                .clickableNoRipple {
+                    onClick()
+                },
+        shape =
+            RoundedCornerShape(18.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    Color.White
+                    RiwayatScreenColors.Card
             ),
         elevation =
             CardDefaults.cardElevation(
@@ -1521,9 +1887,9 @@ private fun RiwayatPengajuanCard(
                 Modifier.padding(16.dp)
         ) {
 
-            // ==============================================
+            // ==================================================
             // HEADER
-            // ==============================================
+            // ==================================================
 
             Row(
                 modifier =
@@ -1532,125 +1898,123 @@ private fun RiwayatPengajuanCard(
                     Alignment.CenterVertically
             ) {
 
-                Icon(
-                    imageVector =
+                SurfaceIcon(
+                    icon =
                         Icons.Default.Description,
-                    contentDescription =
-                        null,
+                    background =
+                        RiwayatScreenColors.GreenSoft,
                     tint =
-                        Color(0xFF16A34A)
+                        RiwayatScreenColors.Green
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.width(8.dp)
+                        Modifier.width(12.dp)
                 )
 
-                Text(
-                    text =
-                        item.jenis.ifBlank {
-                            "Pengajuan"
-                        },
+                Column(
                     modifier =
-                        Modifier.weight(1f),
-                    fontSize = 16.sp,
-                    fontWeight =
-                        FontWeight.Bold,
-                    color =
-                        Color(0xFF1F2937)
-                )
+                        Modifier.weight(1f)
+                ) {
 
-                Icon(
-                    imageVector =
-                        statusIcon,
-                    contentDescription =
-                        null,
-                    tint =
-                        statusColor
+                    Text(
+                        text =
+                            item.jenis.ifBlank {
+                                "Pengajuan"
+                            },
+                        fontSize = 17.sp,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            RiwayatScreenColors.Dark
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(3.dp)
+                    )
+
+                    Text(
+                        text =
+                            tanggalPengajuanText(
+                                item
+                            ),
+                        fontSize = 12.sp,
+                        color =
+                            RiwayatScreenColors.Gray
+                    )
+                }
+
+                StatusBadgeRiwayat(
+                    status = status
                 )
             }
 
-            // ==============================================
+            // ==================================================
             // PEMOHON
-            // ==============================================
+            // ==================================================
 
             if (
-                tampilkanPemohon
+                tampilkanPemohon &&
+                item.namaPemohon.isNotBlank()
             ) {
 
                 Spacer(
                     modifier =
-                        Modifier.height(12.dp)
+                        Modifier.height(10.dp)
                 )
 
-                Surface(
+                Row(
                     modifier =
-                        Modifier.fillMaxWidth(),
-                    color =
-                        Color(0xFFF3F4F6),
-                    shape =
-                        MaterialTheme.shapes.medium
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color =
+                                    RiwayatScreenColors.BlueSoft,
+                                shape =
+                                    RoundedCornerShape(10.dp)
+                            )
+                            .padding(
+                                horizontal = 10.dp,
+                                vertical = 8.dp
+                            ),
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
-                    Column(
+                    Icon(
+                        imageVector =
+                            Icons.Default.Groups,
+                        contentDescription = null,
+                        tint =
+                            RiwayatScreenColors.Blue,
                         modifier =
-                            Modifier.padding(10.dp)
-                    ) {
+                            Modifier.size(17.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(7.dp)
+                    )
+
+                    Column {
 
                         Text(
                             text = "Pemohon",
-                            fontSize = 12.sp,
+                            fontSize = 10.sp,
                             color =
-                                Color(0xFF6B7280),
-                            fontWeight =
-                                FontWeight.Medium
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(3.dp)
+                                RiwayatScreenColors.Gray
                         )
 
                         Text(
                             text =
-                                item.namaPemohon
-                                    .ifBlank {
-                                        "-"
-                                    },
-                            fontSize = 14.sp,
+                                item.namaPemohon,
+                            fontSize = 12.sp,
                             fontWeight =
-                                FontWeight.Bold,
+                                FontWeight.SemiBold,
                             color =
-                                Color(0xFF1F2937)
+                                RiwayatScreenColors.Dark
                         )
-
-                        if (
-                            item.jabatanPemohon
-                                .isNotBlank()
-                        ) {
-
-                            Text(
-                                text =
-                                    item.jabatanPemohon,
-                                fontSize = 12.sp,
-                                color =
-                                    Color(0xFF6B7280)
-                            )
-                        }
-
-                        if (
-                            item.divisiPemohon
-                                .isNotBlank()
-                        ) {
-
-                            Text(
-                                text =
-                                    item.divisiPemohon,
-                                fontSize = 12.sp,
-                                color =
-                                    Color(0xFF6B7280)
-                            )
-                        }
                     }
                 }
             }
@@ -1660,59 +2024,67 @@ private fun RiwayatPengajuanCard(
                     Modifier.height(10.dp)
             )
 
-            // ==============================================
-            // TANGGAL
-            // ==============================================
+            // ==================================================
+            // STATUS INFO
+            // ==================================================
 
             Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color =
+                                pengajuanStatusBackground(
+                                    status
+                                ),
+                            shape =
+                                RoundedCornerShape(10.dp)
+                        )
+                        .padding(
+                            horizontal = 10.dp,
+                            vertical = 8.dp
+                        ),
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
                 Icon(
                     imageVector =
-                        Icons.Default.CalendarMonth,
-                    contentDescription =
-                        null,
+                        pengajuanStatusIcon(
+                            status
+                        ),
+                    contentDescription = null,
                     tint =
-                        Color(0xFF6B7280)
+                        pengajuanStatusColor(
+                            status
+                        ),
+                    modifier =
+                        Modifier.size(17.dp)
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.width(8.dp)
+                        Modifier.width(7.dp)
                 )
 
-                val tanggalText =
-                    if (
-                        item.tanggalMulai.isNotBlank() &&
-                        item.tanggalSelesai.isNotBlank() &&
-                        item.tanggalMulai !=
-                        item.tanggalSelesai
-                    ) {
-
-                        "${item.tanggalMulai} - ${item.tanggalSelesai}"
-
-                    } else {
-
-                        item.tanggalMulai.ifBlank {
-                            item.tanggalSelesai.ifBlank {
-                                "-"
-                            }
-                        }
-                    }
-
                 Text(
-                    text = tanggalText,
-                    fontSize = 13.sp,
+                    text =
+                        pengajuanStatusInfo(
+                            status
+                        ),
+                    fontSize = 11.sp,
+                    fontWeight =
+                        FontWeight.Medium,
                     color =
-                        Color(0xFF4B5563)
+                        pengajuanStatusColor(
+                            status
+                        )
                 )
             }
 
-            // ==============================================
+            // ==================================================
             // ALASAN
-            // ==============================================
+            // ==================================================
 
             if (
                 item.alasan.isNotBlank()
@@ -1720,7 +2092,21 @@ private fun RiwayatPengajuanCard(
 
                 Spacer(
                     modifier =
-                        Modifier.height(8.dp)
+                        Modifier.height(10.dp)
+                )
+
+                Text(
+                    text = "Alasan",
+                    fontSize = 11.sp,
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        RiwayatScreenColors.Gray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(3.dp)
                 )
 
                 Text(
@@ -1728,51 +2114,258 @@ private fun RiwayatPengajuanCard(
                         item.alasan,
                     fontSize = 13.sp,
                     color =
-                        Color(0xFF4B5563),
-                    maxLines = 3
+                        RiwayatScreenColors.Dark,
+                    maxLines = 3,
+                    overflow =
+                        TextOverflow.Ellipsis
                 )
             }
 
             Spacer(
                 modifier =
-                    Modifier.height(10.dp)
+                    Modifier.height(6.dp)
             )
 
-            // ==============================================
-            // STATUS
-            // ==============================================
-
-            Row(
-                verticalAlignment =
-                    Alignment.CenterVertically
+            TextButton(
+                onClick = onClick,
+                modifier =
+                    Modifier.align(
+                        Alignment.End
+                    )
             ) {
 
-                Icon(
-                    imageVector =
-                        statusIcon,
-                    contentDescription =
-                        null,
-                    tint =
-                        statusColor
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(6.dp)
-                )
-
                 Text(
-                    text =
-                        item.status.ifBlank {
-                            "Menunggu"
-                        },
-                    fontSize = 13.sp,
-                    fontWeight =
-                        FontWeight.Bold,
+                    text = "Lihat Detail",
+                    fontSize = 12.sp,
                     color =
-                        statusColor
+                        RiwayatScreenColors.Green
                 )
             }
         }
     }
+}
+
+// ==========================================================
+// SURFACE ICON
+// ==========================================================
+
+@Composable
+private fun SurfaceIcon(
+    icon: ImageVector,
+    background: Color,
+    tint: Color
+) {
+
+    Box(
+        modifier =
+            Modifier
+                .size(44.dp)
+                .background(
+                    color = background,
+                    shape =
+                        RoundedCornerShape(12.dp)
+                ),
+        contentAlignment =
+            Alignment.Center
+    ) {
+
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier =
+                Modifier.size(22.dp)
+        )
+    }
+}
+
+// ==========================================================
+// STATUS BADGE
+// ==========================================================
+
+@Composable
+private fun StatusBadgeRiwayat(
+    status: String
+) {
+
+    Box(
+        modifier =
+            Modifier
+                .background(
+                    color =
+                        pengajuanStatusBackground(
+                            status
+                        ),
+                    shape =
+                        RoundedCornerShape(20.dp)
+                )
+                .padding(
+                    horizontal = 10.dp,
+                    vertical = 6.dp
+                )
+    ) {
+
+        Text(
+            text =
+                pengajuanStatusLabel(
+                    status
+                ),
+            fontSize = 11.sp,
+            fontWeight =
+                FontWeight.Bold,
+            color =
+                pengajuanStatusColor(
+                    status
+                )
+        )
+    }
+}
+
+// ==========================================================
+// PENGAJUAN STATUS
+// ==========================================================
+
+private fun normalizePengajuanStatus(
+    status: String
+): String {
+
+    return status
+        .trim()
+        .lowercase()
+        .ifBlank {
+            "menunggu"
+        }
+}
+
+private fun pengajuanStatusLabel(
+    status: String
+): String {
+
+    return when (status) {
+
+        "disetujui" ->
+            "Disetujui"
+
+        "ditolak" ->
+            "Ditolak"
+
+        else ->
+            "Menunggu"
+    }
+}
+
+private fun pengajuanStatusColor(
+    status: String
+): Color {
+
+    return when (status) {
+
+        "disetujui" ->
+            RiwayatScreenColors.Green
+
+        "ditolak" ->
+            RiwayatScreenColors.Red
+
+        else ->
+            RiwayatScreenColors.Orange
+    }
+}
+
+private fun pengajuanStatusBackground(
+    status: String
+): Color {
+
+    return when (status) {
+
+        "disetujui" ->
+            RiwayatScreenColors.GreenSoft
+
+        "ditolak" ->
+            RiwayatScreenColors.RedSoft
+
+        else ->
+            RiwayatScreenColors.OrangeSoft
+    }
+}
+
+private fun pengajuanStatusIcon(
+    status: String
+): ImageVector {
+
+    return when (status) {
+
+        "disetujui" ->
+            Icons.Default.CheckCircle
+
+        "ditolak" ->
+            Icons.Default.Close
+
+        else ->
+            Icons.Default.Pending
+    }
+}
+
+private fun pengajuanStatusInfo(
+    status: String
+): String {
+
+    return when (status) {
+
+        "disetujui" ->
+            "Pengajuan telah disetujui seluruh approver."
+
+        "ditolak" ->
+            "Pengajuan ditolak pada salah satu tahap approval."
+
+        else ->
+            "Pengajuan masih dalam proses approval."
+    }
+}
+
+// ==========================================================
+// TANGGAL PENGAJUAN
+// ==========================================================
+
+private fun tanggalPengajuanText(
+    item: RiwayatPengajuan
+): String {
+
+    return when {
+
+        item.tanggalMulai.isNotBlank() &&
+                item.tanggalSelesai.isNotBlank() &&
+                item.tanggalMulai !=
+                item.tanggalSelesai -> {
+
+            "${item.tanggalMulai} s/d ${item.tanggalSelesai}"
+        }
+
+        item.tanggalMulai.isNotBlank() ->
+            item.tanggalMulai
+
+        item.tanggalSelesai.isNotBlank() ->
+            item.tanggalSelesai
+
+        else ->
+            "-"
+    }
+}
+
+// ==========================================================
+// CLICK WITHOUT RIPPLE
+// ==========================================================
+
+private fun Modifier.clickableNoRipple(
+    onClick: () -> Unit
+): Modifier {
+
+    return this.then(
+        Modifier.clickable(
+            indication = null,
+            interactionSource =
+                androidx.compose.foundation.interaction.MutableInteractionSource()
+        ) {
+            onClick()
+        }
+    )
 }

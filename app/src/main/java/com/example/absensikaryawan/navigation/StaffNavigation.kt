@@ -934,7 +934,31 @@ fun StaffNavigation(
                             tanggalMulai = data.tanggalMulai,
                             tanggalSelesai = data.tanggalSelesai,
                             alasan = data.alasan,
-                            onBack = { currentScreen = detailReturnScreen }
+
+                            // ==========================================
+                            // DATA JALUR APPROVAL
+                            // ==========================================
+
+                            approvalChain = data.approvalChain,
+
+                            approvalStatuses = data.approvalStatuses,
+
+                            currentApproverUid =
+                                data.currentApproverUid,
+
+                            currentApproverName =
+                                data.currentApproverName,
+
+                            currentApproverJabatan =
+                                data.currentApproverJabatan,
+
+                            approvalLocked =
+                                data.approvalLocked,
+
+                            onBack = {
+                                currentScreen =
+                                    detailReturnScreen
+                            }
                         )
 
                     }

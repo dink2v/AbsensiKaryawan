@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -53,6 +52,18 @@ fun DetailPengajuanScreen(
     tanggalMulai: String = "",
     tanggalSelesai: String = "",
     alasan: String = "",
+
+    // ======================================================
+    // DATA APPROVAL
+    // ======================================================
+
+    approvalChain: List<String> = emptyList(),
+    approvalStatuses: Map<String, String> = emptyMap(),
+    currentApproverUid: String = "",
+    currentApproverName: String = "",
+    currentApproverJabatan: String = "",
+    approvalLocked: Boolean = false,
+
     onBack: () -> Unit
 ) {
 
@@ -123,6 +134,18 @@ fun DetailPengajuanScreen(
         }
 
     // ======================================================
+    // JABATAN APPROVAL
+    // ======================================================
+
+    val approvalJabatan =
+        listOf(
+            "Supervisor",
+            "Manager",
+            "HRD",
+            "Owner"
+        )
+
+    // ======================================================
     // MAIN
     // ======================================================
 
@@ -154,7 +177,8 @@ fun DetailPengajuanScreen(
                 ) {
 
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector =
+                            Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Kembali"
                     )
                 }
@@ -220,20 +244,24 @@ fun DetailPengajuanScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
 
                             Surface(
                                 modifier = Modifier.size(52.dp),
                                 shape = RoundedCornerShape(15.dp),
-                                color = PrimaryGreen.copy(
-                                    alpha = 0.10f
-                                )
+                                color =
+                                    PrimaryGreen.copy(
+                                        alpha = 0.10f
+                                    )
                             ) {
 
                                 Icon(
-                                    imageVector = Icons.Default.Description,
-                                    contentDescription = "Pengajuan",
+                                    imageVector =
+                                        Icons.Default.Description,
+                                    contentDescription =
+                                        "Pengajuan",
                                     tint = PrimaryGreen,
                                     modifier = Modifier
                                         .padding(12.dp)
@@ -257,22 +285,28 @@ fun DetailPengajuanScreen(
                                 )
 
                                 Spacer(
-                                    modifier = Modifier.height(4.dp)
+                                    modifier =
+                                        Modifier.height(4.dp)
                                 )
 
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment =
+                                        Alignment.CenterVertically
                                 ) {
 
                                     Icon(
-                                        imageVector = Icons.Default.Event,
-                                        contentDescription = null,
+                                        imageVector =
+                                            Icons.Default.Event,
+                                        contentDescription =
+                                            null,
                                         tint = TextGray,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier =
+                                            Modifier.size(14.dp)
                                     )
 
                                     Spacer(
-                                        modifier = Modifier.width(4.dp)
+                                        modifier =
+                                            Modifier.width(4.dp)
                                     )
 
                                     Text(
@@ -302,36 +336,43 @@ fun DetailPengajuanScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment =
+                                    Alignment.CenterVertically
                             ) {
 
                                 Icon(
                                     imageVector = statusIcon,
-                                    contentDescription = statusText,
+                                    contentDescription =
+                                        statusText,
                                     tint = statusColor,
-                                    modifier = Modifier.size(23.dp)
+                                    modifier =
+                                        Modifier.size(23.dp)
                                 )
 
                                 Spacer(
-                                    modifier = Modifier.width(10.dp)
+                                    modifier =
+                                        Modifier.width(10.dp)
                                 )
 
                                 Column {
 
                                     Text(
-                                        text = "Status Pengajuan",
+                                        text =
+                                            "Status Pengajuan",
                                         fontSize = 10.sp,
                                         color = TextGray
                                     )
 
                                     Spacer(
-                                        modifier = Modifier.height(2.dp)
+                                        modifier =
+                                            Modifier.height(2.dp)
                                     )
 
                                     Text(
                                         text = statusText,
                                         fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        fontWeight =
+                                            FontWeight.Bold,
                                         color = statusColor
                                     )
                                 }
@@ -341,7 +382,7 @@ fun DetailPengajuanScreen(
                 }
 
                 // ==================================================
-                // PROSES PENGAJUAN
+                // JALUR APPROVAL
                 // ==================================================
 
                 Spacer(
@@ -349,7 +390,7 @@ fun DetailPengajuanScreen(
                 )
 
                 Text(
-                    text = "Proses Pengajuan",
+                    text = "Jalur Approval",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
@@ -376,37 +417,125 @@ fun DetailPengajuanScreen(
                             .padding(16.dp)
                     ) {
 
-                        ProcessStep(
-                            icon = Icons.Default.Description,
-                            title = "Pengajuan dibuat",
-                            message = "Pengajuan berhasil dikirim oleh kamu.",
-                            color = PrimaryGreen,
-                            active = true
-                        )
+                        // ==================================================
+                        // DATA APPROVAL BARU
+                        // ==================================================
 
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
+                        if (approvalChain.isNotEmpty()) {
 
-                        ProcessStep(
-                            icon = statusIcon,
-                            title = statusText,
-                            message =
-                                when (statusFinal) {
+                            approvalChain.forEachIndexed { index, uid ->
 
-                                    "disetujui" ->
-                                        "Admin telah menyetujui pengajuan kamu."
+                                val jabatan =
+                                    approvalJabatan.getOrElse(
+                                        index
+                                    ) {
+                                        "Approver"
+                                    }
 
-                                    "ditolak" ->
-                                        "Admin telah menolak pengajuan kamu."
+                                val approvalStatus =
+                                    approvalStatuses[uid]
+                                        ?.lowercase()
+                                        ?: "belum"
 
-                                    else ->
-                                        "Pengajuan sedang menunggu keputusan Admin."
-                                },
-                            color = statusColor,
-                            active = true
-                        )
+                                val isCurrent =
+                                    uid ==
+                                            currentApproverUid &&
+                                            !approvalLocked
+
+                                val isLast =
+                                    index ==
+                                            approvalChain.lastIndex
+
+                                ApprovalStep(
+                                    jabatan = jabatan,
+                                    status = approvalStatus,
+                                    isCurrent = isCurrent,
+                                    isLast = isLast
+                                )
+
+                                if (!isLast) {
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(12.dp)
+                                    )
+                                }
+                            }
+
+                        } else {
+
+                            // ==================================================
+                            // DATA LAMA / BELUM ADA APPROVAL
+                            // ==================================================
+
+                            ProcessStep(
+                                icon = Icons.Default.Description,
+                                title = "Pengajuan dibuat",
+                                message =
+                                    "Pengajuan berhasil dikirim.",
+                                color = PrimaryGreen,
+                                active = true
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(14.dp)
+                            )
+
+                            ProcessStep(
+                                icon = statusIcon,
+                                title = statusText,
+                                message =
+                                    when (statusFinal) {
+
+                                        "disetujui" ->
+                                            "Pengajuan telah disetujui."
+
+                                        "ditolak" ->
+                                            "Pengajuan telah ditolak."
+
+                                        else ->
+                                            "Pengajuan sedang diproses."
+                                    },
+                                color = statusColor,
+                                active = true
+                            )
+                        }
                     }
+                }
+
+                // ==================================================
+                // APPROVER SAAT INI
+                // ==================================================
+
+                if (
+                    statusFinal == "menunggu" &&
+                    currentApproverJabatan.isNotBlank() &&
+                    !approvalLocked
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(14.dp)
+                    )
+
+                    InfoStatusCard(
+                        icon = Icons.Default.Pending,
+                        title =
+                            "Menunggu $currentApproverJabatan",
+                        message =
+                            if (
+                                currentApproverName.isNotBlank()
+                            ) {
+                                "Pengajuan kamu sedang menunggu keputusan " +
+                                        "$currentApproverName " +
+                                        "($currentApproverJabatan)."
+                            } else {
+                                "Pengajuan kamu sedang menunggu keputusan " +
+                                        "$currentApproverJabatan."
+                            },
+                        color = Color(0xFFD97706)
+                    )
                 }
 
                 // ==================================================
@@ -534,7 +663,8 @@ fun DetailPengajuanScreen(
                             if (jamPulang.isNotBlank()) {
 
                                 DetailInfoRow(
-                                    icon = Icons.Default.Schedule,
+                                    icon =
+                                        Icons.Default.Schedule,
                                     title = "Jam Pulang",
                                     value = jamPulang
                                 )
@@ -549,14 +679,16 @@ fun DetailPengajuanScreen(
                             ) {
 
                                 Spacer(
-                                    modifier = Modifier.height(14.dp)
+                                    modifier =
+                                        Modifier.height(14.dp)
                                 )
                             }
 
                             if (jamKeluar.isNotBlank()) {
 
                                 DetailInfoRow(
-                                    icon = Icons.Default.Schedule,
+                                    icon =
+                                        Icons.Default.Schedule,
                                     title = "Jam Keluar",
                                     value = jamKeluar
                                 )
@@ -568,14 +700,16 @@ fun DetailPengajuanScreen(
                             ) {
 
                                 Spacer(
-                                    modifier = Modifier.height(14.dp)
+                                    modifier =
+                                        Modifier.height(14.dp)
                                 )
                             }
 
                             if (jamKembali.isNotBlank()) {
 
                                 DetailInfoRow(
-                                    icon = Icons.Default.Schedule,
+                                    icon =
+                                        Icons.Default.Schedule,
                                     title = "Jam Kembali",
                                     value = jamKembali
                                 )
@@ -642,8 +776,31 @@ fun DetailPengajuanScreen(
 
                         InfoStatusCard(
                             icon = Icons.Default.Pending,
-                            title = "Menunggu keputusan Admin",
-                            message = "Pengajuan kamu sedang diproses dan menunggu keputusan Admin.",
+                            title =
+                                if (
+                                    currentApproverJabatan
+                                        .isNotBlank()
+                                ) {
+                                    "Menunggu $currentApproverJabatan"
+                                } else {
+                                    "Pengajuan sedang diproses"
+                                },
+                            message =
+                                if (
+                                    currentApproverName
+                                        .isNotBlank()
+                                ) {
+                                    "Pengajuan sedang menunggu keputusan " +
+                                            "$currentApproverName."
+                                } else if (
+                                    currentApproverJabatan
+                                        .isNotBlank()
+                                ) {
+                                    "Pengajuan sedang menunggu keputusan " +
+                                            "$currentApproverJabatan."
+                                } else {
+                                    "Pengajuan sedang diproses."
+                                },
                             color = Color(0xFFD97706)
                         )
                     }
@@ -651,9 +808,12 @@ fun DetailPengajuanScreen(
                     "disetujui" -> {
 
                         InfoStatusCard(
-                            icon = Icons.Default.CheckCircle,
-                            title = "Pengajuan disetujui",
-                            message = "Admin telah menyetujui pengajuan kamu.",
+                            icon =
+                                Icons.Default.CheckCircle,
+                            title =
+                                "Pengajuan disetujui",
+                            message =
+                                "Seluruh tahapan approval telah disetujui.",
                             color = PrimaryGreen
                         )
                     }
@@ -661,10 +821,14 @@ fun DetailPengajuanScreen(
                     "ditolak" -> {
 
                         InfoStatusCard(
-                            icon = Icons.Default.Cancel,
-                            title = "Pengajuan ditolak",
-                            message = "Admin telah menolak pengajuan kamu.",
-                            color = Color(0xFFDC2626)
+                            icon =
+                                Icons.Default.Cancel,
+                            title =
+                                "Pengajuan ditolak",
+                            message =
+                                "Pengajuan ditolak pada salah satu tahap approval.",
+                            color =
+                                Color(0xFFDC2626)
                         )
                     }
                 }
@@ -676,6 +840,166 @@ fun DetailPengajuanScreen(
         }
     }
 }
+
+
+// ==========================================================
+// APPROVAL STEP
+// ==========================================================
+
+@Composable
+private fun ApprovalStep(
+    jabatan: String,
+    status: String,
+    isCurrent: Boolean,
+    isLast: Boolean
+) {
+
+    val statusNormal =
+        status.lowercase()
+
+    val icon =
+        when (statusNormal) {
+
+            "disetujui" ->
+                Icons.Default.CheckCircle
+
+            "ditolak" ->
+                Icons.Default.Cancel
+
+            "menunggu" ->
+                Icons.Default.Pending
+
+            else ->
+                Icons.Default.Schedule
+        }
+
+    val color =
+        when (statusNormal) {
+
+            "disetujui" ->
+                PrimaryGreen
+
+            "ditolak" ->
+                Color(0xFFDC2626)
+
+            "menunggu" ->
+                Color(0xFFD97706)
+
+            else ->
+                TextGray
+        }
+
+    val background =
+        when (statusNormal) {
+
+            "disetujui" ->
+                SoftGreen
+
+            "ditolak" ->
+                Color(0xFFFFEBEE)
+
+            "menunggu" ->
+                Color(0xFFFFF4E5)
+
+            else ->
+                Color(0xFFF3F4F6)
+        }
+
+    val statusText =
+        when (statusNormal) {
+
+            "disetujui" ->
+                "Disetujui"
+
+            "ditolak" ->
+                "Ditolak"
+
+            "menunggu" ->
+                "Menunggu keputusan"
+
+            else ->
+                "Belum diproses"
+        }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Surface(
+            modifier = Modifier.size(42.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = background
+        ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = jabatan,
+                tint = color,
+                modifier = Modifier
+                    .padding(9.dp)
+                    .size(24.dp)
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.width(12.dp)
+        )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+
+            Text(
+                text = jabatan,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color =
+                    if (isCurrent) {
+                        color
+                    } else {
+                        TextDark
+                    }
+            )
+
+            Spacer(
+                modifier = Modifier.height(3.dp)
+            )
+
+            Text(
+                text =
+                    if (isCurrent) {
+                        "Sedang menunggu keputusan"
+                    } else {
+                        statusText
+                    },
+                fontSize = 12.sp,
+                color = color
+            )
+        }
+
+        if (isCurrent) {
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = color.copy(alpha = 0.10f)
+            ) {
+
+                Text(
+                    text = "Saat ini",
+                    modifier = Modifier.padding(
+                        horizontal = 9.dp,
+                        vertical = 5.dp
+                    ),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+            }
+        }
+    }
+}
+
 
 // ==========================================================
 // PROCESS STEP
@@ -698,9 +1022,15 @@ private fun ProcessStep(
         Surface(
             modifier = Modifier.size(40.dp),
             shape = RoundedCornerShape(11.dp),
-            color = color.copy(
-                alpha = if (active) 0.12f else 0.06f
-            )
+            color =
+                color.copy(
+                    alpha =
+                        if (active) {
+                            0.12f
+                        } else {
+                            0.06f
+                        }
+                )
         ) {
 
             Icon(
@@ -741,6 +1071,7 @@ private fun ProcessStep(
         }
     }
 }
+
 
 // ==========================================================
 // DETAIL INFO ROW
@@ -802,6 +1133,7 @@ private fun DetailInfoRow(
     }
 }
 
+
 // ==========================================================
 // INFO STATUS CARD
 // ==========================================================
@@ -818,9 +1150,8 @@ private fun InfoStatusCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(
-                alpha = 0.07f
-            )
+            containerColor =
+                color.copy(alpha = 0.07f)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp
@@ -837,9 +1168,8 @@ private fun InfoStatusCard(
             Surface(
                 modifier = Modifier.size(40.dp),
                 shape = RoundedCornerShape(11.dp),
-                color = color.copy(
-                    alpha = 0.12f
-                )
+                color =
+                    color.copy(alpha = 0.12f)
             ) {
 
                 Icon(
