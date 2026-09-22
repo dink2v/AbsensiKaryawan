@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
@@ -158,55 +159,87 @@ fun NotifikasiScreen(
                 Modifier
                     .fillMaxWidth()
                     .padding(
-                        horizontal = 20.dp,
-                        vertical = 16.dp
+                        horizontal = 12.dp,
+                        vertical = 10.dp
                     ),
 
             verticalAlignment =
-                Alignment.CenterVertically,
-
-            horizontalArrangement =
-                Arrangement.SpaceBetween
+                Alignment.CenterVertically
         ) {
 
-            Row(
-                verticalAlignment =
-                    Alignment.CenterVertically
+            // ==================================================
+            // TOMBOL KEMBALI
+            // ==================================================
+
+            Box(
+                modifier =
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            onBack()
+                        },
+
+                contentAlignment =
+                    Alignment.Center
             ) {
 
                 Icon(
                     imageVector =
-                        Icons.Default.Notifications,
+                        Icons.Default.ArrowBack,
 
                     contentDescription =
-                        "Notifikasi",
+                        "Kembali",
 
                     tint =
-                        PrimaryGreen,
-
-                    modifier =
-                        Modifier.size(28.dp)
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.size(10.dp)
-                )
-
-                Text(
-                    text =
-                        "Notifikasi",
-
-                    color =
                         TextDark,
 
-                    fontSize =
-                        22.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
+                    modifier =
+                        Modifier.size(24.dp)
                 )
             }
+
+            Spacer(
+                modifier =
+                    Modifier.size(8.dp)
+            )
+
+            // ==================================================
+            // ICON + JUDUL
+            // ==================================================
+
+            Icon(
+                imageVector =
+                    Icons.Default.Notifications,
+
+                contentDescription =
+                    "Notifikasi",
+
+                tint =
+                    PrimaryGreen,
+
+                modifier =
+                    Modifier.size(28.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.size(10.dp)
+            )
+
+            Text(
+                text =
+                    "Notifikasi",
+
+                color =
+                    TextDark,
+
+                fontSize =
+                    22.sp,
+
+                fontWeight =
+                    FontWeight.Bold
+            )
         }
 
         // ======================================================
@@ -552,10 +585,6 @@ private fun NotificationCard(
             Alignment.Top
     ) {
 
-        // ======================================================
-        // ICON
-        // ======================================================
-
         Box(
             modifier =
                 Modifier
@@ -590,10 +619,6 @@ private fun NotificationCard(
             modifier =
                 Modifier.size(12.dp)
         )
-
-        // ======================================================
-        // CONTENT
-        // ======================================================
 
         Column(
             modifier =
