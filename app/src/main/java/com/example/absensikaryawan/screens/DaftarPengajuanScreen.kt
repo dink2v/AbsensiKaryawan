@@ -46,7 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-import com.example.absensikaryawan.data.PengajuanRepository
+import com.example.absensikaryawan.data.PengajuanData
+import com.example.absensikaryawan.repository.PengajuanRepository
 
 
 // ==========================================================
@@ -57,14 +58,15 @@ import com.example.absensikaryawan.data.PengajuanRepository
 fun DaftarPengajuanScreen(
     statusFilter: String,
     onBack: () -> Unit,
-    onPengajuanClick: (Map<String, Any>) -> Unit
+    onPengajuanClick: (PengajuanData) -> Unit
 ) {
 
     // ==========================================================
     // REPOSITORY
     // ==========================================================
 
-    val repository = PengajuanRepository
+    val repository =
+        PengajuanRepository
 
 
     // ==========================================================
@@ -74,7 +76,7 @@ fun DaftarPengajuanScreen(
     var daftarPengajuan by remember {
 
         mutableStateOf(
-            emptyList<Map<String, Any>>()
+            emptyList<PengajuanData>()
         )
     }
 
@@ -94,9 +96,18 @@ fun DaftarPengajuanScreen(
         sedangMemuat = true
 
         try {
-            daftarPengajuan = repository.ambilPengajuanSaya()
+
+            val result =
+                repository.ambilPengajuanSaya()
+
+            daftarPengajuan =
+                result.getOrThrow()
+
         } catch (e: Exception) {
-            // tangani error sesuai kode yang sudah ada
+
+            // Error tetap ditangani oleh state loading.
+            // Tidak mengubah alur repository yang sudah ada.
+
         }
 
         sedangMemuat = false
@@ -110,7 +121,9 @@ fun DaftarPengajuanScreen(
     val daftarTerfilter =
 
         if (
-            statusFilter.lowercase() == "semua"
+            statusFilter
+                .lowercase()
+                .trim() == "semua"
         ) {
 
             daftarPengajuan
@@ -119,10 +132,9 @@ fun DaftarPengajuanScreen(
 
             daftarPengajuan.filter { pengajuan ->
 
-                pengajuan["status"]
-                    ?.toString()
-                    ?.lowercase()
-                    ?.trim() ==
+                pengajuan.status
+                    .lowercase()
+                    .trim() ==
                         statusFilter
                             .lowercase()
                             .trim()
@@ -690,43 +702,38 @@ fun DaftarPengajuanScreen(
 @Composable
 private fun DaftarPengajuanItem(
 
-    pengajuan: Map<String, Any>,
+    pengajuan:
+    PengajuanData,
 
-    onClick: () -> Unit
+    onClick:
+        () -> Unit
 
 ) {
 
     val jenis =
 
-        pengajuan["jenis"]
-            ?.toString()
-            ?.ifBlank {
+        pengajuan.jenis
+            .ifBlank {
                 "Pengajuan"
             }
-            ?: "Pengajuan"
 
 
     val tanggalMulai =
-
-        pengajuan["tanggalMulai"]
-            ?.toString()
-            ?: ""
+        pengajuan.tanggalMulai
 
 
     val tanggalSelesai =
-
-        pengajuan["tanggalSelesai"]
-            ?.toString()
-            ?: ""
+        pengajuan.tanggalSelesai
 
 
     val status =
 
-        pengajuan["status"]
-            ?.toString()
-            ?.lowercase()
-            ?.trim()
-            ?: "menunggu"
+        pengajuan.status
+            .lowercase()
+            .trim()
+            .ifBlank {
+                "menunggu"
+            }
 
 
     // ==========================================================
@@ -805,6 +812,9 @@ private fun DaftarPengajuanItem(
 
             tanggalSelesai.isNotBlank() ->
                 tanggalSelesai
+
+            pengajuan.tanggal.isNotBlank() ->
+                pengajuan.tanggal
 
             else ->
                 "Tanggal tidak tersedia"
@@ -954,10 +964,7 @@ private fun DaftarPengajuanItem(
                 // ==================================================
 
                 val jamPulang =
-
-                    pengajuan["jamPulang"]
-                        ?.toString()
-                        ?: ""
+                    pengajuan.jamPulang
 
 
                 if (

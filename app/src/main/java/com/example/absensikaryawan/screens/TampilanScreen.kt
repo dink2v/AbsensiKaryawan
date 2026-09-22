@@ -8,19 +8,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.SettingsSuggest
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -41,14 +41,10 @@ import androidx.compose.ui.unit.sp
 // ==========================================================
 
 enum class ThemeMode {
-
     TERANG,
-
     GELAP,
-
     SISTEM
 }
-
 
 // ==========================================================
 // TAMPILAN SCREEN
@@ -56,18 +52,27 @@ enum class ThemeMode {
 
 @Composable
 fun TampilanScreen(
-
     selectedMode: ThemeMode,
-
     onModeSelected: (ThemeMode) -> Unit,
-
     onBack: () -> Unit
-
 ) {
+
+    /*
+     * Warna mengikuti pola warna Beranda Staff:
+     *
+     * Background   -> Background
+     * Card         -> Color.White
+     * Hijau utama  -> PrimaryGreen
+     * Hijau lembut -> SoftGreen
+     * Teks utama   -> TextDark
+     * Teks kedua   -> TextGray
+     *
+     * Untuk mode GELAP, warna dasar mengikuti theme.
+     * Warna hijau tetap menggunakan PrimaryGreen.
+     */
 
     val isDark =
         selectedMode == ThemeMode.GELAP
-
 
     val pageBackground =
         if (isDark) {
@@ -76,14 +81,12 @@ fun TampilanScreen(
             Background
         }
 
-
     val cardBackground =
         if (isDark) {
             Color(0xFF1E1E1E)
         } else {
             Color.White
         }
-
 
     val primaryText =
         if (isDark) {
@@ -92,34 +95,26 @@ fun TampilanScreen(
             TextDark
         }
 
-
     val secondaryText =
         if (isDark) {
-            Color(0xFFBDBDBD)
+            Color.White.copy(alpha = 0.70f)
         } else {
             TextGray
         }
 
-
     Surface(
-
-        modifier =
-            Modifier.fillMaxSize(),
-
-        color =
-            pageBackground
+        modifier = Modifier.fillMaxSize(),
+        color = pageBackground
     ) {
 
         Column(
-
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(
-                        horizontal = 20.dp,
-                        vertical = 16.dp
-                    )
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 10.dp
+                )
         ) {
 
             // ==================================================
@@ -127,18 +122,13 @@ fun TampilanScreen(
             // ==================================================
 
             Row(
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
 
                 IconButton(
-
-                    onClick =
-                        onBack
+                    onClick = onBack,
+                    modifier = Modifier.size(44.dp)
                 ) {
 
                     Icon(
@@ -149,67 +139,65 @@ fun TampilanScreen(
                             "Kembali",
 
                         tint =
-                            PrimaryGreen
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.size(24.dp)
                     )
                 }
 
-
-                Text(
-
-                    text =
-                        "Tampilan",
-
+                Spacer(
                     modifier =
-                        Modifier.weight(1f),
-
-                    fontSize =
-                        23.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        primaryText
+                        Modifier.width(4.dp)
                 )
+
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            "Tampilan",
+
+                        fontSize =
+                            23.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            primaryText
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(2.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Atur tampilan aplikasi",
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            secondaryText
+                    )
+                }
             }
 
-
             Spacer(
                 modifier =
-                    Modifier.size(4.dp)
+                    Modifier.height(26.dp)
             )
-
-
-            Text(
-
-                text =
-                    "Atur tampilan aplikasi",
-
-                fontSize =
-                    13.sp,
-
-                color =
-                    secondaryText,
-
-                modifier =
-                    Modifier.padding(
-                        start = 4.dp
-                    )
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.size(28.dp)
-            )
-
 
             // ==================================================
             // JUDUL MODE
             // ==================================================
 
             Text(
-
                 text =
                     "Mode Tampilan",
 
@@ -220,38 +208,27 @@ fun TampilanScreen(
                     FontWeight.Bold,
 
                 color =
-                    primaryText,
-
-                modifier =
-                    Modifier.padding(
-                        start = 4.dp
-                    )
+                    primaryText
             )
-
 
             Spacer(
                 modifier =
-                    Modifier.size(8.dp)
+                    Modifier.height(10.dp)
             )
-
 
             // ==================================================
             // PILIHAN MODE
             // ==================================================
 
             Card(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
                 shape =
-                    RoundedCornerShape(
-                        18.dp
-                    ),
+                    RoundedCornerShape(18.dp),
 
                 colors =
                     CardDefaults.cardColors(
-
                         containerColor =
                             cardBackground
                     ),
@@ -263,10 +240,16 @@ fun TampilanScreen(
                     )
             ) {
 
-                Column {
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+
+                    // ==========================================
+                    // TERANG
+                    // ==========================================
 
                     ThemeOption(
-
                         icon =
                             Icons.Default.LightMode,
 
@@ -284,22 +267,22 @@ fun TampilanScreen(
                             isDark,
 
                         onClick = {
-
                             onModeSelected(
                                 ThemeMode.TERANG
                             )
                         }
                     )
 
-
                     ThemeDivider(
                         darkMode =
                             isDark
                     )
 
+                    // ==========================================
+                    // GELAP
+                    // ==========================================
 
                     ThemeOption(
-
                         icon =
                             Icons.Default.DarkMode,
 
@@ -317,22 +300,22 @@ fun TampilanScreen(
                             isDark,
 
                         onClick = {
-
                             onModeSelected(
                                 ThemeMode.GELAP
                             )
                         }
                     )
 
-
                     ThemeDivider(
                         darkMode =
                             isDark
                     )
 
+                    // ==========================================
+                    // SISTEM
+                    // ==========================================
 
                     ThemeOption(
-
                         icon =
                             Icons.Default.SettingsSuggest,
 
@@ -350,7 +333,6 @@ fun TampilanScreen(
                             isDark,
 
                         onClick = {
-
                             onModeSelected(
                                 ThemeMode.SISTEM
                             )
@@ -359,49 +341,48 @@ fun TampilanScreen(
                 }
             }
 
-
             Spacer(
                 modifier =
-                    Modifier.size(18.dp)
+                    Modifier.height(18.dp)
             )
-
 
             // ==================================================
             // INFO
             // ==================================================
 
             Card(
-
                 modifier =
                     Modifier.fillMaxWidth(),
 
                 shape =
-                    RoundedCornerShape(
-                        16.dp
-                    ),
+                    RoundedCornerShape(16.dp),
 
                 colors =
                     CardDefaults.cardColors(
 
                         containerColor =
                             if (isDark) {
-                                Color(0xFF1B2A1D)
+                                PrimaryGreen.copy(
+                                    alpha = 0.15f
+                                )
                             } else {
                                 SoftGreen
                             }
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation = 0.dp
                     )
             ) {
 
                 Text(
-
                     text =
                         "Tampilan akan diterapkan ke seluruh " +
                                 "aplikasi dan disimpan secara otomatis.",
 
                     modifier =
-                        Modifier.padding(
-                            16.dp
-                        ),
+                        Modifier.padding(16.dp),
 
                     fontSize =
                         12.sp,
@@ -411,7 +392,6 @@ fun TampilanScreen(
                 )
             }
 
-
             Spacer(
                 modifier =
                     Modifier.weight(1f)
@@ -420,26 +400,18 @@ fun TampilanScreen(
     }
 }
 
-
 // ==========================================================
 // THEME OPTION
 // ==========================================================
 
 @Composable
 private fun ThemeOption(
-
     icon: ImageVector,
-
     title: String,
-
     subtitle: String,
-
     selected: Boolean,
-
     darkMode: Boolean,
-
     onClick: () -> Unit
-
 ) {
 
     val textColor =
@@ -449,17 +421,14 @@ private fun ThemeOption(
             TextDark
         }
 
-
     val subtitleColor =
         if (darkMode) {
-            Color(0xFFBDBDBD)
+            Color.White.copy(alpha = 0.70f)
         } else {
             TextGray
         }
 
-
     Row(
-
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -467,8 +436,8 @@ private fun ThemeOption(
                     onClick()
                 }
                 .padding(
-                    horizontal = 18.dp,
-                    vertical = 16.dp
+                    horizontal = 16.dp,
+                    vertical = 15.dp
                 ),
 
         verticalAlignment =
@@ -479,47 +448,34 @@ private fun ThemeOption(
         // ICON
         // ==================================================
 
-        Icon(
-
-            imageVector =
+        BoxIcon(
+            icon =
                 icon,
 
-            contentDescription =
-                title,
-
-            tint =
-                PrimaryGreen,
-
-            modifier =
-                Modifier.size(
-                    25.dp
-                )
+            darkMode =
+                darkMode
         )
-
 
         Spacer(
             modifier =
                 Modifier.width(14.dp)
         )
 
-
         // ==================================================
         // TEXT
         // ==================================================
 
         Column(
-
             modifier =
                 Modifier.weight(1f)
         ) {
 
             Text(
-
                 text =
                     title,
 
                 fontSize =
-                    15.sp,
+                    14.sp,
 
                 fontWeight =
                     FontWeight.Bold,
@@ -528,15 +484,12 @@ private fun ThemeOption(
                     textColor
             )
 
-
             Spacer(
                 modifier =
-                    Modifier.size(2.dp)
+                    Modifier.height(3.dp)
             )
 
-
             Text(
-
                 text =
                     subtitle,
 
@@ -548,6 +501,10 @@ private fun ThemeOption(
             )
         }
 
+        Spacer(
+            modifier =
+                Modifier.width(8.dp)
+        )
 
         // ==================================================
         // CHECK
@@ -556,13 +513,15 @@ private fun ThemeOption(
         if (selected) {
 
             Row(
-
                 modifier =
                     Modifier
                         .size(28.dp)
                         .background(
-                            PrimaryGreen,
-                            CircleShape
+                            color =
+                                PrimaryGreen,
+
+                            shape =
+                                CircleShape
                         ),
 
                 horizontalArrangement =
@@ -573,7 +532,6 @@ private fun ThemeOption(
             ) {
 
                 Icon(
-
                     imageVector =
                         Icons.Default.Check,
 
@@ -584,15 +542,66 @@ private fun ThemeOption(
                         Color.White,
 
                     modifier =
-                        Modifier.size(
-                            18.dp
-                        )
+                        Modifier.size(18.dp)
                 )
             }
         }
     }
 }
 
+// ==========================================================
+// ICON
+// ==========================================================
+
+@Composable
+private fun BoxIcon(
+    icon: ImageVector,
+    darkMode: Boolean
+) {
+
+    val iconBackground =
+        if (darkMode) {
+            PrimaryGreen.copy(
+                alpha = 0.16f
+            )
+        } else {
+            SoftGreen
+        }
+
+    Row(
+        modifier =
+            Modifier
+                .size(42.dp)
+                .background(
+                    color =
+                        iconBackground,
+
+                    shape =
+                        RoundedCornerShape(12.dp)
+                ),
+
+        horizontalArrangement =
+            Arrangement.Center,
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector =
+                icon,
+
+            contentDescription =
+                null,
+
+            tint =
+                PrimaryGreen,
+
+            modifier =
+                Modifier.size(22.dp)
+        )
+    }
+}
 
 // ==========================================================
 // DIVIDER
@@ -600,13 +609,10 @@ private fun ThemeOption(
 
 @Composable
 private fun ThemeDivider(
-
     darkMode: Boolean
-
 ) {
 
     Spacer(
-
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -615,11 +621,15 @@ private fun ThemeDivider(
 
                     if (darkMode) {
 
-                        Color(0xFF333333)
+                        Color.White.copy(
+                            alpha = 0.08f
+                        )
 
                     } else {
 
-                        Color(0xFFEAEAEA)
+                        TextGray.copy(
+                            alpha = 0.12f
+                        )
                     }
                 )
     )

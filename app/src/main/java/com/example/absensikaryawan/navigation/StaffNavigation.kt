@@ -18,6 +18,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
+import com.example.absensikaryawan.data.PengajuanData
+
 import com.example.absensikaryawan.screens.AbsenLuarKantorScreen
 import com.example.absensikaryawan.screens.BantuanScreen
 import com.example.absensikaryawan.screens.BottomNavigationBar
@@ -104,7 +106,7 @@ fun StaffNavigation(
     // ======================================================
 
     var selectedPengajuan by remember {
-        mutableStateOf<Map<String, Any>?>(null)
+        mutableStateOf<PengajuanData?>(null)
     }
 
 
@@ -127,7 +129,7 @@ fun StaffNavigation(
 
 
     // ======================================================
-    // PESAN PENOLAKAN ABSENSI
+    // PESAN ABSENSI
     // ======================================================
 
     var attendanceMessage by remember {
@@ -304,7 +306,8 @@ fun StaffNavigation(
 
                     ScanAbsenScreen(
 
-                        externalResetKey = scanResetKey,
+                        externalResetKey =
+                            scanResetKey,
 
                         onBack = {
 
@@ -921,132 +924,19 @@ fun StaffNavigation(
 
                     if (data != null) {
 
-                        val approvalChain =
-                            (data["approvalChain"] as? List<*>)
-                                ?.mapNotNull { item ->
-
-                                    val map =
-                                        item as? Map<*, *>
-                                            ?: return@mapNotNull null
-
-                                    map.entries.associate { entry ->
-
-                                        entry.key.toString() to
-                                                (entry.value ?: "")
-                                    }
-                                }
-                                ?: emptyList()
-
-                        val approvalStatuses =
-                            (data["approvalStatuses"] as? Map<*, *>)
-                                ?.entries
-                                ?.associate { entry ->
-
-                                    entry.key.toString() to
-                                            (entry.value ?: "")
-                                }
-                                ?: emptyMap()
-
-                        val approvalLocked =
-                            when (
-                                val value =
-                                    data["approvalLocked"]
-                            ) {
-
-                                is Boolean ->
-                                    value
-
-                                else ->
-                                    value
-                                        ?.toString()
-                                        ?.toBoolean()
-                                        ?: false
-                            }
-
-
                         DetailPengajuanScreen(
-
-                            jenis =
-                                data["jenis"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            tanggal =
-                                data["tanggal"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            status =
-                                data["status"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            jamPulang =
-                                data["jamPulang"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            jamKeluar =
-                                data["jamKeluar"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            jamKembali =
-                                data["jamKembali"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            tanggalMulai =
-                                data["tanggalMulai"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            tanggalSelesai =
-                                data["tanggalSelesai"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            alasan =
-                                data["alasan"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            catatanAdmin =
-                                data["catatanAdmin"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            approvalChain =
-                                approvalChain,
-
-                            approvalStatuses =
-                                approvalStatuses,
-
-                            currentApproverUid =
-                                data["currentApproverUid"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            currentApproverName =
-                                data["currentApproverName"]
-                                    ?.toString()
-                                    .orEmpty(),
-
-                            currentApproverJabatan =
-                                data["currentApproverJabatan"]
-                                    ?.toString()
-                                    ?.uppercase()
-                                    .orEmpty(),
-
-                            approvalLocked =
-                                approvalLocked,
-
-                            onBack = {
-
-                                currentScreen =
-                                    detailReturnScreen
-                            }
+                            jenis = data.jenis,
+                            tanggal = data.tanggal,
+                            status = data.status,
+                            jamPulang = data.jamPulang,
+                            jamKeluar = data.jamKeluar,
+                            jamKembali = data.jamKembali,
+                            tanggalMulai = data.tanggalMulai,
+                            tanggalSelesai = data.tanggalSelesai,
+                            alasan = data.alasan,
+                            onBack = { currentScreen = detailReturnScreen }
                         )
+
                     }
                 }
 
@@ -1095,63 +985,19 @@ fun StaffNavigation(
 
                         onDetailClick = { pengajuan ->
 
-                            selectedPengajuan =
-                                mapOf(
-                                    "documentId" to
-                                            pengajuan.documentId,
-
-                                    "jenis" to
-                                            pengajuan.jenis,
-
-                                    "tanggal" to
-                                            pengajuan.tanggalMulai,
-
-                                    "status" to
-                                            pengajuan.status,
-
-                                    "jamPulang" to
-                                            pengajuan.jamPulang,
-
-                                    "jamKeluar" to
-                                            pengajuan.jamKeluar,
-
-                                    "jamKembali" to
-                                            pengajuan.jamKembali,
-
-                                    "tanggalMulai" to
-                                            pengajuan.tanggalMulai,
-
-                                    "tanggalSelesai" to
-                                            pengajuan.tanggalSelesai,
-
-                                    "alasan" to
-                                            pengajuan.alasan,
-
-                                    "catatanAdmin" to
-                                            pengajuan.catatanAdmin,
-
-                                    // ==========================================
-                                    // DATA APPROVAL
-                                    // ==========================================
-
-                                    "approvalChain" to
-                                            pengajuan.approvalChain,
-
-                                    "approvalStatuses" to
-                                            pengajuan.approvalStatuses,
-
-                                    "currentApproverUid" to
-                                            pengajuan.currentApproverUid,
-
-                                    "currentApproverName" to
-                                            pengajuan.currentApproverName,
-
-                                    "currentApproverJabatan" to
-                                            pengajuan.currentApproverJabatan,
-
-                                    "approvalLocked" to
-                                            pengajuan.approvalLocked
-                                )
+                            selectedPengajuan = PengajuanData(
+                                id = pengajuan.id,
+                                nama = pengajuan.namaPemohon,
+                                jenis = pengajuan.jenis,
+                                tanggal = pengajuan.tanggalMulai,
+                                jamPulang = "",
+                                jamKeluar = "",
+                                jamKembali = "",
+                                tanggalMulai = pengajuan.tanggalMulai,
+                                tanggalSelesai = pengajuan.tanggalSelesai,
+                                alasan = pengajuan.alasan,
+                                status = pengajuan.status
+                            )
 
                             detailReturnScreen =
                                 StaffScreen.Riwayat
@@ -1211,16 +1057,16 @@ fun StaffNavigation(
                                 StaffScreen.Dashboard
                         },
 
-                        onNotificationClick = { target ->
+                        onNotificationClick = { target, relatedId ->
 
                             Log.d(
                                 "STAFF_NAV",
-                                "NOTIFIKASI DIKLIK = $target"
+                                "NOTIFIKASI DIKLIK = " +
+                                        "$target | relatedId=$relatedId"
                             )
 
                             notificationTarget =
                                 target
-
 
                             when (target) {
 
@@ -1232,7 +1078,6 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
-
                                 NotificationTarget.RIWAYAT_PENGAJUAN -> {
 
                                     selectedBottomItem = 3
@@ -1240,7 +1085,6 @@ fun StaffNavigation(
                                     currentScreen =
                                         StaffScreen.Riwayat
                                 }
-
 
                                 NotificationTarget.PENGAJUAN_DISETUJUI -> {
 
@@ -1250,7 +1094,6 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
-
                                 NotificationTarget.PENGAJUAN_DITOLAK -> {
 
                                     selectedBottomItem = 3
@@ -1258,7 +1101,6 @@ fun StaffNavigation(
                                     currentScreen =
                                         StaffScreen.Riwayat
                                 }
-
 
                                 NotificationTarget.PENGAJUAN_MENUNGGU -> {
 
@@ -1268,13 +1110,11 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
-
                                 NotificationTarget.CHAT_ADMIN -> {
 
                                     currentScreen =
                                         StaffScreen.ChatAdmin
                                 }
-
 
                                 NotificationTarget.NONE -> {
 

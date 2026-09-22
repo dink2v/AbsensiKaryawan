@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,7 +23,6 @@ import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.ui.theme.AbsensiKaryawanTheme
 
 import com.google.firebase.auth.FirebaseAuth
-
 
 class MainActivity : ComponentActivity() {
 
@@ -45,7 +45,6 @@ class MainActivity : ComponentActivity() {
             // aplikasi tetap berjalan normal.
         }
 
-
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
@@ -54,13 +53,25 @@ class MainActivity : ComponentActivity() {
             savedInstanceState
         )
 
-
         // ======================================================
         // EDGE TO EDGE
         // ======================================================
 
         enableEdgeToEdge()
 
+        // ======================================================
+        // KEYBOARD / IME
+        //
+        // Jangan biarkan Android melakukan pan/resize
+        // terhadap seluruh window ketika keyboard muncul.
+        //
+        // Ini penting agar halaman utama tidak ikut naik
+        // ketika TextField mendapatkan fokus.
+        // ======================================================
+
+        window.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+        )
 
         // ======================================================
         // REQUEST NOTIFICATION PERMISSION
@@ -70,7 +81,6 @@ class MainActivity : ComponentActivity() {
         // ======================================================
 
         requestNotificationPermissionIfNeeded()
-
 
         // ======================================================
         // SESSION CHECK
@@ -100,7 +110,6 @@ class MainActivity : ComponentActivity() {
                             FirebaseAuth
                                 .getInstance()
 
-
                         if (
                             firebaseAuth
                                 .currentUser != null
@@ -113,7 +122,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
-
 
         // ======================================================
         // COMPOSE
@@ -130,7 +138,6 @@ class MainActivity : ComponentActivity() {
                     applicationContext
                 )
 
-
             // ==================================================
             // THEME MODE
             // ==================================================
@@ -139,11 +146,9 @@ class MainActivity : ComponentActivity() {
             themeDataStore
                 .themeMode
                 .collectAsState(
-
                     initial =
                         ThemeMode.TERANG
                 )
-
 
             // ==================================================
             // DARK THEME
@@ -160,25 +165,16 @@ class MainActivity : ComponentActivity() {
                         false
                     }
 
-
                     ThemeMode.GELAP -> {
 
                         true
                     }
 
-
                     ThemeMode.SISTEM -> {
 
                         isSystemInDarkTheme()
                     }
-
-
-                    else -> {
-
-                        false
-                    }
                 }
-
 
             // ==================================================
             // APP THEME
@@ -189,27 +185,27 @@ class MainActivity : ComponentActivity() {
                 darkTheme =
                     darkTheme,
 
+                // Jangan menggunakan dynamic color.
+                // Agar warna aplikasi tetap menggunakan
+                // ColorScheme custom milik Absensi Karyawan.
                 dynamicColor =
-                    true
+                    false
 
             ) {
 
                 // ==============================================
                 // NAVIGATION
                 //
-                // JANGAN menggunakan safeDrawingPadding()
+                // Jangan menggunakan safeDrawingPadding()
                 // di level global.
                 //
-                // Insets akan ditangani oleh masing-masing
-                // screen agar posisi TopBar dan BottomBar
-                // konsisten dengan system bar Android.
+                // Insets ditangani oleh masing-masing screen.
                 // ==============================================
 
                 AppNavigation()
             }
         }
     }
-
 
     // ==========================================================
     // REQUEST NOTIFICATION PERMISSION
@@ -226,8 +222,8 @@ class MainActivity : ComponentActivity() {
                 ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-
+                ) ==
+                        PackageManager.PERMISSION_GRANTED
 
             if (!permissionGranted) {
 

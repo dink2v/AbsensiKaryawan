@@ -1,26 +1,26 @@
 package com.example.absensikaryawan.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -28,8 +28,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,341 +40,183 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-import com.example.absensikaryawan.data.PengajuanRepository
+import com.example.absensikaryawan.data.PengajuanData
+import com.example.absensikaryawan.repository.PengajuanRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+// ==========================================================
+// APPROVAL SCREEN
+// ==========================================================
 
 @Composable
 fun ApprovalScreen(
-    onDetailClick: (Map<String, Any>) -> Unit
+    initialDocumentId: String = "",
+    onDetailClick: (PengajuanData) -> Unit
 ) {
 
-    val repository = PengajuanRepository
-    val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+    val repository = remember {
+        PengajuanRepository
+    }
+
+    val coroutineScope = rememberCoroutineScope()
 
     var daftarPengajuan by remember {
-        mutableStateOf(
-            emptyList<Map<String, Any>>()
-        )
+        mutableStateOf<List<PengajuanData>>(emptyList())
     }
 
-    var sedangMemuat by remember {
-        mutableStateOf(false)
+    var isLoading by remember {
+        mutableStateOf(true)
     }
 
-    var sedangDiproses by remember {
+    var errorMessage by remember {
         mutableStateOf("")
     }
 
-    var pesanError by remember {
-        mutableStateOf("")
+    var refreshKey by remember {
+        mutableStateOf(0)
     }
 
-    fun muatData() {
+    var dialogPengajuan by remember {
+        mutableStateOf<PengajuanData?>(null)
+    }
 
-        if (sedangMemuat) return
+    // ======================================================
+    // LOAD DATA
+    // ======================================================
 
-        scope.launch {
+    LaunchedEffect(refreshKey) {
 
-            sedangMemuat = true
-            pesanError = ""
+        isLoading = true
+        errorMessage = ""
 
-            try {
+        try {
 
-                val data =
-                    repository
-                        .ambilPengajuanUntukApproval()
+            val result =
+                repository.ambilPengajuanUntukApproval()
 
-                daftarPengajuan =
-                    data.sortedWith(
+            val data =
+                result.getOrThrow()
 
-                        compareBy<Map<String, Any>> {
+            daftarPengajuan = data
 
-                            val status =
-                                it["status"]
-                                    ?.toString()
-                                    ?.lowercase()
-                                    ?: "menunggu"
+        } catch (exception: Exception) {
 
-                            if (
-                                status == "menunggu"
-                            ) {
-                                0
-                            } else {
-                                1
-                            }
+            errorMessage =
+                exception.message
+                    ?: "Gagal mengambil data pengajuan."
 
-                        }.thenByDescending {
+        } finally {
 
-                            it["createdAt"]
-                                ?.toString()
-                                ?: it["timestamp"]
-                                    ?.toString()
-                                ?: ""
-                        }
-                    )
-
-            } catch (e: Exception) {
-
-                pesanError =
-                    e.message
-                        ?: "Gagal mengambil data pengajuan."
-            }
-
-            sedangMemuat = false
+            isLoading = false
         }
     }
 
-    LaunchedEffect(Unit) {
-        muatData()
-    }
+    // ======================================================
+    // AUTO OPEN DARI NOTIFIKASI
+    // ======================================================
 
-    Surface(
-        modifier =
-            Modifier.fillMaxSize(),
-
-        color =
-            Background
+    LaunchedEffect(
+        daftarPengajuan,
+        initialDocumentId
     ) {
 
-        Column(
-            modifier =
-                Modifier.fillMaxSize()
+        if (
+            initialDocumentId.isBlank() ||
+            daftarPengajuan.isEmpty()
         ) {
+            return@LaunchedEffect
+        }
 
-            // ====================================================
-            // HEADER
-            // ====================================================
+        val pengajuanDituju =
+            daftarPengajuan.firstOrNull { pengajuan ->
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 20.dp,
-                            vertical = 12.dp
-                        ),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Column(
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text =
-                            "Approval Pengajuan",
-
-                        fontSize =
-                            22.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
+                pengajuan.id
+                    .trim()
+                    .equals(
+                        initialDocumentId.trim(),
+                        ignoreCase = true
                     )
-
-                    Text(
-                        text =
-                            "Tinjau pengajuan karyawan sesuai tahap approval",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-
-                        if (
-                            !sedangMemuat &&
-                            sedangDiproses.isEmpty()
-                        ) {
-                            muatData()
-                        }
-                    }
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.Refresh,
-
-                        contentDescription =
-                            "Refresh",
-
-                        tint =
-                            PrimaryGreen,
-
-                        modifier =
-                            Modifier.size(25.dp)
-                    )
-                }
             }
 
-            // ====================================================
-            // CONTENT
-            // ====================================================
+        if (pengajuanDituju != null) {
+
+            onDetailClick(
+                pengajuanDituju
+            )
+        }
+    }
+
+    // ======================================================
+    // SORT DATA
+    // ======================================================
+
+    val daftarTerurut =
+        remember(daftarPengajuan) {
+
+            daftarPengajuan.sortedWith(
+                compareBy<PengajuanData> {
+
+                    if (
+                        it.status
+                            .lowercase()
+                            .trim() == "menunggu"
+                    ) {
+                        0
+                    } else {
+                        1
+                    }
+
+                }.thenByDescending {
+
+                    it.tanggal
+                }
+            )
+        }
+
+    Column(
+
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Background)
+                .padding(
+                    horizontal = 16.dp
+                )
+    ) {
+
+        // ==================================================
+        // HEADER
+        // ==================================================
+
+        Row(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = 8.dp,
+                        bottom = 14.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
 
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(
-                            scrollState
-                        )
-                        .padding(
-                            horizontal = 20.dp
-                        )
+                    Modifier.weight(1f)
             ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-                // =================================================
-                // INFO APPROVAL
-                // =================================================
-
-                Card(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(18.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                SoftGreen
-                        )
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                    ) {
-
-                        Row(
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-
-                            Icon(
-                                imageVector =
-                                    Icons.Default.Description,
-
-                                contentDescription =
-                                    null,
-
-                                tint =
-                                    PrimaryGreen,
-
-                                modifier =
-                                    Modifier.size(30.dp)
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.width(12.dp)
-                            )
-
-                            Column(
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-
-                                Text(
-                                    text =
-                                        "Pengajuan Menunggu",
-
-                                    fontSize =
-                                        16.sp,
-
-                                    fontWeight =
-                                        FontWeight.Bold,
-
-                                    color =
-                                        TextDark
-                                )
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(4.dp)
-                                )
-
-                                Text(
-                                    text =
-                                        "Periksa pengajuan pada tahap approval Anda.",
-
-                                    fontSize =
-                                        12.sp,
-
-                                    color =
-                                        TextGray
-                                )
-                            }
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(14.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Alur Approval",
-
-                            fontSize =
-                                12.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(7.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Jalur approval mengikuti struktur atasan pengaju dan diproses secara berurutan sampai Owner.",
-                            fontSize =
-                                12.sp,
-                            color =
-                                TextGray
-                        )
-                    }
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.height(22.dp)
-                )
 
                 Text(
                     text =
-                        "Daftar Pengajuan",
+                        "Approval Pengajuan",
 
                     fontSize =
-                        18.sp,
+                        22.sp,
 
                     fontWeight =
                         FontWeight.Bold,
@@ -385,448 +227,146 @@ fun ApprovalScreen(
 
                 Spacer(
                     modifier =
-                        Modifier.height(12.dp)
+                        Modifier.size(3.dp)
                 )
 
-                // =================================================
-                // ERROR
-                // =================================================
+                Text(
+                    text =
+                        "Daftar pengajuan yang perlu diproses",
 
-                if (
-                    pesanError.isNotEmpty()
-                ) {
+                    fontSize =
+                        12.sp,
 
-                    Card(
-                        modifier =
-                            Modifier.fillMaxWidth(),
+                    color =
+                        TextGray
+                )
+            }
 
-                        shape =
-                            RoundedCornerShape(14.dp),
+            IconButton(
+                onClick = {
+                    refreshKey++
+                }
+            ) {
 
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    Color(0xFFFFE7E7)
+                Icon(
+                    imageVector =
+                        Icons.Default.Refresh,
+
+                    contentDescription =
+                        "Refresh",
+
+                    tint =
+                        PrimaryGreen
+                )
+            }
+        }
+
+        // ==================================================
+        // LOADING
+        // ==================================================
+
+        if (isLoading) {
+
+            Box(
+
+                modifier =
+                    Modifier.fillMaxSize(),
+
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                CircularProgressIndicator(
+                    color =
+                        PrimaryGreen
+                )
+            }
+        }
+
+        // ==================================================
+        // ERROR
+        // ==================================================
+
+        else if (errorMessage.isNotBlank()) {
+
+            ApprovalEmptyState(
+
+                title =
+                    "Gagal memuat pengajuan",
+
+                message =
+                    errorMessage
+            )
+        }
+
+        // ==================================================
+        // EMPTY
+        // ==================================================
+
+        else if (daftarTerurut.isEmpty()) {
+
+            ApprovalEmptyState(
+
+                title =
+                    "Belum ada pengajuan",
+
+                message =
+                    "Tidak ada pengajuan yang tersedia untuk diproses."
+            )
+        }
+
+        // ==================================================
+        // LIST
+        // ==================================================
+
+        else {
+
+            LazyColumn(
+
+                modifier =
+                    Modifier.fillMaxSize(),
+
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                items(
+                    items = daftarTerurut,
+                    key = { it.id }
+                ) { pengajuan ->
+
+                    ApprovalRequestCard(
+
+                        pengajuan =
+                            pengajuan,
+
+                        onDetailClick = {
+
+                            onDetailClick(
+                                pengajuan
                             )
-                    ) {
+                        },
 
-                        Column(
-                            modifier =
-                                Modifier.padding(16.dp)
-                        ) {
+                        onSetujui = {
 
-                            Text(
-                                text =
-                                    "Gagal memuat data",
+                            dialogPengajuan =
+                                pengajuan
+                        },
 
-                                fontSize =
-                                    14.sp,
+                        onTolak = {
 
-                                fontWeight =
-                                    FontWeight.Bold,
+                            val documentId =
+                                pengajuan.id
 
-                                color =
-                                    Color(0xFFB91C1C)
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(5.dp)
-                            )
-
-                            Text(
-                                text =
-                                    pesanError,
-
-                                fontSize =
-                                    12.sp,
-
-                                color =
-                                    Color(0xFF7F1D1D)
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(10.dp)
-                            )
-
-                            Button(
-                                onClick =
-                                    {
-                                        muatData()
-                                    },
-
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        containerColor =
-                                            PrimaryGreen
-                                    ),
-
-                                shape =
-                                    RoundedCornerShape(10.dp)
+                            if (
+                                documentId.isNotBlank()
                             ) {
 
-                                Icon(
-                                    imageVector =
-                                        Icons.Default.Refresh,
+                                coroutineScope.launch {
 
-                                    contentDescription =
-                                        null,
-
-                                    modifier =
-                                        Modifier.size(17.dp)
-                                )
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.width(6.dp)
-                                )
-
-                                Text(
-                                    text =
-                                        "Coba Lagi"
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-                }
-
-                // =================================================
-                // LOADING
-                // =================================================
-
-                if (
-                    sedangMemuat
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    vertical = 30.dp
-                                ),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
-                    ) {
-
-                        CircularProgressIndicator(
-                            color =
-                                PrimaryGreen
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
-                        )
-
-                        Text(
-                            text =
-                                "Memuat pengajuan...",
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray
-                        )
-                    }
-                }
-
-                // =================================================
-                // EMPTY
-                // =================================================
-
-                if (
-                    !sedangMemuat &&
-                    pesanError.isEmpty() &&
-                    daftarPengajuan.isEmpty()
-                ) {
-
-                    Card(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-
-                        shape =
-                            RoundedCornerShape(16.dp),
-
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    Color.White
-                            )
-                    ) {
-
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-
-                            horizontalAlignment =
-                                Alignment.CenterHorizontally
-                        ) {
-
-                            Icon(
-                                imageVector =
-                                    Icons.Default.Description,
-
-                                contentDescription =
-                                    null,
-
-                                tint =
-                                    TextGray,
-
-                                modifier =
-                                    Modifier.size(40.dp)
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(10.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Belum ada pengajuan.",
-
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(4.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Tidak ada pengajuan yang menunggu persetujuan Anda.",
-
-                                fontSize =
-                                    12.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-                    }
-                }
-
-                // =================================================
-                // LIST PENGAJUAN
-                // =================================================
-
-                if (
-                    !sedangMemuat &&
-                    daftarPengajuan.isNotEmpty()
-                ) {
-
-                    daftarPengajuan.forEach { pengajuan ->
-
-                        val documentId =
-                            pengajuan["documentId"]
-                                ?.toString()
-                                ?: ""
-
-                        val nama =
-                            pengajuan["nama"]
-                                ?.toString()
-                                ?: "Karyawan"
-
-                        val jenis =
-                            pengajuan["jenis"]
-                                ?.toString()
-                                ?: "Pengajuan"
-
-                        val tanggal =
-                            pengajuan["tanggal"]
-                                ?.toString()
-                                ?: ""
-
-                        val tanggalMulai =
-                            pengajuan["tanggalMulai"]
-                                ?.toString()
-                                ?: tanggal
-
-                        val tanggalSelesai =
-                            pengajuan["tanggalSelesai"]
-                                ?.toString()
-                                ?: ""
-
-                        val jamPulang =
-                            pengajuan["jamPulang"]
-                                ?.toString()
-                                ?: ""
-
-                        val jamKeluar =
-                            pengajuan["jamKeluar"]
-                                ?.toString()
-                                ?: ""
-
-                        val jamKembali =
-                            pengajuan["jamKembali"]
-                                ?.toString()
-                                ?: ""
-
-                        val alasan =
-                            pengajuan["alasan"]
-                                ?.toString()
-                                ?: ""
-
-                        val status =
-                            pengajuan["status"]
-                                ?.toString()
-                                ?.lowercase()
-                                ?: "menunggu"
-
-                        val approvalLocked =
-                            pengajuan["approvalLocked"]
-                                ?.toString()
-                                ?.toBoolean()
-                                ?: false
-
-                        val currentApproverUid =
-                            pengajuan["currentApproverUid"]
-                                ?.toString()
-                                ?: ""
-
-                        val currentApproverJabatan =
-                            pengajuan[
-                                "currentApproverJabatan"
-                            ]
-                                ?.toString()
-                                ?.trim()
-                                ?.uppercase()
-                                ?: ""
-
-                        val approvalChain =
-                            parseApprovalChain(
-                                pengajuan[
-                                    "approvalChain"
-                                ],
-                                pengajuan[
-                                    "approvalStatuses"
-                                ],
-                                currentApproverUid
-                            )
-
-                        ApprovalRequestCard(
-                            nama =
-                                nama,
-
-                            jenis =
-                                jenis,
-
-                            tanggalMulai =
-                                tanggalMulai,
-
-                            tanggalSelesai =
-                                tanggalSelesai,
-
-                            jamPulang =
-                                jamPulang,
-
-                            jamKeluar =
-                                jamKeluar,
-
-                            jamKembali =
-                                jamKembali,
-
-                            alasan =
-                                alasan,
-
-                            status =
-                                status,
-
-                            approvalLocked =
-                                approvalLocked,
-
-                            currentApproverJabatan =
-                                currentApproverJabatan,
-
-                            approvalChain =
-                                approvalChain,
-
-                            sedangDiproses =
-                                sedangDiproses ==
-                                        documentId,
-
-                            onDetailClick = {
-                                onDetailClick(
-                                    pengajuan
-                                )
-                            },
-
-                            onSetujui = {
-
-                                if (
-                                    documentId.isNotEmpty() &&
-                                    sedangDiproses.isEmpty() &&
-                                    !approvalLocked
-                                ) {
-
-                                    sedangDiproses =
-                                        documentId
-
-                                    scope.launch {
-
-                                        val result =
-                                            repository
-                                                .updateStatusPengajuan(
-                                                    documentId =
-                                                        documentId,
-
-                                                    status =
-                                                        "disetujui"
-                                                )
-
-                                        result.onSuccess {
-
-                                            sedangDiproses =
-                                                ""
-
-                                            muatData()
-                                        }
-
-                                        result.onFailure {
-                                                error ->
-
-                                            pesanError =
-                                                error.message
-                                                    ?: "Gagal menyetujui pengajuan."
-
-                                            sedangDiproses =
-                                                ""
-                                        }
-                                    }
-                                }
-                            },
-
-                            onTolak = {
-
-                                if (
-                                    documentId.isNotEmpty() &&
-                                    sedangDiproses.isEmpty() &&
-                                    !approvalLocked
-                                ) {
-
-                                    sedangDiproses =
-                                        documentId
-
-                                    scope.launch {
+                                    try {
 
                                         val result =
                                             repository
@@ -838,305 +378,211 @@ fun ApprovalScreen(
                                                         "ditolak"
                                                 )
 
-                                        result.onSuccess {
+                                        result.getOrThrow()
 
-                                            sedangDiproses =
-                                                ""
+                                        delay(300)
 
-                                            muatData()
-                                        }
+                                        refreshKey++
 
-                                        result.onFailure {
-                                                error ->
+                                    } catch (
+                                        exception: Exception
+                                    ) {
 
-                                            pesanError =
-                                                error.message
-                                                    ?: "Gagal menolak pengajuan."
-
-                                            sedangDiproses =
-                                                ""
-                                        }
+                                        errorMessage =
+                                            exception.message
+                                                ?: "Gagal menolak pengajuan."
                                     }
                                 }
                             }
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-                    }
+                        }
+                    )
                 }
 
-                Spacer(
-                    modifier =
-                        Modifier.height(30.dp)
+                item {
+
+                    Spacer(
+                        modifier =
+                            Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    // ======================================================
+    // DIALOG APPROVE
+    // ======================================================
+
+    dialogPengajuan?.let { pengajuan ->
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                dialogPengajuan =
+                    null
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "Setujui Pengajuan?"
                 )
-            }
-        }
-    }
-}
+            },
 
-// ================================================================
-// MODEL TAHAP APPROVAL
-// ================================================================
+            text = {
 
-private data class ApprovalStage(
-    val uid: String,
-    val nama: String,
-    val jabatan: String,
-    val urutan: Int,
-    val status: String
-)
+                Text(
+                    text =
+                        "Apakah Anda yakin ingin menyetujui pengajuan ini?"
+                )
+            },
 
-// ================================================================
-// PARSE APPROVAL CHAIN
-// ================================================================
+            confirmButton = {
 
-private fun parseApprovalChain(
-    rawData: Any?,
-    rawStatuses: Any?,
-    currentApproverUid: String
-): List<ApprovalStage> {
+                TextButton(
 
-    if (rawData !is List<*>) {
-        return emptyList()
-    }
+                    onClick = {
 
-    val statuses =
-        mutableMapOf<String, String>()
+                        val documentId =
+                            pengajuan.id
 
-    if (rawStatuses is Map<*, *>) {
+                        dialogPengajuan =
+                            null
 
-        rawStatuses.forEach { (key, value) ->
+                        if (
+                            documentId.isNotBlank()
+                        ) {
 
-            if (key != null) {
+                            coroutineScope.launch {
 
-                statuses[
-                    key.toString()
-                ] =
-                    value
-                        ?.toString()
-                        ?.trim()
-                        ?.lowercase()
-                        .orEmpty()
-            }
-        }
-    }
+                                try {
 
-    return rawData
-        .mapNotNull { item ->
+                                    val result =
+                                        repository
+                                            .updateStatusPengajuan(
+                                                documentId =
+                                                    documentId,
 
-            if (item !is Map<*, *>) {
-                return@mapNotNull null
-            }
+                                                status =
+                                                    "disetujui"
+                                            )
 
-            val uid =
-                item["uid"]
-                    ?.toString()
-                    .orEmpty()
+                                    result.getOrThrow()
 
-            val nama =
-                item["nama"]
-                    ?.toString()
-                    .orEmpty()
+                                    delay(300)
 
-            val jabatan =
-                item["jabatan"]
-                    ?.toString()
-                    ?.trim()
-                    ?.uppercase()
-                    .orEmpty()
+                                    refreshKey++
 
-            val urutan =
-                when (
-                    val value =
-                        item["urutan"]
+                                } catch (
+                                    exception: Exception
+                                ) {
+
+                                    errorMessage =
+                                        exception.message
+                                            ?: "Gagal menyetujui pengajuan."
+                                }
+                            }
+                        }
+                    }
                 ) {
 
-                    is Long ->
-                        value.toInt()
+                    Text(
+                        text =
+                            "Setujui",
 
-                    is Int ->
-                        value
+                        color =
+                            PrimaryGreen,
 
-                    is Double ->
-                        value.toInt()
-
-                    is String ->
-                        value.toIntOrNull()
-                            ?: 0
-
-                    else ->
-                        0
+                        fontWeight =
+                            FontWeight.Bold
+                    )
                 }
+            },
 
-            if (
-                uid.isBlank()
-            ) {
-                return@mapNotNull null
+            dismissButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        dialogPengajuan =
+                            null
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "Batal"
+                    )
+                }
             }
-
-            val savedStatus =
-                statuses[uid]
-                    .orEmpty()
-
-            val stageStatus =
-                when {
-
-                    savedStatus ==
-                            "disetujui" ->
-                        "disetujui"
-
-                    savedStatus ==
-                            "ditolak" ->
-                        "ditolak"
-
-                    uid ==
-                            currentApproverUid ->
-                        "sedang_diproses"
-
-                    else ->
-                        "menunggu"
-                }
-
-            ApprovalStage(
-                uid =
-                    uid,
-
-                nama =
-                    nama,
-
-                jabatan =
-                    jabatan,
-
-                urutan =
-                    urutan,
-
-                status =
-                    stageStatus
-            )
-        }
-        .sortedBy {
-            it.urutan
-        }
+        )
+    }
 }
 
-// ================================================================
-// APPROVAL REQUEST CARD
-// ================================================================
+
+// ==========================================================
+// CARD APPROVAL
+// ==========================================================
 
 @Composable
 private fun ApprovalRequestCard(
-    nama: String,
-    jenis: String,
-    tanggalMulai: String,
-    tanggalSelesai: String,
-    jamPulang: String,
-    jamKeluar: String,
-    jamKembali: String,
-    alasan: String,
-    status: String,
-    approvalLocked: Boolean,
-    currentApproverJabatan: String,
-    approvalChain: List<ApprovalStage>,
-    sedangDiproses: Boolean,
-    onDetailClick: () -> Unit,
-    onSetujui: () -> Unit,
-    onTolak: () -> Unit
+
+    pengajuan:
+    PengajuanData,
+
+    onDetailClick:
+        () -> Unit,
+
+    onSetujui:
+        () -> Unit,
+
+    onTolak:
+        () -> Unit
+
 ) {
 
-    val statusText: String
-    val statusIcon: ImageVector
-    val statusColor: Color
-
-    when (status) {
-
-        "disetujui" -> {
-
-            statusText =
-                "Disetujui"
-
-            statusIcon =
-                Icons.Default.CheckCircle
-
-            statusColor =
-                PrimaryGreen
-        }
-
-        "ditolak" -> {
-
-            statusText =
-                "Ditolak"
-
-            statusIcon =
-                Icons.Default.Cancel
-
-            statusColor =
-                Color(0xFFB91C1C)
-        }
-
-        else -> {
-
-            statusText =
-                "Menunggu"
-
-            statusIcon =
-                Icons.Default.Pending
-
-            statusColor =
-                Color(0xFFD97706)
-        }
-    }
-
-    // ============================================================
-    // INITIAL NAMA
-    // ============================================================
-
-    val namaBersih =
-        nama.trim()
-
-    val daftarNama =
-        namaBersih
-            .split(" ")
-            .filter {
-                it.isNotBlank()
+    val nama =
+        pengajuan.nama
+            .ifBlank {
+                "Karyawan"
             }
 
-    var initials = ""
+    val jenis =
+        pengajuan.jenis
+            .ifBlank {
+                "Pengajuan"
+            }
 
-    if (
-        daftarNama.isNotEmpty()
-    ) {
+    val tanggalMulai =
+        pengajuan.tanggalMulai
 
-        initials =
-            daftarNama[0]
-                .take(1)
-                .uppercase()
-    }
+    val tanggalSelesai =
+        pengajuan.tanggalSelesai
 
-    if (
-        daftarNama.size > 1
-    ) {
+    val alasan =
+        pengajuan.alasan
 
-        initials +=
-            daftarNama[1]
-                .take(1)
-                .uppercase()
-    }
-
-    if (
-        initials.isEmpty()
-    ) {
-        initials = "K"
-    }
+    val status =
+        pengajuan.status
+            .lowercase()
+            .trim()
 
     Card(
+
         modifier =
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+                    onDetailClick()
+                },
 
         shape =
-            RoundedCornerShape(18.dp),
+            RoundedCornerShape(
+                18.dp
+            ),
 
         colors =
             CardDefaults.cardColors(
@@ -1147,25 +593,26 @@ private fun ApprovalRequestCard(
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    2.dp
-            ),
-
-        onClick =
-            onDetailClick
+                    3.dp
+            )
     ) {
 
         Column(
+
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(
+                        16.dp
+                    )
         ) {
 
-            // ====================================================
-            // HEADER CARD
-            // ====================================================
+            // ==============================================
+            // HEADER
+            // ==============================================
 
             Row(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -1174,12 +621,19 @@ private fun ApprovalRequestCard(
             ) {
 
                 Row(
+
                     modifier =
                         Modifier
-                            .size(48.dp)
+                            .size(44.dp)
                             .background(
-                                SoftGreen,
-                                RoundedCornerShape(50.dp)
+
+                                color =
+                                    Color(0xFFE8F5E9),
+
+                                shape =
+                                    RoundedCornerShape(
+                                        12.dp
+                                    )
                             ),
 
                     horizontalArrangement =
@@ -1189,18 +643,21 @@ private fun ApprovalRequestCard(
                         Alignment.CenterVertically
                 ) {
 
-                    Text(
-                        text =
-                            initials,
+                    Icon(
 
-                        fontSize =
-                            14.sp,
+                        imageVector =
+                            Icons.Default.Description,
 
-                        fontWeight =
-                            FontWeight.Bold,
+                        contentDescription =
+                            null,
 
-                        color =
-                            PrimaryGreen
+                        tint =
+                            PrimaryGreen,
+
+                        modifier =
+                            Modifier.size(
+                                22.dp
+                            )
                     )
                 }
 
@@ -1215,751 +672,403 @@ private fun ApprovalRequestCard(
                 ) {
 
                     Text(
-                        text =
-                            nama,
 
-                        fontSize =
-                            15.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
-                    Text(
                         text =
                             jenis,
 
                         fontSize =
-                            13.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-                Row(
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        imageVector =
-                            statusIcon,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            statusColor,
-
-                        modifier =
-                            Modifier.size(17.dp)
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(4.dp)
-                    )
-
-                    Text(
-                        text =
-                            statusText,
-
-                        fontSize =
-                            12.sp,
+                            16.sp,
 
                         fontWeight =
                             FontWeight.Bold,
 
                         color =
-                            statusColor
+                            TextDark
+                    )
+
+                    Text(
+
+                        text =
+                            nama,
+
+                        fontSize =
+                            12.sp,
+
+                        color =
+                            TextGray
                     )
                 }
+
+                ApprovalStatusBadge(
+                    status =
+                        status
+                )
             }
-
-            // ====================================================
-            // TAHAP APPROVAL SEKARANG
-            // ====================================================
-
-            if (
-                currentApproverJabatan.isNotBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
-                )
-
-                Card(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(12.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color(0xFFF8FAFC)
-                        )
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier.padding(12.dp)
-                    ) {
-
-                        Text(
-                            text =
-                                "Tahap Approval Saat Ini",
-
-                            fontSize =
-                                11.sp,
-
-                            color =
-                                TextGray
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(3.dp)
-                        )
-
-                        Text(
-                            text =
-                                currentApproverJabatan,
-
-                            fontSize =
-                                14.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                PrimaryGreen
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(3.dp)
-                        )
-
-                        if (
-                            currentApproverJabatan ==
-                            "OWNER"
-                        ) {
-
-                            Text(
-                                text =
-                                    "Owner adalah pengambil keputusan final.",
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    TextGray
-                            )
-
-                        } else {
-
-                            Text(
-                                text =
-                                    "Setujui atau tolak untuk mencatat keputusan, lalu pengajuan lanjut ke tahap berikutnya.",
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    TextGray
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ====================================================
-            // PROGRESS APPROVAL
-            // ====================================================
-
-            if (
-                approvalChain.isNotEmpty()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
-                )
-
-                Text(
-                    text =
-                        "Jalur Approval",
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
-                )
-
-                Column(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                ) {
-
-                    approvalChain.forEachIndexed {
-                            index,
-                            stage ->
-
-                        ApprovalStageRow(
-                            stage =
-                                stage,
-
-                            isLast =
-                                index ==
-                                        approvalChain.lastIndex
-                        )
-                    }
-                }
-            }
-
-            // ====================================================
-            // TANGGAL
-            // ====================================================
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.size(14.dp)
             )
 
+            // ==============================================
+            // TANGGAL
+            // ==============================================
+
             if (
-                tanggalMulai.isNotEmpty()
+                tanggalMulai.isNotBlank()
             ) {
 
                 Text(
+
                     text =
-                        "Tanggal",
+                        if (
+                            tanggalSelesai.isNotBlank() &&
+                            tanggalSelesai != tanggalMulai
+                        ) {
+
+                            "Tanggal: " +
+                                    tanggalMulai +
+                                    " s/d " +
+                                    tanggalSelesai
+
+                        } else {
+
+                            "Tanggal: " +
+                                    tanggalMulai
+                        },
 
                     fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-                if (
-                    tanggalSelesai.isNotEmpty() &&
-                    tanggalSelesai != tanggalMulai
-                ) {
-
-                    Text(
-                        text =
-                            "$tanggalMulai - $tanggalSelesai",
-
-                        fontSize =
-                            13.sp,
-
-                        fontWeight =
-                            FontWeight.Medium,
-
-                        color =
-                            TextDark
-                    )
-
-                } else {
-
-                    Text(
-                        text =
-                            tanggalMulai,
-
-                        fontSize =
-                            13.sp,
-
-                        fontWeight =
-                            FontWeight.Medium,
-
-                        color =
-                            TextDark
-                    )
-                }
-            }
-
-            // ====================================================
-            // JAM
-            // ====================================================
-
-            if (
-                jamPulang.isNotEmpty() ||
-                jamKeluar.isNotEmpty() ||
-                jamKembali.isNotEmpty()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
-                )
-
-                if (
-                    jamPulang.isNotEmpty()
-                ) {
-
-                    Text(
-                        text =
-                            "Jam Pulang: $jamPulang",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-                if (
-                    jamKeluar.isNotEmpty()
-                ) {
-
-                    Text(
-                        text =
-                            "Jam Keluar: $jamKeluar",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-                if (
-                    jamKembali.isNotEmpty()
-                ) {
-
-                    Text(
-                        text =
-                            "Jam Kembali: $jamKembali",
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-            }
-
-            // ====================================================
-            // ALASAN
-            // ====================================================
-
-            if (
-                alasan.isNotEmpty()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
-                )
-
-                Text(
-                    text =
-                        "Alasan",
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-                Text(
-                    text =
-                        alasan,
-
-                    fontSize =
-                        13.sp,
+                        12.sp,
 
                     color =
                         TextDark
                 )
             }
 
-            // ====================================================
-            // TOMBOL APPROVAL
-            // ====================================================
+            // ==============================================
+            // ALASAN
+            // ==============================================
 
             if (
-                status == "menunggu" &&
-                !approvalLocked
+                alasan.isNotBlank()
             ) {
 
                 Spacer(
                     modifier =
-                        Modifier.height(16.dp)
+                        Modifier.size(5.dp)
                 )
 
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
+                Text(
 
-                    horizontalArrangement =
-                        Arrangement.spacedBy(10.dp)
+                    text =
+                        "Alasan: $alasan",
+
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray,
+
+                    maxLines =
+                        3
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.size(14.dp)
+            )
+
+            // ==============================================
+            // BUTTON
+            // ==============================================
+
+            Row(
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        8.dp
+                    )
+            ) {
+
+                Button(
+
+                    onClick =
+                        onTolak,
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    colors =
+                        ButtonDefaults.buttonColors(
+
+                            containerColor =
+                                Color(0xFFC62828)
+                        ),
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        )
                 ) {
 
-                    Button(
-                        onClick =
-                            onSetujui,
+                    Icon(
 
-                        enabled =
-                            !sedangDiproses,
+                        imageVector =
+                            Icons.Default.Close,
 
-                        modifier =
-                            Modifier.weight(1f),
-
-                        shape =
-                            RoundedCornerShape(12.dp),
-
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor =
-                                    PrimaryGreen
-                            )
-                    ) {
-
-                        if (
-                            sedangDiproses
-                        ) {
-
-                            CircularProgressIndicator(
-                                modifier =
-                                    Modifier.size(18.dp),
-
-                                color =
-                                    Color.White,
-
-                                strokeWidth =
-                                    2.dp
-                            )
-
-                        } else {
-
-                            Icon(
-                                imageVector =
-                                    Icons.Default.Check,
-
-                                contentDescription =
-                                    null,
-
-                                modifier =
-                                    Modifier.size(18.dp)
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.width(6.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Setujui",
-
-                                fontWeight =
-                                    FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick =
-                            onTolak,
-
-                        enabled =
-                            !sedangDiproses,
+                        contentDescription =
+                            null,
 
                         modifier =
-                            Modifier.weight(1f),
-
-                        shape =
-                            RoundedCornerShape(12.dp),
-
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor =
-                                    Color(0xFFB91C1C)
+                            Modifier.size(
+                                17.dp
                             )
-                    ) {
+                    )
 
-                        if (
-                            sedangDiproses
-                        ) {
+                    Spacer(
+                        modifier =
+                            Modifier.width(5.dp)
+                    )
 
-                            CircularProgressIndicator(
-                                modifier =
-                                    Modifier.size(18.dp),
+                    Text(
+                        text =
+                            "Tolak"
+                    )
+                }
 
-                                color =
-                                    Color.White,
+                Button(
 
-                                strokeWidth =
-                                    2.dp
+                    onClick =
+                        onSetujui,
+
+                    modifier =
+                        Modifier.weight(1f),
+
+                    colors =
+                        ButtonDefaults.buttonColors(
+
+                            containerColor =
+                                PrimaryGreen
+                        ),
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        )
+                ) {
+
+                    Icon(
+
+                        imageVector =
+                            Icons.Default.Check,
+
+                        contentDescription =
+                            null,
+
+                        modifier =
+                            Modifier.size(
+                                17.dp
                             )
+                    )
 
-                        } else {
+                    Spacer(
+                        modifier =
+                            Modifier.width(5.dp)
+                    )
 
-                            Icon(
-                                imageVector =
-                                    Icons.Default.Cancel,
-
-                                contentDescription =
-                                    null,
-
-                                modifier =
-                                    Modifier.size(18.dp)
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.width(6.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Tolak",
-
-                                fontWeight =
-                                    FontWeight.Bold
-                            )
-                        }
-                    }
+                    Text(
+                        text =
+                            "Setujui"
+                    )
                 }
             }
         }
     }
 }
 
-// ================================================================
-// ROW STATUS APPROVAL
-// ================================================================
+
+// ==========================================================
+// STATUS BADGE
+// ==========================================================
 
 @Composable
-private fun ApprovalStageRow(
-    stage: ApprovalStage,
-    isLast: Boolean
+private fun ApprovalStatusBadge(
+    status: String
 ) {
 
-    val icon: ImageVector
-    val iconColor: Color
-    val backgroundColor: Color
-    val statusText: String
+    val (
+        text,
+        background,
+        foreground
+    ) =
+        when (status) {
 
-    when (stage.status) {
+            "menunggu" -> Triple(
 
-        "disetujui" -> {
+                "Menunggu",
 
-            icon =
-                Icons.Default.CheckCircle
+                Color(0xFFFFF3E0),
 
-            iconColor =
-                PrimaryGreen
-
-            backgroundColor =
-                SoftGreen
-
-            statusText =
-                "Disetujui"
-        }
-
-        "ditolak" -> {
-
-            icon =
-                Icons.Default.Cancel
-
-            iconColor =
-                Color(0xFFB91C1C)
-
-            backgroundColor =
-                Color(0xFFFFE7E7)
-
-            statusText =
-                "Ditolak"
-        }
-
-        "sedang_diproses" -> {
-
-            icon =
-                Icons.Default.Pending
-
-            iconColor =
                 Color(0xFFD97706)
+            )
 
-            backgroundColor =
-                Color(0xFFFFF7ED)
+            "disetujui" -> Triple(
 
-            statusText =
-                "Menunggu keputusan"
-        }
+                "Disetujui",
 
-        else -> {
+                Color(0xFFE8F5E9),
 
-            icon =
-                Icons.Default.Pending
+                Color(0xFF2E7D32)
+            )
 
-            iconColor =
+            "ditolak" -> Triple(
+
+                "Ditolak",
+
+                Color(0xFFFFEBEE),
+
+                Color(0xFFC62828)
+            )
+
+            else -> Triple(
+
+                status.ifBlank {
+                    "Menunggu"
+                },
+
+                Color(0xFFF3F4F6),
+
                 TextGray
-
-            backgroundColor =
-                Color(0xFFF3F4F6)
-
-            statusText =
-                "Menunggu"
+            )
         }
-    }
 
-    Column(
+    Row(
+
         modifier =
-            Modifier.fillMaxWidth()
+            Modifier
+                .background(
+
+                    color =
+                        background,
+
+                    shape =
+                        RoundedCornerShape(
+                            50.dp
+                        )
+                )
+                .padding(
+                    horizontal = 10.dp,
+                    vertical = 5.dp
+                ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
+        Text(
 
-            verticalAlignment =
-                Alignment.CenterVertically
+            text =
+                text,
+
+            fontSize =
+                10.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                foreground
+        )
+    }
+}
+
+
+// ==========================================================
+// EMPTY STATE
+// ==========================================================
+
+@Composable
+private fun ApprovalEmptyState(
+
+    title:
+    String,
+
+    message:
+    String
+
+) {
+
+    Box(
+
+        modifier =
+            Modifier.fillMaxSize(),
+
+        contentAlignment =
+            Alignment.Center
+    ) {
+
+        Column(
+
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
 
-            Row(
+            Icon(
+
+                imageVector =
+                    Icons.Default.Description,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    PrimaryGreen,
+
                 modifier =
-                    Modifier
-                        .size(38.dp)
-                        .background(
-                            backgroundColor,
-                            RoundedCornerShape(50.dp)
-                        ),
-
-                horizontalArrangement =
-                    Arrangement.Center,
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Icon(
-                    imageVector =
-                        icon,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        iconColor,
-
-                    modifier =
-                        Modifier.size(20.dp)
-                )
-            }
+                    Modifier.size(
+                        42.dp
+                    )
+            )
 
             Spacer(
                 modifier =
-                    Modifier.width(10.dp)
+                    Modifier.size(12.dp)
             )
 
-            Column(
-                modifier =
-                    Modifier.weight(1f)
-            ) {
-
-                Text(
-                    text =
-                        stage.jabatan,
-
-                    fontSize =
-                        12.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(2.dp)
-                )
-
-                Text(
-                    text =
-                        stage.nama,
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-            }
-
             Text(
+
                 text =
-                    statusText,
+                    title,
 
                 fontSize =
-                    10.sp,
+                    16.sp,
 
                 fontWeight =
                     FontWeight.Bold,
 
                 color =
-                    iconColor
+                    TextDark
             )
-        }
-
-        if (!isLast) {
 
             Spacer(
                 modifier =
-                    Modifier.height(4.dp)
+                    Modifier.size(5.dp)
             )
 
-            Row(
-                modifier =
-                    Modifier
-                        .padding(
-                            start = 18.dp
-                        )
-                        .height(12.dp)
-                        .width(2.dp)
-                        .background(
-                            Color(0xFFD1D5DB)
-                        )
-            ) {}
+            Text(
 
-            Spacer(
-                modifier =
-                    Modifier.height(4.dp)
+                text =
+                    message,
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    TextGray
             )
         }
     }

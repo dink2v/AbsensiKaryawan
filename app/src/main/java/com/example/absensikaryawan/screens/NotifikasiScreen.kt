@@ -5,34 +5,26 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,35 +42,32 @@ import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.models.Notification
 import com.example.absensikaryawan.navigation.NotificationTarget
 import com.example.absensikaryawan.repository.NotificationRepository
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// ==========================================================
-// SCREEN
-// ==========================================================
-
 @Composable
 fun NotifikasiScreen(
     onBack: () -> Unit,
-    onNotificationClick: (NotificationTarget) -> Unit
+    onNotificationClick: (NotificationTarget, String) -> Unit
 ) {
 
-    // ======================================================
-    // FIREBASE
-    // ======================================================
+    val auth = remember {
+        FirebaseAuth.getInstance()
+    }
 
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val userId = currentUser?.uid
-
-    val notificationRepository = remember {
+    val repository = remember {
         NotificationRepository()
     }
 
-    // ======================================================
-    // STATE
-    // ======================================================
+    val currentUser = auth.currentUser
+
+    val userId = currentUser?.uid.orEmpty()
 
     var notifications by remember {
         mutableStateOf<List<Notification>>(emptyList())
@@ -89,45 +78,47 @@ fun NotifikasiScreen(
     }
 
     var errorMessage by remember {
-        mutableStateOf("")
+        mutableStateOf<String?>(null)
     }
 
-    // ======================================================
-    // REALTIME LISTENER
-    // ======================================================
+    // ==========================================================
+    // LISTEN NOTIFICATION
+    // ==========================================================
 
     DisposableEffect(userId) {
 
-        if (userId.isNullOrBlank()) {
+        if (userId.isBlank()) {
 
-            notifications = emptyList()
             isLoading = false
-            errorMessage = "User belum login."
 
-            onDispose {}
+            errorMessage =
+                "User belum login."
+
+            onDispose { }
 
         } else {
 
             isLoading = true
-            errorMessage = ""
+            errorMessage = null
 
             val listener =
-                notificationRepository.listenNotifications(
+                repository.listenNotifications(
+
                     userId = userId,
 
                     onNotificationsChanged = { data ->
 
                         notifications = data
                         isLoading = false
-                        errorMessage = ""
                     },
 
                     onError = { exception ->
 
-                        isLoading = false
                         errorMessage =
                             exception.message
-                                ?: "Gagal memuat notifikasi."
+                                ?: "Gagal mengambil notifikasi."
+
+                        isLoading = false
                     }
                 )
 
@@ -137,522 +128,252 @@ fun NotifikasiScreen(
         }
     }
 
-    // ======================================================
-    // JUMLAH BELUM DIBACA
-    // ======================================================
+    // ==========================================================
+    // UNREAD
+    // ==========================================================
 
-    val unread = notifications.count {
-        !it.isRead
-    }
-
-    // ======================================================
-    // ROOT
-    // ======================================================
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 16.dp)
-    ) {
-
-        // ==================================================
-        // HEADER
-        // ==================================================
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = 6.dp,
-                    bottom = 12.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.size(42.dp)
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Kembali",
-                    tint = TextDark,
-                    modifier = Modifier.size(23.dp)
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.width(4.dp)
-            )
-
-            Text(
-                text = "Notifikasi",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark,
-                modifier = Modifier.weight(1f)
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(
-                        PrimaryGreen.copy(alpha = 0.10f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.NotificationsNone,
-                    contentDescription = null,
-                    tint = PrimaryGreen,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+    val unreadCount =
+        notifications.count {
+            !it.isRead
         }
 
-        // ==================================================
-        // INFO + CLEAR ALL
-        // ==================================================
+    // ==========================================================
+    // UI
+    // ==========================================================
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Background)
+                .systemBarsPadding()
+    ) {
+
+        // ======================================================
+        // HEADER
+        // ======================================================
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp,
+                        vertical = 16.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically,
+
+            horizontalArrangement =
+                Arrangement.SpaceBetween
         ) {
 
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
-                Text(
-                    text = "Notifikasi Kamu",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
+                Icon(
+                    imageVector =
+                        Icons.Default.Notifications,
+
+                    contentDescription =
+                        "Notifikasi",
+
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(28.dp)
                 )
 
                 Spacer(
-                    modifier = Modifier.height(2.dp)
+                    modifier =
+                        Modifier.size(10.dp)
                 )
 
                 Text(
                     text =
-                        if (unread > 0) {
-                            "$unread notifikasi belum dibaca"
+                        "Notifikasi",
+
+                    color =
+                        TextDark,
+
+                    fontSize =
+                        22.sp,
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            }
+        }
+
+        // ======================================================
+        // INFO NOTIFIKASI
+        // ======================================================
+
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text =
+                        "Notifikasi Kamu",
+
+                    color =
+                        TextDark,
+
+                    fontSize =
+                        16.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(3.dp)
+                )
+
+                Text(
+                    text =
+                        if (unreadCount > 0) {
+                            "$unreadCount notifikasi belum dibaca"
                         } else {
-                            "Informasi terbaru dari aplikasi"
+                            "Semua notifikasi sudah dibaca"
                         },
-                    fontSize = 11.sp,
-                    color = TextGray
+
+                    color =
+                        TextGray,
+
+                    fontSize =
+                        13.sp
                 )
             }
 
             if (notifications.isNotEmpty()) {
 
                 Text(
-                    text = "Clear All",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD64545),
+                    text =
+                        "Clear All",
 
-                    modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(8.dp)
-                        )
-                        .background(
-                            Color(0xFFD64545)
-                                .copy(alpha = 0.10f)
-                        )
-                        .clickable {
+                    color =
+                        PrimaryGreen,
 
-                            notifications.forEach { notification ->
+                    fontSize =
+                        13.sp,
 
-                                notificationRepository
-                                    .deleteNotification(
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    modifier =
+                        Modifier
+                            .clip(
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable {
+
+                                notifications.forEach { notification ->
+
+                                    repository.deleteNotification(
                                         notificationId =
                                             notification.id
                                     )
+                                }
                             }
-                        }
-                        .padding(
-                            horizontal = 10.dp,
-                            vertical = 6.dp
-                        )
+                            .padding(
+                                horizontal = 8.dp,
+                                vertical = 6.dp
+                            )
                 )
             }
         }
 
         Spacer(
-            modifier = Modifier.height(12.dp)
+            modifier =
+                Modifier.height(12.dp)
         )
 
-        // ==================================================
+        // ======================================================
         // LOADING
-        // ==================================================
+        // ======================================================
 
         if (isLoading) {
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier =
+                    Modifier.fillMaxSize(),
 
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
 
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    color = PrimaryGreen,
-                    strokeWidth = 3.dp
+                Text(
+                    text =
+                        "Memuat notifikasi...",
+
+                    color =
+                        TextGray,
+
+                    fontSize =
+                        14.sp
                 )
             }
 
-        } else if (errorMessage.isNotBlank()) {
+        } else if (errorMessage != null) {
 
             // ==================================================
             // ERROR
             // ==================================================
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(20.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
 
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
 
-                Column(
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
+                Text(
+                    text =
+                        errorMessage
+                            ?: "Terjadi kesalahan.",
 
-                    Box(
-                        modifier = Modifier
-                            .size(58.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Color(0xFFD64545)
-                                    .copy(alpha = 0.10f)
-                            ),
+                    color =
+                        TextGray,
 
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.Info,
-
-                            contentDescription = null,
-
-                            tint =
-                                Color(0xFFD64545),
-
-                            modifier =
-                                Modifier.size(28.dp)
-                        )
-                    }
-
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
-
-                    Text(
-                        text = "Gagal memuat notifikasi",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text = errorMessage,
-                        fontSize = 11.sp,
-                        color = TextGray
-                    )
-                }
+                    fontSize =
+                        14.sp
+                )
             }
 
-        } else if (notifications.isNotEmpty()) {
+        } else if (notifications.isEmpty()) {
 
             // ==================================================
-            // LIST NOTIFIKASI
-            // ==================================================
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-
-                verticalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-
-                items(
-                    items = notifications,
-                    key = {
-                        it.id
-                    }
-                ) { notification ->
-
-                    val icon =
-                        getNotificationIcon(
-                            notification.type,
-                            notification.title
-                        )
-
-                    val iconColor =
-                        getNotificationColor(
-                            notification.type,
-                            notification.title
-                        )
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-
-                        shape =
-                            RoundedCornerShape(16.dp),
-
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    if (!notification.isRead) {
-                                        Color.White
-                                    } else {
-                                        Color.White.copy(
-                                            alpha = 0.88f
-                                        )
-                                    }
-                            ),
-
-                        elevation =
-                            CardDefaults.cardElevation(
-                                defaultElevation = 1.dp
-                            )
-                    ) {
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-
-                                    // ==================================
-                                    // TANDAI SUDAH DIBACA
-                                    // ==================================
-
-                                    if (!notification.isRead) {
-
-                                        notificationRepository
-                                            .markAsRead(
-                                                notificationId =
-                                                    notification.id
-                                            )
-                                    }
-
-                                    // ==================================
-                                    // NAVIGASI
-                                    // ==================================
-
-                                    val target =
-                                        getNotificationTarget(
-                                            notification
-                                        )
-
-                                    if (
-                                        target !=
-                                        NotificationTarget.NONE
-                                    ) {
-
-                                        onNotificationClick(
-                                            target
-                                        )
-                                    }
-                                }
-                                .padding(13.dp),
-
-                            verticalAlignment =
-                                Alignment.Top
-                        ) {
-
-                            Box(
-                                modifier = Modifier
-                                    .size(43.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        iconColor.copy(
-                                            alpha = 0.12f
-                                        )
-                                    ),
-
-                                contentAlignment =
-                                    Alignment.Center
-                            ) {
-
-                                Icon(
-                                    imageVector = icon,
-
-                                    contentDescription = null,
-
-                                    tint = iconColor,
-
-                                    modifier =
-                                        Modifier.size(22.dp)
-                                )
-                            }
-
-                            Spacer(
-                                modifier =
-                                    Modifier.width(11.dp)
-                            )
-
-                            Column(
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-
-                                Row(
-                                    verticalAlignment =
-                                        Alignment.CenterVertically
-                                ) {
-
-                                    Text(
-                                        text =
-                                            notification.title,
-
-                                        fontSize =
-                                            13.sp,
-
-                                        fontWeight =
-                                            if (
-                                                notification.isRead
-                                            ) {
-                                                FontWeight.SemiBold
-                                            } else {
-                                                FontWeight.Bold
-                                            },
-
-                                        color =
-                                            TextDark,
-
-                                        modifier =
-                                            Modifier.weight(1f)
-                                    )
-
-                                    if (
-                                        !notification.isRead
-                                    ) {
-
-                                        Box(
-                                            modifier =
-                                                Modifier
-                                                    .size(7.dp)
-                                                    .clip(
-                                                        CircleShape
-                                                    )
-                                                    .background(
-                                                        PrimaryGreen
-                                                    )
-                                        )
-                                    }
-                                }
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(4.dp)
-                                )
-
-                                Text(
-                                    text =
-                                        notification.message,
-
-                                    fontSize =
-                                        11.sp,
-
-                                    color =
-                                        TextGray,
-
-                                    lineHeight =
-                                        15.sp
-                                )
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(6.dp)
-                                )
-
-                                Row(
-                                    verticalAlignment =
-                                        Alignment.CenterVertically
-                                ) {
-
-                                    Icon(
-                                        imageVector =
-                                            Icons.Default.Schedule,
-
-                                        contentDescription =
-                                            null,
-
-                                        tint =
-                                            TextGray,
-
-                                        modifier =
-                                            Modifier.size(12.dp)
-                                    )
-
-                                    Spacer(
-                                        modifier =
-                                            Modifier.width(3.dp)
-                                    )
-
-                                    Text(
-                                        text =
-                                            formatNotificationTime(
-                                                notification.timestamp
-                                            ),
-
-                                        fontSize =
-                                            9.sp,
-
-                                        color =
-                                            TextGray
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item {
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
-                }
-            }
-
-        } else {
-
-            // ==================================================
-            // EMPTY STATE
+            // EMPTY
             // ==================================================
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
 
                 contentAlignment =
                     Alignment.Center
@@ -663,68 +384,116 @@ fun NotifikasiScreen(
                         Alignment.CenterHorizontally
                 ) {
 
-                    Box(
-                        modifier = Modifier
-                            .size(58.dp)
-                            .clip(CircleShape)
-                            .background(
-                                PrimaryGreen.copy(
-                                    alpha = 0.10f
-                                )
-                            ),
+                    Icon(
+                        imageVector =
+                            Icons.Default.NotificationsNone,
 
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
+                        contentDescription =
+                            null,
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.NotificationsNone,
+                        tint =
+                            TextGray,
 
-                            contentDescription =
-                                null,
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(28.dp)
-                        )
-                    }
+                        modifier =
+                            Modifier.size(48.dp)
+                    )
 
                     Spacer(
                         modifier =
-                            Modifier.height(10.dp)
+                            Modifier.height(12.dp)
                     )
 
                     Text(
                         text =
-                            "Tidak ada notifikasi",
+                            "Belum ada notifikasi",
+
+                        color =
+                            TextDark,
 
                         fontSize =
-                            14.sp,
+                            16.sp,
 
                         fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
+                            FontWeight.SemiBold
                     )
 
                     Spacer(
                         modifier =
-                            Modifier.height(3.dp)
+                            Modifier.height(4.dp)
                     )
 
                     Text(
                         text =
-                            "Belum ada notifikasi untuk kamu.",
-
-                        fontSize =
-                            11.sp,
+                            "Notifikasi baru akan muncul di sini.",
 
                         color =
-                            TextGray
+                            TextGray,
+
+                        fontSize =
+                            13.sp
+                    )
+                }
+            }
+
+        } else {
+
+            // ==================================================
+            // LIST NOTIFIKASI
+            // ==================================================
+
+            LazyColumn(
+                modifier =
+                    Modifier.fillMaxSize(),
+
+                contentPadding =
+                    PaddingValues(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = 4.dp,
+                        bottom = 24.dp
+                    ),
+
+                verticalArrangement =
+                    Arrangement.spacedBy(10.dp)
+            ) {
+
+                items(
+                    items =
+                        notifications,
+
+                    key = {
+                        it.id
+                    }
+                ) { notification ->
+
+                    NotificationCard(
+                        notification =
+                            notification,
+
+                        onClick = {
+
+                            if (!notification.isRead) {
+
+                                repository.markAsRead(
+                                    notificationId =
+                                        notification.id
+                                )
+                            }
+
+                            val target =
+                                getNotificationTarget(
+                                    notification
+                                )
+
+                            val relatedId =
+                                notification.relatedId
+                                    .trim()
+
+                            onNotificationClick(
+                                target,
+                                relatedId
+                            )
+                        }
                     )
                 }
             }
@@ -732,97 +501,323 @@ fun NotifikasiScreen(
     }
 }
 
+
 // ==========================================================
-// NOTIFICATION ICON
+// NOTIFICATION CARD
+// ==========================================================
+
+@Composable
+private fun NotificationCard(
+    notification: Notification,
+    onClick: () -> Unit
+) {
+
+    val icon =
+        getNotificationIcon(
+            type =
+                notification.type,
+
+            title =
+                notification.title
+        )
+
+    val iconColor =
+        getNotificationColor(
+            type =
+                notification.type
+        )
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(
+                    RoundedCornerShape(14.dp)
+                )
+                .background(
+                    if (!notification.isRead) {
+                        Color.White
+                    } else {
+                        Color.White.copy(
+                            alpha = 0.75f
+                        )
+                    }
+                )
+                .clickable {
+                    onClick()
+                }
+                .padding(14.dp),
+
+        verticalAlignment =
+            Alignment.Top
+    ) {
+
+        // ======================================================
+        // ICON
+        // ======================================================
+
+        Box(
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(
+                        iconColor.copy(
+                            alpha = 0.12f
+                        )
+                    ),
+
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Icon(
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    iconColor,
+
+                modifier =
+                    Modifier.size(23.dp)
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.size(12.dp)
+        )
+
+        // ======================================================
+        // CONTENT
+        // ======================================================
+
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text =
+                        notification.title.ifBlank {
+                            "Notifikasi"
+                        },
+
+                    color =
+                        TextDark,
+
+                    fontSize =
+                        15.sp,
+
+                    fontWeight =
+                        if (!notification.isRead) {
+                            FontWeight.Bold
+                        } else {
+                            FontWeight.SemiBold
+                        },
+
+                    modifier =
+                        Modifier.weight(1f)
+                )
+
+                if (!notification.isRead) {
+
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    PrimaryGreen
+                                )
+                    )
+                }
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(5.dp)
+            )
+
+            Text(
+                text =
+                    notification.message,
+
+                color =
+                    TextGray,
+
+                fontSize =
+                    13.sp,
+
+                lineHeight =
+                    19.sp
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(7.dp)
+            )
+
+            Text(
+                text =
+                    formatNotificationTime(
+                        notification.timestamp
+                    ),
+
+                color =
+                    TextGray.copy(
+                        alpha = 0.8f
+                    ),
+
+                fontSize =
+                    11.sp
+            )
+        }
+    }
+}
+
+
+// ==========================================================
+// ICON NOTIFICATION
 // ==========================================================
 
 private fun getNotificationIcon(
     type: String,
     title: String
-): androidx.compose.ui.graphics.vector.ImageVector {
+) =
+    when {
 
-    val normalizedType =
-        type.trim().uppercase(Locale.getDefault())
-
-    val normalizedTitle =
-        title.trim().uppercase(Locale.getDefault())
-
-    return when {
-
-        normalizedType == "ABSENSI" ->
+        type.contains(
+            "ABSENSI",
+            ignoreCase = true
+        ) ->
             Icons.Default.CheckCircle
 
-        normalizedType == "PENGAJUAN_DISETUJUI" ||
-                normalizedType == "PENGAJUAN_DISETUJUI_H1" ->
+        type.contains(
+            "PENGAJUAN_DISETUJUI",
+            ignoreCase = true
+        ) ->
             Icons.Default.CheckCircle
 
-        normalizedType == "PENGAJUAN_DITOLAK" ->
+        type.contains(
+            "PENGAJUAN_H1",
+            ignoreCase = true
+        ) ->
+            Icons.Default.CheckCircle
+
+        type.contains(
+            "PENGAJUAN_DITOLAK",
+            ignoreCase = true
+        ) ->
             Icons.Default.Info
 
-        normalizedType == "PENGAJUAN_BARU" ||
-                normalizedType == "PENGAJUAN_APPROVAL" ->
+        type.contains(
+            "PENGAJUAN_BARU",
+            ignoreCase = true
+        ) ->
             Icons.Default.Description
 
-        normalizedType == "CHAT" ||
-                normalizedType.contains("CHAT") ||
-                normalizedType.contains("BALASAN") ||
-                normalizedType.contains("PESAN") ->
+        type.contains(
+            "PENGAJUAN_APPROVAL",
+            ignoreCase = true
+        ) ->
+            Icons.Default.Description
+
+        type.contains(
+            "CHAT",
+            ignoreCase = true
+        ) ||
+                type.contains(
+                    "BALASAN",
+                    ignoreCase = true
+                ) ||
+                type.contains(
+                    "PESAN",
+                    ignoreCase = true
+                ) ->
             Icons.Default.NotificationsNone
 
-        normalizedTitle.contains("PENGAJUAN") ->
+        title.contains(
+            "PENGAJUAN",
+            ignoreCase = true
+        ) ->
             Icons.Default.Description
 
         else ->
             Icons.Default.Info
     }
-}
+
 
 // ==========================================================
-// NOTIFICATION COLOR
+// COLOR NOTIFICATION
 // ==========================================================
 
 private fun getNotificationColor(
-    type: String,
-    title: String
-): Color {
+    type: String
+): Color =
+    when {
 
-    val normalizedType =
-        type.trim().uppercase(Locale.getDefault())
+        type.contains(
+            "DITOLAK",
+            ignoreCase = true
+        ) ->
+            Color(0xFFD32F2F)
 
-    val normalizedTitle =
-        title.trim().uppercase(Locale.getDefault())
+        type.contains(
+            "PENGAJUAN_BARU",
+            ignoreCase = true
+        ) ||
+                type.contains(
+                    "PENGAJUAN_APPROVAL",
+                    ignoreCase = true
+                ) ->
+            Color(0xFFF9A825)
 
-    return when {
+        type.contains(
+            "DISETUJUI",
+            ignoreCase = true
+        ) ||
+                type.contains(
+                    "H1",
+                    ignoreCase = true
+                ) ->
+            Color(0xFF2E7D32)
 
-        normalizedType == "PENGAJUAN_DITOLAK" ||
-                normalizedTitle.contains("DITOLAK") ->
-            Color(0xFFD64545)
+        type.contains(
+            "CHAT",
+            ignoreCase = true
+        ) ||
+                type.contains(
+                    "BALASAN",
+                    ignoreCase = true
+                ) ||
+                type.contains(
+                    "PESAN",
+                    ignoreCase = true
+                ) ->
+            Color(0xFF1976D2)
 
-        normalizedType == "PENGAJUAN_BARU" ||
-                normalizedType == "PENGAJUAN_APPROVAL" ||
-                normalizedTitle.contains("MENUNGGU") ->
-            Color(0xFFD89B00)
-
-        normalizedType == "PENGAJUAN_DISETUJUI" ||
-                normalizedType == "PENGAJUAN_DISETUJUI_H1" ||
-                normalizedTitle.contains("DISETUJUI") ->
-            PrimaryGreen
-
-        normalizedType.contains("CHAT") ||
-                normalizedType.contains("PESAN") ||
-                normalizedType.contains("BALASAN") ->
-            Color(0xFF2878D8)
-
-        normalizedType.contains("ABSENSI") ->
-            PrimaryGreen
+        type.contains(
+            "ABSENSI",
+            ignoreCase = true
+        ) ->
+            Color(0xFF2E7D32)
 
         else ->
-            Color(0xFF2878D8)
+            Color(0xFF1976D2)
     }
-}
+
 
 // ==========================================================
-// NOTIFICATION TARGET
+// TARGET NOTIFICATION
 // ==========================================================
 
 private fun getNotificationTarget(
@@ -830,84 +825,63 @@ private fun getNotificationTarget(
 ): NotificationTarget {
 
     val type =
-        notification.type
-            .trim()
-            .uppercase(Locale.getDefault())
+        notification.type.uppercase()
 
     val title =
-        notification.title
-            .trim()
-            .uppercase(Locale.getDefault())
+        notification.title.uppercase()
 
-    // ======================================================
-    // ABSENSI
-    // ======================================================
+    return when {
 
-    if (type == "ABSENSI") {
-        return NotificationTarget.RIWAYAT_ABSENSI
+        type.contains(
+            "ABSENSI"
+        ) ->
+            NotificationTarget.RIWAYAT_ABSENSI
+
+        type.contains(
+            "PENGAJUAN_DISETUJUI"
+        ) ||
+                type.contains(
+                    "PENGAJUAN_H1"
+                ) ->
+            NotificationTarget.PENGAJUAN_DISETUJUI
+
+        type.contains(
+            "PENGAJUAN_DITOLAK"
+        ) ->
+            NotificationTarget.PENGAJUAN_DITOLAK
+
+        type.contains(
+            "PENGAJUAN_BARU"
+        ) ||
+                type.contains(
+                    "PENGAJUAN_APPROVAL"
+                ) ||
+                type.contains(
+                    "PENGAJUAN_MENUNGGU"
+                ) ->
+            NotificationTarget.PENGAJUAN_MENUNGGU
+
+        type.contains(
+            "CHAT"
+        ) ||
+                type.contains(
+                    "BALASAN"
+                ) ||
+                type.contains(
+                    "PESAN"
+                ) ->
+            NotificationTarget.CHAT_ADMIN
+
+        title.contains(
+            "PENGAJUAN"
+        ) ->
+            NotificationTarget.PENGAJUAN_MENUNGGU
+
+        else ->
+            NotificationTarget.NONE
     }
-
-    // ======================================================
-    // PENGAJUAN
-    // ======================================================
-
-    when (type) {
-
-        "PENGAJUAN_BARU",
-        "PENGAJUAN_APPROVAL",
-        "PENGAJUAN_MENUNGGU" -> {
-            return NotificationTarget.PENGAJUAN_MENUNGGU
-        }
-
-        "PENGAJUAN_DISETUJUI",
-        "PENGAJUAN_DISETUJUI_H1" -> {
-            return NotificationTarget.PENGAJUAN_DISETUJUI
-        }
-
-        "PENGAJUAN_DITOLAK" -> {
-            return NotificationTarget.PENGAJUAN_DITOLAK
-        }
-    }
-
-    // ======================================================
-    // CHAT
-    // ======================================================
-
-    if (
-        type == "CHAT" ||
-        type.contains("CHAT") ||
-        type.contains("BALASAN") ||
-        type.contains("PESAN")
-    ) {
-        return NotificationTarget.CHAT_ADMIN
-    }
-
-    // ======================================================
-    // FALLBACK BERDASARKAN JUDUL
-    // Untuk menjaga kompatibilitas data lama.
-    // ======================================================
-
-    if (title.contains("ABSENSI")) {
-        return NotificationTarget.RIWAYAT_ABSENSI
-    }
-
-    if (title.contains("DISETUJUI")) {
-        return NotificationTarget.PENGAJUAN_DISETUJUI
-    }
-
-    if (title.contains("DITOLAK")) {
-        return NotificationTarget.PENGAJUAN_DITOLAK
-    }
-
-    if (
-        title.contains("MENUNGGU") ||
-        title.contains("PENGAJUAN BARU")
-    ) {
-        return NotificationTarget.PENGAJUAN_MENUNGGU
-    }
-
-    return NotificationTarget.NONE
 }
+
 
 // ==========================================================
 // FORMAT WAKTU
@@ -918,7 +892,7 @@ private fun formatNotificationTime(
 ): String {
 
     if (timestamp <= 0L) {
-        return "Baru saja"
+        return ""
     }
 
     val now =
@@ -927,44 +901,28 @@ private fun formatNotificationTime(
     val difference =
         now - timestamp
 
-    val minute =
-        60_000L
-
-    val hour =
-        60 * minute
-
-    val day =
-        24 * hour
-
-    return when {
-
-        difference < minute ->
-            "Baru saja"
-
-        difference < hour -> {
-
-            val minutes =
-                difference / minute
-
-            "$minutes menit lalu"
-        }
-
-        difference < day -> {
-
-            val hours =
-                difference / hour
-
-            "$hours jam lalu"
-        }
-
-        else -> {
-
-            SimpleDateFormat(
-                "dd MMM yyyy, HH:mm",
-                Locale("id", "ID")
-            ).format(
-                Date(timestamp)
-            )
-        }
+    if (difference < 60_000L) {
+        return "Baru saja"
     }
+
+    val minutes =
+        difference / 60_000L
+
+    if (minutes < 60L) {
+        return "$minutes menit lalu"
+    }
+
+    val hours =
+        minutes / 60L
+
+    if (hours < 24L) {
+        return "$hours jam lalu"
+    }
+
+    return SimpleDateFormat(
+        "dd MMM yyyy, HH:mm",
+        Locale("id", "ID")
+    ).format(
+        Date(timestamp)
+    )
 }

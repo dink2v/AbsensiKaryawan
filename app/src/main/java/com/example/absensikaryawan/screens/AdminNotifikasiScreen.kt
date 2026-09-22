@@ -54,7 +54,7 @@ import java.util.Locale
 @Composable
 fun AdminNotifikasiScreen(
     onBack: () -> Unit,
-    onApprovalClick: () -> Unit,
+    onApprovalClick: (String) -> Unit,
     onRekapClick: () -> Unit,
     onChatClick: () -> Unit
 ) {
@@ -422,7 +422,7 @@ fun AdminNotifikasiScreen(
                             when {
 
                                 // --------------------------------------
-                                // PENGAJUAN
+                                // PENGAJUAN BARU
                                 // --------------------------------------
 
                                 notification.type.equals(
@@ -430,15 +430,23 @@ fun AdminNotifikasiScreen(
                                     ignoreCase = true
                                 ) -> {
 
-                                    onApprovalClick()
+                                    onApprovalClick(
+                                        notification.relatedId
+                                    )
                                 }
+
+                                // --------------------------------------
+                                // PENGAJUAN APPROVAL
+                                // --------------------------------------
 
                                 notification.type.equals(
                                     "PENGAJUAN_APPROVAL",
                                     ignoreCase = true
                                 ) -> {
 
-                                    onApprovalClick()
+                                    onApprovalClick(
+                                        notification.relatedId
+                                    )
                                 }
 
                                 // --------------------------------------

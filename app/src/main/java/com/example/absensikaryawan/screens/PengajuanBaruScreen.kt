@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 
@@ -62,14 +61,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-import com.example.absensikaryawan.data.PengajuanRepository
+import com.example.absensikaryawan.data.FirestoreRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-
-import kotlinx.coroutines.launch
 
 
 @Composable
@@ -85,7 +87,28 @@ fun PengajuanBaruScreen(
         alasan: String
     ) -> Unit
 ) {
+
     val coroutineScope = rememberCoroutineScope()
+
+    // =========================================================
+    // REPOSITORY
+    // =========================================================
+
+    val firestoreRepository = remember {
+        FirestoreRepository()
+    }
+
+    val firebaseAuth = remember {
+        FirebaseAuth.getInstance()
+    }
+
+    val firestore = remember {
+        FirebaseFirestore.getInstance()
+    }
+
+    // =========================================================
+    // STATE
+    // =========================================================
 
     var jenisDipilih by remember {
         mutableStateOf<JenisPengajuan?>(null)
@@ -136,7 +159,10 @@ fun PengajuanBaruScreen(
             BringIntoViewRequester()
         }
 
-    // Tampilan tanggal hari ini tetap seperti desain lama.
+    // =========================================================
+    // TANGGAL HARI INI
+    // =========================================================
+
     val tanggalHariIni = remember {
         SimpleDateFormat(
             "dd MMMM yyyy",
@@ -144,7 +170,6 @@ fun PengajuanBaruScreen(
         ).format(Date())
     }
 
-    // Nilai tanggal untuk Firestore menggunakan yyyy-MM-dd.
     val tanggalHariIniFirestore = remember {
         SimpleDateFormat(
             "yyyy-MM-dd",
@@ -152,19 +177,24 @@ fun PengajuanBaruScreen(
         ).format(Date())
     }
 
+    // =========================================================
+    // SURFACE
+    // =========================================================
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Background
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
         ) {
 
-            // =========================================================
+            // =====================================================
             // HEADER
-            // =========================================================
+            // =====================================================
 
             Row(
                 modifier = Modifier
@@ -175,9 +205,11 @@ fun PengajuanBaruScreen(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 IconButton(
                     onClick = onBack
                 ) {
+
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Kembali",
@@ -190,6 +222,7 @@ fun PengajuanBaruScreen(
                 )
 
                 Column {
+
                     Text(
                         text = "Pengajuan Baru",
                         fontSize = 22.sp,
@@ -205,9 +238,9 @@ fun PengajuanBaruScreen(
                 }
             }
 
-            // =========================================================
+            // =====================================================
             // CONTENT
-            // =========================================================
+            // =====================================================
 
             Column(
                 modifier = Modifier
@@ -221,11 +254,12 @@ fun PengajuanBaruScreen(
                     )
             ) {
 
-                // =====================================================
-                // SUCCESS MESSAGE
-                // =====================================================
+                // =================================================
+                // SUCCESS
+                // =================================================
 
                 if (successMessage.isNotBlank()) {
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -235,6 +269,7 @@ fun PengajuanBaruScreen(
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
+
                         Text(
                             text = successMessage,
                             modifier = Modifier.padding(14.dp),
@@ -245,11 +280,12 @@ fun PengajuanBaruScreen(
                     }
                 }
 
-                // =====================================================
-                // ERROR MESSAGE
-                // =====================================================
+                // =================================================
+                // ERROR
+                // =================================================
 
                 if (errorMessage.isNotBlank()) {
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -259,6 +295,7 @@ fun PengajuanBaruScreen(
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
+
                         Text(
                             text = errorMessage,
                             modifier = Modifier.padding(14.dp),
@@ -269,9 +306,9 @@ fun PengajuanBaruScreen(
                     }
                 }
 
-                // =====================================================
+                // =================================================
                 // JENIS PENGAJUAN
-                // =====================================================
+                // =================================================
 
                 Text(
                     text = "Jenis Pengajuan",
@@ -292,8 +329,10 @@ fun PengajuanBaruScreen(
                         jenisDipilih ==
                                 JenisPengajuan.PulangCepat,
                     onClick = {
+
                         jenisDipilih =
                             JenisPengajuan.PulangCepat
+
                         errorMessage = ""
                         successMessage = ""
                     }
@@ -308,8 +347,10 @@ fun PengajuanBaruScreen(
                         jenisDipilih ==
                                 JenisPengajuan.IzinKeluar,
                     onClick = {
+
                         jenisDipilih =
                             JenisPengajuan.IzinKeluar
+
                         errorMessage = ""
                         successMessage = ""
                     }
@@ -323,8 +364,10 @@ fun PengajuanBaruScreen(
                         jenisDipilih ==
                                 JenisPengajuan.IzinTerlambat,
                     onClick = {
+
                         jenisDipilih =
                             JenisPengajuan.IzinTerlambat
+
                         errorMessage = ""
                         successMessage = ""
                     }
@@ -339,8 +382,10 @@ fun PengajuanBaruScreen(
                         jenisDipilih ==
                                 JenisPengajuan.IzinSakit,
                     onClick = {
+
                         jenisDipilih =
                             JenisPengajuan.IzinSakit
+
                         errorMessage = ""
                         successMessage = ""
                     }
@@ -355,16 +400,18 @@ fun PengajuanBaruScreen(
                         jenisDipilih ==
                                 JenisPengajuan.CutiReguler,
                     onClick = {
+
                         jenisDipilih =
                             JenisPengajuan.CutiReguler
+
                         errorMessage = ""
                         successMessage = ""
                     }
                 )
 
-                // =====================================================
+                // =================================================
                 // DETAIL PENGAJUAN
-                // =====================================================
+                // =================================================
 
                 if (jenisDipilih != null) {
 
@@ -398,9 +445,9 @@ fun PengajuanBaruScreen(
                                 modifier = Modifier.height(16.dp)
                             )
 
-                            // =================================================
+                            // =============================================
                             // PULANG CEPAT
-                            // =================================================
+                            // =============================================
 
                             if (
                                 jenisDipilih ==
@@ -424,9 +471,9 @@ fun PengajuanBaruScreen(
                                 )
                             }
 
-                            // =================================================
+                            // =============================================
                             // IZIN KELUAR
-                            // =================================================
+                            // =============================================
 
                             if (
                                 jenisDipilih ==
@@ -462,9 +509,9 @@ fun PengajuanBaruScreen(
                                 )
                             }
 
-                            // =================================================
+                            // =============================================
                             // IZIN TERLAMBAT
-                            // =================================================
+                            // =============================================
 
                             if (
                                 jenisDipilih ==
@@ -476,9 +523,9 @@ fun PengajuanBaruScreen(
                                 )
                             }
 
-                            // =================================================
+                            // =============================================
                             // IZIN SAKIT
-                            // =================================================
+                            // =============================================
 
                             if (
                                 jenisDipilih ==
@@ -517,9 +564,9 @@ fun PengajuanBaruScreen(
                                 )
                             }
 
-                            // =================================================
+                            // =============================================
                             // CUTI REGULER
-                            // =================================================
+                            // =============================================
 
                             if (
                                 jenisDipilih ==
@@ -593,9 +640,9 @@ fun PengajuanBaruScreen(
                                 )
                             }
 
-                            // =================================================
-                            // ALASAN / KETERANGAN
-                            // =================================================
+                            // =============================================
+                            // ALASAN
+                            // =============================================
 
                             Spacer(
                                 modifier = Modifier.height(16.dp)
@@ -616,6 +663,7 @@ fun PengajuanBaruScreen(
                                     Text("Alasan / Keterangan")
                                 },
                                 leadingIcon = {
+
                                     Icon(
                                         imageVector =
                                             Icons.Default.Description,
@@ -626,10 +674,10 @@ fun PengajuanBaruScreen(
                                 maxLines = 5
                             )
 
-                            // Saat teks mulai diketik, pastikan field
-                            // tetap berada di atas keyboard.
                             LaunchedEffect(alasan) {
+
                                 if (alasan.isNotEmpty()) {
+
                                     alasanBringIntoViewRequester
                                         .bringIntoView()
                                 }
@@ -639,9 +687,9 @@ fun PengajuanBaruScreen(
                                 modifier = Modifier.height(16.dp)
                             )
 
-                            // =================================================
+                            // =============================================
                             // SUBMIT
-                            // =================================================
+                            // =============================================
 
                             Button(
                                 onClick = {
@@ -650,14 +698,18 @@ fun PengajuanBaruScreen(
                                     successMessage = ""
 
                                     if (jenisDipilih == null) {
+
                                         errorMessage =
                                             "Silakan pilih jenis pengajuan."
+
                                         return@Button
                                     }
 
                                     if (alasan.isBlank()) {
+
                                         errorMessage =
                                             "Alasan / Keterangan wajib diisi."
+
                                         return@Button
                                     }
 
@@ -665,118 +717,237 @@ fun PengajuanBaruScreen(
 
                                     coroutineScope.launch {
 
-                                        val jenisValue =
-                                            jenisDipilih?.name.orEmpty()
+                                        try {
 
-                                        val tanggalMulaiValue =
-                                            when (jenisDipilih) {
+                                            // =========================================
+                                            // CEK LOGIN
+                                            // =========================================
 
-                                                JenisPengajuan.PulangCepat,
-                                                JenisPengajuan.IzinKeluar,
-                                                JenisPengajuan.IzinTerlambat -> {
-                                                    tanggalHariIniFirestore
-                                                }
+                                            val currentUser =
+                                                firebaseAuth.currentUser
 
-                                                else -> {
-                                                    tanggalMulai
-                                                }
+                                            if (currentUser == null) {
+
+                                                isSubmitting = false
+
+                                                errorMessage =
+                                                    "Sesi login tidak ditemukan. Silakan login kembali."
+
+                                                return@launch
                                             }
 
-                                        val result =
-                                            PengajuanRepository
-                                                .simpanPengajuan(
-                                                    jenis = jenisValue,
-                                                    jamPulang = jamPulang,
-                                                    jamKeluar = jamKeluar,
-                                                    jamKembali = jamKembali,
-                                                    tanggalMulai =
-                                                        tanggalMulaiValue,
-                                                    tanggalSelesai =
-                                                        tanggalSelesai,
-                                                    alasan = alasan
+                                            val uid =
+                                                currentUser.uid
+
+                                            // =========================================
+                                            // AMBIL NAMA USER
+                                            // =========================================
+
+                                            val userDocument =
+                                                firestore
+                                                    .collection("users")
+                                                    .document(uid)
+                                                    .get()
+                                                    .await()
+
+                                            val nama =
+                                                userDocument
+                                                    .getString("nama")
+                                                    ?.trim()
+                                                    .orEmpty()
+                                                    .ifBlank {
+                                                        currentUser
+                                                            .displayName
+                                                            ?.trim()
+                                                            .orEmpty()
+                                                    }
+
+                                            if (nama.isBlank()) {
+
+                                                isSubmitting = false
+
+                                                errorMessage =
+                                                    "Nama pengguna tidak ditemukan. Silakan lengkapi data profil terlebih dahulu."
+
+                                                return@launch
+                                            }
+
+                                            // =========================================
+                                            // DATA PENGAJUAN
+                                            // =========================================
+
+                                            val jenisValue =
+                                                jenisDipilih
+                                                    ?.name
+                                                    .orEmpty()
+
+                                            val tanggalMulaiValue =
+                                                when (jenisDipilih) {
+
+                                                    JenisPengajuan.PulangCepat,
+                                                    JenisPengajuan.IzinKeluar,
+                                                    JenisPengajuan.IzinTerlambat -> {
+
+                                                        tanggalHariIniFirestore
+                                                    }
+
+                                                    else -> {
+
+                                                        tanggalMulai
+                                                    }
+                                                }
+
+                                            // =========================================
+                                            // SIMPAN KE FIRESTORE
+                                            // =========================================
+
+                                            val result =
+                                                firestoreRepository
+                                                    .simpanPengajuan(
+
+                                                        uid = uid,
+
+                                                        nama = nama,
+
+                                                        jenis = jenisValue,
+
+                                                        tanggal =
+                                                            tanggalHariIniFirestore,
+
+                                                        jamPulang =
+                                                            jamPulang,
+
+                                                        jamKeluar =
+                                                            jamKeluar,
+
+                                                        jamKembali =
+                                                            jamKembali,
+
+                                                        tanggalMulai =
+                                                            tanggalMulaiValue,
+
+                                                        tanggalSelesai =
+                                                            tanggalSelesai,
+
+                                                        alasan =
+                                                            alasan
+                                                    )
+
+                                            isSubmitting = false
+
+                                            result.onSuccess {
+
+                                                successMessage =
+                                                    "Pengajuan berhasil dikirim dan sedang menunggu approval."
+
+                                                errorMessage = ""
+
+                                                onSubmit(
+                                                    jenisValue,
+                                                    jamPulang,
+                                                    jamKeluar,
+                                                    jamKembali,
+                                                    tanggalMulaiValue,
+                                                    tanggalSelesai,
+                                                    alasan
                                                 )
 
-                                        isSubmitting = false
+                                            }.onFailure { exception ->
 
-                                        result.onSuccess {
+                                                errorMessage =
+                                                    exception.message
+                                                        ?: "Gagal menyimpan pengajuan."
 
-                                            successMessage =
-                                                "Pengajuan berhasil dikirim dan sedang menunggu approval."
+                                                successMessage = ""
+                                            }
 
-                                            errorMessage = ""
+                                        } catch (e: Exception) {
 
-                                            onSubmit(
-                                                jenisValue,
-                                                jamPulang,
-                                                jamKeluar,
-                                                jamKembali,
-                                                tanggalMulaiValue,
-                                                tanggalSelesai,
-                                                alasan
-                                            )
-
-                                        }.onFailure { exception ->
+                                            isSubmitting = false
 
                                             errorMessage =
-                                                exception.message
+                                                e.message
                                                     ?: "Gagal menyimpan pengajuan."
 
                                             successMessage = ""
                                         }
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !isSubmitting,
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryGreen
-                                )
+
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+
+                                enabled =
+                                    !isSubmitting,
+
+                                shape =
+                                    RoundedCornerShape(14.dp),
+
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor =
+                                            PrimaryGreen
+                                    )
                             ) {
 
                                 if (isSubmitting) {
 
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
+                                        modifier =
+                                            Modifier.size(20.dp),
+
+                                        color =
+                                            Color.White,
+
+                                        strokeWidth =
+                                            2.dp
                                     )
 
                                     Spacer(
-                                        modifier = Modifier.width(8.dp)
+                                        modifier =
+                                            Modifier.width(8.dp)
                                     )
 
                                     Text(
                                         text = "Mengirim...",
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight =
+                                            FontWeight.Bold
                                     )
 
                                 } else {
 
                                     Icon(
-                                        imageVector = Icons.Default.Send,
-                                        contentDescription = null
+                                        imageVector =
+                                            Icons.Default.Send,
+
+                                        contentDescription =
+                                            null
                                     )
 
                                     Spacer(
-                                        modifier = Modifier.width(8.dp)
+                                        modifier =
+                                            Modifier.width(8.dp)
                                     )
 
                                     Text(
                                         text = "Ajukan Sekarang",
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight =
+                                            FontWeight.Bold
                                     )
                                 }
                             }
 
                             Spacer(
-                                modifier = Modifier.height(20.dp)
+                                modifier =
+                                    Modifier.height(20.dp)
                             )
                         }
                     }
                 }
 
                 Spacer(
-                    modifier = Modifier.height(24.dp)
+                    modifier =
+                        Modifier.height(24.dp)
                 )
             }
         }
@@ -796,6 +967,7 @@ private fun JenisPengajuanCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+
     val backgroundColor =
         if (selected) SoftGreen else Color.White
 
@@ -870,6 +1042,7 @@ private fun JenisPengajuanCard(
 private fun TanggalInfo(
     tanggal: String
 ) {
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -927,6 +1100,7 @@ private fun DatePickerField(
     onValueChange: (String) -> Unit,
     label: String
 ) {
+
     val context = LocalContext.current
 
     OutlinedTextField(
@@ -937,19 +1111,24 @@ private fun DatePickerField(
             Text(label)
         },
         leadingIcon = {
+
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null
             )
         },
         trailingIcon = {
+
             IconButton(
                 onClick = {
 
-                    val calendar = Calendar.getInstance()
+                    val calendar =
+                        Calendar.getInstance()
 
                     if (value.isNotBlank()) {
+
                         try {
+
                             val parsedDate =
                                 SimpleDateFormat(
                                     "yyyy-MM-dd",
@@ -957,26 +1136,33 @@ private fun DatePickerField(
                                 ).parse(value)
 
                             if (parsedDate != null) {
-                                calendar.time = parsedDate
+
+                                calendar.time =
+                                    parsedDate
                             }
+
                         } catch (_: Exception) {
                         }
                     }
 
                     DatePickerDialog(
                         context,
+
                         { _, year, month, dayOfMonth ->
 
                             val selectedDate =
                                 Calendar.getInstance().apply {
+
                                     set(
                                         Calendar.YEAR,
                                         year
                                     )
+
                                     set(
                                         Calendar.MONTH,
                                         month
                                     )
+
                                     set(
                                         Calendar.DAY_OF_MONTH,
                                         dayOfMonth
@@ -995,15 +1181,29 @@ private fun DatePickerField(
                                 )
                             )
                         },
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH)
+
+                        calendar.get(
+                            Calendar.YEAR
+                        ),
+
+                        calendar.get(
+                            Calendar.MONTH
+                        ),
+
+                        calendar.get(
+                            Calendar.DAY_OF_MONTH
+                        )
+
                     ).show()
                 }
             ) {
+
                 Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = "Pilih tanggal"
+                    imageVector =
+                        Icons.Default.CalendarMonth,
+
+                    contentDescription =
+                        "Pilih tanggal"
                 )
             }
         },
@@ -1023,6 +1223,7 @@ private fun TimePickerField(
     onValueChange: (String) -> Unit,
     label: String
 ) {
+
     val context = LocalContext.current
 
     OutlinedTextField(
@@ -1033,22 +1234,32 @@ private fun TimePickerField(
             Text(label)
         },
         leadingIcon = {
+
             Icon(
-                imageVector = Icons.Default.AccessTime,
-                contentDescription = null
+                imageVector =
+                    Icons.Default.AccessTime,
+
+                contentDescription =
+                    null
             )
         },
         trailingIcon = {
+
             IconButton(
                 onClick = {
 
-                    val calendar = Calendar.getInstance()
+                    val calendar =
+                        Calendar.getInstance()
 
                     if (value.isNotBlank()) {
+
                         try {
-                            val parts = value.split(":")
+
+                            val parts =
+                                value.split(":")
 
                             if (parts.size >= 2) {
+
                                 calendar.set(
                                     Calendar.HOUR_OF_DAY,
                                     parts[0].toInt()
@@ -1059,12 +1270,14 @@ private fun TimePickerField(
                                     parts[1].toInt()
                                 )
                             }
+
                         } catch (_: Exception) {
                         }
                     }
 
                     TimePickerDialog(
                         context,
+
                         { _, hourOfDay, minute ->
 
                             val formatted =
@@ -1075,17 +1288,31 @@ private fun TimePickerField(
                                     minute
                                 )
 
-                            onValueChange(formatted)
+                            onValueChange(
+                                formatted
+                            )
                         },
-                        calendar.get(Calendar.HOUR_OF_DAY),
-                        calendar.get(Calendar.MINUTE),
+
+                        calendar.get(
+                            Calendar.HOUR_OF_DAY
+                        ),
+
+                        calendar.get(
+                            Calendar.MINUTE
+                        ),
+
                         true
+
                     ).show()
                 }
             ) {
+
                 Icon(
-                    imageVector = Icons.Default.AccessTime,
-                    contentDescription = "Pilih waktu"
+                    imageVector =
+                        Icons.Default.AccessTime,
+
+                    contentDescription =
+                        "Pilih waktu"
                 )
             }
         },

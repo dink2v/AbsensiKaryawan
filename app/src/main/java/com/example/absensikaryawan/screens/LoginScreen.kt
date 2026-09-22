@@ -1,5 +1,6 @@
 package com.example.absensikaryawan.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -443,9 +444,13 @@ fun LoginScreen(
                                             return@launch
                                         }
 
-                                        // ==================================================
-                                        // SIMPAN FCM TOKEN
-                                        // ==================================================
+                                        Log.d(
+                                            "FCM_TOKEN",
+                                            "MASUK KE BLOK SIMPAN FCM TOKEN - UID: ${currentUser.uid}"
+                                        )
+                                        // ==========================================================
+// SIMPAN FCM TOKEN
+// ==========================================================
 
                                         try {
 
@@ -455,20 +460,52 @@ fun LoginScreen(
                                                     .token
                                                     .await()
 
-                                            FirebaseFirestore
-                                                .getInstance()
-                                                .collection("users")
-                                                .document(currentUser.uid)
-                                                .update(
-                                                    "fcmToken",
-                                                    fcmToken
+                                            Log.d(
+                                                "FCM_TOKEN",
+                                                "TOKEN BERHASIL DIDAPAT: $fcmToken"
+                                            )
+
+                                            val userQuery =
+                                                FirebaseFirestore
+                                                    .getInstance()
+                                                    .collection("users")
+                                                    .whereEqualTo("email", currentUser.email)
+                                                    .limit(1)
+                                                    .get()
+                                                    .await()
+
+                                            if (!userQuery.isEmpty) {
+                                                val userDocument = userQuery.documents.first()
+
+                                                userDocument.reference
+                                                    .update(
+                                                        "fcmToken",
+                                                        fcmToken
+                                                    )
+                                                    .await()
+
+                                                Log.d(
+                                                    "FCM_TOKEN",
+                                                    "TOKEN BERHASIL DISIMPAN KE DOCUMENT: ${userDocument.id}"
                                                 )
-                                                .await()
+                                            } else {
+                                                Log.e(
+                                                    "FCM_TOKEN",
+                                                    "DOKUMEN USER TIDAK DITEMUKAN UNTUK EMAIL: ${currentUser.email}"
+                                                )
+                                            }
+
+                                            Log.d(
+                                                "FCM_TOKEN",
+                                                "TOKEN BERHASIL DISIMPAN UNTUK UID: ${currentUser.uid}"
+                                            )
 
                                         } catch (e: Exception) {
 
-                                            println(
-                                                "FCM TOKEN ERROR: ${e.message}"
+                                            Log.e(
+                                                "FCM_TOKEN",
+                                                "GAGAL MENGAMBIL / MENYIMPAN FCM TOKEN",
+                                                e
                                             )
                                         }
 
