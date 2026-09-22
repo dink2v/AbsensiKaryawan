@@ -1,39 +1,39 @@
 package com.example.absensikaryawan.screens
 
+import android.util.Log
+
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,10 +46,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.absensikaryawan.data.PengajuanRepository
+import com.example.absensikaryawan.data.FirestoreRepository
+import com.example.absensikaryawan.data.PengajuanData
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -62,71 +62,46 @@ import java.util.Locale
 // ==========================================================
 
 data class RiwayatAbsensi(
+    val id: String,
+    val nama: String,
     val tanggal: String,
     val jamMasuk: String,
     val jamPulang: String,
+    val status: String,
+    val kantor: String,
+    val qrData: String,
     val catatan: String
 )
 
 // ==========================================================
-// MODEL RIWAYAT PENGAJUAN STAFF
+// MODEL RIWAYAT PENGAJUAN
 // ==========================================================
 
 data class RiwayatPengajuan(
-    val documentId: String,
+    val id: String,
     val jenis: String,
-    val jamPulang: String,
-    val jamKeluar: String,
-    val jamKembali: String,
     val tanggalMulai: String,
     val tanggalSelesai: String,
     val alasan: String,
     val status: String,
-    val catatanAdmin: String,
-
-    // ======================================================
-    // DATA APPROVAL
-    // ======================================================
-
-    val approvalChain: List<Map<String, Any>> = emptyList(),
-
-    val approvalStatuses: Map<String, Any> = emptyMap(),
-
-    val currentApproverUid: String = "",
-
-    val currentApproverName: String = "",
-
-    val currentApproverJabatan: String = "",
-
-    val approvalLocked: Boolean = false
+    val createdAt: String = "",
+    val namaPemohon: String = "",
+    val jabatanPemohon: String = "",
+    val divisiPemohon: String = ""
 )
 
 // ==========================================================
-// FILTER RIWAYAT
+// FILTER ABSENSI
 // ==========================================================
 
-enum class FilterRiwayat(
-    val label: String,
-    val jumlahHari: Int?
-) {
-    TUJUH_HARI(
-        label = "7 Hari Terakhir",
-        jumlahHari = 7
-    ),
-
-    TIGA_PULUH_HARI(
-        label = "30 Hari Terakhir",
-        jumlahHari = 30
-    ),
-
-    SEMUA(
-        label = "Semua Riwayat",
-        jumlahHari = null
-    )
+enum class FilterRiwayat {
+    TUJUH_HARI,
+    SATU_BULAN,
+    SEMUA
 }
 
 // ==========================================================
-// TAB RIWAYAT
+// TAB
 // ==========================================================
 
 enum class TabRiwayat {
@@ -146,6 +121,17 @@ enum class FilterStatusPengajuan {
 }
 
 // ==========================================================
+// FILTER SUMBER PENGAJUAN
+// ==========================================================
+
+enum class FilterSumberPengajuan {
+    SAYA,
+    MENUNGGU_APPROVAL,
+    BAWAHAN,
+    SEMUA
+}
+
+// ==========================================================
 // RIWAYAT SCREEN
 // ==========================================================
 
@@ -158,61 +144,16 @@ fun RiwayatScreen(
     refreshKey: Int = 0
 ) {
 
-    // ======================================================
-    // FIREBASE
-    // ======================================================
-
-    val auth =
-        remember {
-            FirebaseAuth.getInstance()
-        }
-
-    val db =
-        remember {
-            FirebaseFirestore.getInstance()
-        }
-
-    // ======================================================
-    // REPOSITORY PENGAJUAN
-    // ======================================================
-
-    val pengajuanRepository =
-        PengajuanRepository
-
-    // ======================================================
-    // DATA ABSENSI
-    // ======================================================
-
-    var semuaRiwayat by remember {
-        mutableStateOf(
-            emptyList<RiwayatAbsensi>()
-        )
+    val firebaseAuth = remember {
+        FirebaseAuth.getInstance()
     }
 
-    // ======================================================
-    // DATA PENGAJUAN
-    // ======================================================
-
-    var semuaPengajuan by remember {
-        mutableStateOf(
-            emptyList<RiwayatPengajuan>()
-        )
+    val firestore = remember {
+        FirebaseFirestore.getInstance()
     }
 
-    // ======================================================
-    // LOADING
-    // ======================================================
-
-    var loading by remember {
-        mutableStateOf(true)
-    }
-
-    // ======================================================
-    // ERROR
-    // ======================================================
-
-    var errorMessage by remember {
-        mutableStateOf("")
+    val repository = remember {
+        FirestoreRepository()
     }
 
     // ======================================================
@@ -220,28 +161,7 @@ fun RiwayatScreen(
     // ======================================================
 
     var tabAktif by remember {
-
-        mutableStateOf(
-            if (
-                filterStatusAwal !=
-                FilterStatusPengajuan.SEMUA
-            ) {
-                TabRiwayat.PENGAJUAN
-            } else {
-                TabRiwayat.ABSENSI
-            }
-        )
-    }
-
-    // ======================================================
-    // FILTER STATUS PENGAJUAN
-    // ======================================================
-
-    var filterStatusPengajuan by remember {
-
-        mutableStateOf(
-            filterStatusAwal
-        )
+        mutableStateOf(TabRiwayat.ABSENSI)
     }
 
     // ======================================================
@@ -249,14 +169,135 @@ fun RiwayatScreen(
     // ======================================================
 
     var filterAktif by remember {
-
-        mutableStateOf(
-            FilterRiwayat.TUJUH_HARI
-        )
+        mutableStateOf(FilterRiwayat.TUJUH_HARI)
     }
 
-    var dropdownTerbuka by remember {
-        mutableStateOf(false)
+    // ======================================================
+    // FILTER PENGAJUAN
+    // ======================================================
+
+    var filterStatusPengajuan by remember {
+        mutableStateOf(filterStatusAwal)
+    }
+
+    var filterSumberPengajuan by remember {
+        mutableStateOf(FilterSumberPengajuan.SAYA)
+    }
+
+    // ======================================================
+    // USER
+    // ======================================================
+
+    var uidUser by remember {
+        mutableStateOf("")
+    }
+
+    var roleUser by remember {
+        mutableStateOf("")
+    }
+
+    var namaUser by remember {
+        mutableStateOf("")
+    }
+
+    // ======================================================
+    // DATA
+    // ======================================================
+
+    var semuaRiwayat by remember {
+        mutableStateOf<List<RiwayatAbsensi>>(emptyList())
+    }
+
+    var semuaPengajuan by remember {
+        mutableStateOf<List<RiwayatPengajuan>>(emptyList())
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    // ======================================================
+    // LOAD USER
+    // ======================================================
+
+    suspend fun loadRoleUser() {
+
+        val firebaseUser =
+            firebaseAuth.currentUser
+                ?: return
+
+        uidUser = firebaseUser.uid
+
+        try {
+
+            val queryUid =
+                firestore
+                    .collection("users")
+                    .whereEqualTo(
+                        "uid",
+                        firebaseUser.uid
+                    )
+                    .limit(1)
+                    .get()
+                    .await()
+
+            val document =
+                if (!queryUid.isEmpty) {
+
+                    queryUid.documents.first()
+
+                } else {
+
+                    val email =
+                        firebaseUser.email
+
+                    if (email.isNullOrBlank()) {
+
+                        null
+
+                    } else {
+
+                        firestore
+                            .collection("users")
+                            .whereEqualTo(
+                                "email",
+                                email
+                            )
+                            .limit(1)
+                            .get()
+                            .await()
+                            .documents
+                            .firstOrNull()
+                    }
+                }
+
+            if (document != null) {
+
+                roleUser =
+                    document
+                        .getString("jabatan")
+                        ?.uppercase()
+                        ?: ""
+
+                namaUser =
+                    document
+                        .getString("nama")
+                        ?: ""
+
+                Log.d(
+                    "RiwayatScreen",
+                    "User: $namaUser | Role: $roleUser | UID: $uidUser"
+                )
+            }
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "RiwayatScreen",
+                "Gagal mengambil data user",
+                e
+            )
+        }
     }
 
     // ======================================================
@@ -265,434 +306,370 @@ fun RiwayatScreen(
 
     suspend fun loadAbsensi() {
 
-        val currentUser =
-            auth.currentUser
-                ?: throw Exception(
-                    "User belum login"
-                )
+        val firebaseUser =
+            firebaseAuth.currentUser
+                ?: return
 
-        val uid =
-            currentUser.uid
+        try {
 
-        val snapshot =
-            db.collection("attendance")
-                .whereEqualTo(
-                    "uid",
-                    uid
-                )
-                .get()
-                .await()
-
-        semuaRiwayat =
-            snapshot.documents
-                .mapNotNull { document ->
-
-                    val tanggal =
-                        document.getString(
-                            "tanggal"
-                        )
-                            ?: return@mapNotNull null
-
-                    val jamMasuk =
-                        document.getString(
-                            "jamMasuk"
-                        )
-                            ?: "-"
-
-                    val jamPulang =
-                        document.getString(
-                            "jamPulang"
-                        )
-                            ?: "-"
-
-                    val catatan =
-                        document.getString(
-                            "catatan"
-                        )
-                            ?: ""
-
-                    RiwayatAbsensi(
-                        tanggal =
-                            tanggal,
-
-                        jamMasuk =
-                            jamMasuk,
-
-                        jamPulang =
-                            if (
-                                jamPulang.isBlank()
-                            ) {
-                                "-"
-                            } else {
-                                jamPulang
-                            },
-
-                        catatan =
-                            catatan
+            val snapshot =
+                firestore
+                    .collection("attendance")
+                    .whereEqualTo(
+                        "uid",
+                        firebaseUser.uid
                     )
+                    .get()
+                    .await()
+
+            semuaRiwayat =
+                snapshot.documents.mapNotNull { document ->
+
+                    try {
+
+                        RiwayatAbsensi(
+                            id = document.id,
+
+                            nama =
+                                document
+                                    .getString("nama")
+                                    ?: "",
+
+                            tanggal =
+                                document
+                                    .getString("tanggal")
+                                    ?: "",
+
+                            jamMasuk =
+                                document
+                                    .getString("jamMasuk")
+                                    ?: "",
+
+                            jamPulang =
+                                document
+                                    .getString("jamPulang")
+                                    ?: "",
+
+                            status =
+                                document
+                                    .getString("status")
+                                    ?: "",
+
+                            kantor =
+                                document
+                                    .getString("kantor")
+                                    ?: "",
+
+                            qrData =
+                                document
+                                    .getString("qrData")
+                                    ?: "",
+
+                            catatan =
+                                document
+                                    .getString("catatan")
+                                    ?: ""
+                        )
+
+                    } catch (e: Exception) {
+
+                        Log.e(
+                            "RiwayatScreen",
+                            "Gagal membaca attendance ${document.id}",
+                            e
+                        )
+
+                        null
+                    }
                 }
-                .sortedByDescending {
-                    it.tanggal
-                }
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "RiwayatScreen",
+                "Gagal mengambil riwayat absensi",
+                e
+            )
+
+            semuaRiwayat = emptyList()
+        }
     }
 
     // ======================================================
-    // LOAD PENGAJUAN STAFF
+    // KONVERSI PENGAJUAN DATA
+    // ======================================================
+
+    fun convertPengajuan(
+        data: PengajuanData
+    ): RiwayatPengajuan {
+
+        return RiwayatPengajuan(
+            id = data.id,
+            jenis = data.jenis,
+            tanggalMulai =
+                data.tanggalMulai.ifBlank {
+                    data.tanggal
+                },
+            tanggalSelesai =
+                data.tanggalSelesai.ifBlank {
+                    data.tanggal
+                },
+            alasan = data.alasan,
+            status = data.status,
+            namaPemohon = data.nama
+        )
+    }
+
+    // ======================================================
+    // LOAD PENGAJUAN
     // ======================================================
 
     suspend fun loadPengajuan() {
 
-        val data: List<Map<String, Any>> =
-            pengajuanRepository
-                .ambilPengajuanSaya()
+        val firebaseUser =
+            firebaseAuth.currentUser
 
-        semuaPengajuan =
-            data
-                .map { item: Map<String, Any> ->
+        if (firebaseUser == null) {
 
-                    // ==================================================
-                    // APPROVAL CHAIN
-                    // ==================================================
+            semuaPengajuan = emptyList()
+            return
+        }
 
-                    val approvalChain =
-                        (item["approvalChain"] as? List<*>)
-                            ?.mapNotNull { approvalItem ->
+        try {
 
-                                val map =
-                                    approvalItem as? Map<*, *>
-                                        ?: return@mapNotNull null
+            val hasil: List<PengajuanData> =
+                when (filterSumberPengajuan) {
 
-                                map.entries.associate { entry ->
-                                    entry.key.toString() to
-                                            (entry.value ?: "")
-                                }
-                            }
-                            ?: emptyList()
+                    // --------------------------------------
+                    // PENGAJUAN SAYA
+                    // --------------------------------------
 
-                    // ==================================================
-                    // APPROVAL STATUSES
-                    // ==================================================
+                    FilterSumberPengajuan.SAYA -> {
 
-                    val approvalStatuses =
-                        (item["approvalStatuses"] as? Map<*, *>)
-                            ?.entries
-                            ?.associate { entry ->
-                                entry.key.toString() to
-                                        (entry.value ?: "")
-                            }
-                            ?: emptyMap()
+                        val result =
+                            repository.getPengajuanSaya(
+                                firebaseUser.uid
+                            )
 
-                    // ==================================================
-                    // APPROVAL LOCKED
-                    // ==================================================
-
-                    val approvalLocked =
-                        when (
-                            val value =
-                                item["approvalLocked"]
-                        ) {
-
-                            is Boolean ->
-                                value
-
-                            else ->
-                                value
-                                    ?.toString()
-                                    ?.toBoolean()
-                                    ?: false
+                        result.getOrElse {
+                            emptyList()
                         }
+                    }
 
-                    // ==================================================
-                    // MODEL
-                    // ==================================================
+                    // --------------------------------------
+                    // MENUNGGU APPROVAL
+                    // --------------------------------------
 
-                    RiwayatPengajuan(
+                    FilterSumberPengajuan.MENUNGGU_APPROVAL -> {
 
-                        documentId =
-                            item["documentId"]
-                                ?.toString()
-                                ?: "",
+                        val result =
+                            repository.getPengajuanMenunggu()
 
-                        jenis =
-                            item["jenis"]
-                                ?.toString()
-                                ?: "-",
+                        result.getOrElse {
+                            emptyList()
+                        }
+                    }
 
-                        jamPulang =
-                            item["jamPulang"]
-                                ?.toString()
-                                ?: "",
+                    // --------------------------------------
+                    // BAWAHAN
+                    // --------------------------------------
+                    //
+                    // Struktur PengajuanData saat ini belum
+                    // memiliki approvalChain / approverUid.
+                    //
+                    // Untuk sementara gunakan data pengajuan
+                    // yang sedang menunggu approval.
+                    // --------------------------------------
 
-                        jamKeluar =
-                            item["jamKeluar"]
-                                ?.toString()
-                                ?: "",
+                    FilterSumberPengajuan.BAWAHAN -> {
 
-                        jamKembali =
-                            item["jamKembali"]
-                                ?.toString()
-                                ?: "",
+                        val result =
+                            repository.getPengajuanMenunggu()
 
-                        tanggalMulai =
-                            item["tanggalMulai"]
-                                ?.toString()
-                                ?: "",
+                        result.getOrElse {
+                            emptyList()
+                        }
+                    }
 
-                        tanggalSelesai =
-                            item["tanggalSelesai"]
-                                ?.toString()
-                                ?: "",
+                    // --------------------------------------
+                    // SEMUA
+                    // --------------------------------------
+                    //
+                    // Repository saat ini belum menyediakan
+                    // getSemuaPengajuan().
+                    //
+                    // Gunakan pengajuan menunggu agar tidak
+                    // memanggil API repository yang sudah tidak
+                    // tersedia.
+                    // --------------------------------------
 
-                        alasan =
-                            item["alasan"]
-                                ?.toString()
-                                ?: "",
+                    FilterSumberPengajuan.SEMUA -> {
 
-                        status =
-                            item["status"]
-                                ?.toString()
-                                ?: "menunggu",
+                        val result =
+                            repository.getPengajuanMenunggu()
 
-                        catatanAdmin =
-                            item["catatanAdmin"]
-                                ?.toString()
-                                ?: "",
-
-                        // ==================================================
-                        // DATA APPROVAL
-                        // ==================================================
-
-                        approvalChain =
-                            approvalChain,
-
-                        approvalStatuses =
-                            approvalStatuses,
-
-                        currentApproverUid =
-                            item["currentApproverUid"]
-                                ?.toString()
-                                ?: "",
-
-                        currentApproverName =
-                            item["currentApproverName"]
-                                ?.toString()
-                                ?: "",
-
-                        currentApproverJabatan =
-                            item["currentApproverJabatan"]
-                                ?.toString()
-                                ?.uppercase()
-                                ?: "",
-
-                        approvalLocked =
-                            approvalLocked
-                    )
+                        result.getOrElse {
+                            emptyList()
+                        }
+                    }
                 }
-                .sortedByDescending {
-                    it.tanggalMulai
+
+            semuaPengajuan =
+                hasil.map {
+                    convertPengajuan(it)
                 }
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "RiwayatScreen",
+                "Gagal mengambil pengajuan",
+                e
+            )
+
+            semuaPengajuan = emptyList()
+        }
     }
 
     // ======================================================
     // LOAD SEMUA DATA
     // ======================================================
 
-    suspend fun loadSemuaData() {
+    LaunchedEffect(
+        refreshKey,
+        filterSumberPengajuan
+    ) {
 
-        try {
+        isLoading = true
 
-            loading =
-                true
+        loadRoleUser()
+        loadAbsensi()
+        loadPengajuan()
 
-            errorMessage =
-                ""
+        isLoading = false
+    }
 
-            val currentUser =
-                auth.currentUser
+    // ======================================================
+    // DEFAULT FILTER DARI NOTIFIKASI APPROVAL
+    // ======================================================
 
-            if (
-                currentUser == null
-            ) {
+    LaunchedEffect(
+        filterStatusAwal,
+        roleUser
+    ) {
 
-                errorMessage =
-                    "User belum login"
-
-                loading =
-                    false
-
-                return
-            }
-
-            loadAbsensi()
-
-            loadPengajuan()
-
-            loading =
-                false
-
-        } catch (
-            e: Exception
+        if (
+            filterStatusAwal ==
+            FilterStatusPengajuan.MENUNGGU
         ) {
 
-            loading =
-                false
+            if (
+                roleUser == "SUPERVISOR" ||
+                roleUser == "MANAGER" ||
+                roleUser == "HRD" ||
+                roleUser == "OWNER"
+            ) {
 
-            errorMessage =
-                e.message
-                    ?: "Gagal mengambil data"
-
-            e.printStackTrace()
+                filterSumberPengajuan =
+                    FilterSumberPengajuan.MENUNGGU_APPROVAL
+            }
         }
     }
 
     // ======================================================
-    // LOAD SAAT SCREEN DIBUKA
+    // FILTER ABSENSI
     // ======================================================
 
-    LaunchedEffect(refreshKey) {
-        loadSemuaData()
-    }
-
-    // ======================================================
-    // FILTER DATA ABSENSI
-    // ======================================================
-
-    val daftarRiwayat =
+    val riwayatAbsensiFiltered =
         remember(
             semuaRiwayat,
             filterAktif
         ) {
 
-            val jumlahHari =
-                filterAktif.jumlahHari
+            when (filterAktif) {
 
-            if (
-                jumlahHari == null
-            ) {
+                // ------------------------------------------
+                // 7 HARI
+                // ------------------------------------------
 
-                semuaRiwayat
+                FilterRiwayat.TUJUH_HARI -> {
 
-            } else {
-
-                val formatter =
-                    SimpleDateFormat(
-                        "yyyy-MM-dd",
-                        Locale.getDefault()
+                    filterAbsensiByDays(
+                        data = semuaRiwayat,
+                        jumlahHari = 7
                     )
+                }
 
-                formatter.isLenient =
-                    false
+                // ------------------------------------------
+                // 1 BULAN
+                // ------------------------------------------
 
-                val hariIni =
-                    Calendar.getInstance()
+                FilterRiwayat.SATU_BULAN -> {
 
-                hariIni.set(
-                    Calendar.HOUR_OF_DAY,
-                    0
-                )
+                    filterAbsensiByDays(
+                        data = semuaRiwayat,
+                        jumlahHari = 30
+                    )
+                }
 
-                hariIni.set(
-                    Calendar.MINUTE,
-                    0
-                )
+                // ------------------------------------------
+                // SEMUA
+                // ------------------------------------------
 
-                hariIni.set(
-                    Calendar.SECOND,
-                    0
-                )
+                FilterRiwayat.SEMUA -> {
 
-                hariIni.set(
-                    Calendar.MILLISECOND,
-                    0
-                )
-
-                val tanggalAwal =
-                    hariIni.clone()
-                            as Calendar
-
-                tanggalAwal.add(
-                    Calendar.DAY_OF_YEAR,
-                    -(jumlahHari - 1)
-                )
-
-                val waktuAwal =
-                    tanggalAwal.time
-
-                val waktuAkhir =
-                    hariIni.time
-
-                semuaRiwayat.filter { riwayat ->
-
-                    try {
-
-                        val tanggalAbsensi =
-                            formatter.parse(
-                                riwayat.tanggal
-                            )
-
-                        tanggalAbsensi != null &&
-                                !tanggalAbsensi.before(
-                                    waktuAwal
-                                ) &&
-                                !tanggalAbsensi.after(
-                                    waktuAkhir
-                                )
-
-                    } catch (
-                        e: Exception
-                    ) {
-
-                        false
-                    }
+                    semuaRiwayat
                 }
             }
         }
 
     // ======================================================
-    // FILTER DATA PENGAJUAN
+    // FILTER STATUS PENGAJUAN
     // ======================================================
 
-    val daftarPengajuanTerfilter =
+    val pengajuanFiltered =
         remember(
             semuaPengajuan,
             filterStatusPengajuan
         ) {
 
-            if (
-                filterStatusPengajuan ==
-                FilterStatusPengajuan.SEMUA
-            ) {
+            when (filterStatusPengajuan) {
 
-                semuaPengajuan
+                FilterStatusPengajuan.SEMUA -> {
 
-            } else {
+                    semuaPengajuan
+                }
 
-                semuaPengajuan.filter { pengajuan ->
+                FilterStatusPengajuan.MENUNGGU -> {
 
-                    when (
-                        filterStatusPengajuan
-                    ) {
+                    semuaPengajuan.filter { item ->
 
-                        FilterStatusPengajuan.MENUNGGU ->
-                            pengajuan.status
-                                .trim()
-                                .lowercase() ==
-                                    "menunggu"
+                        item.status.equals(
+                            "menunggu",
+                            ignoreCase = true
+                        )
+                    }
+                }
 
-                        FilterStatusPengajuan.DISETUJUI ->
-                            pengajuan.status
-                                .trim()
-                                .lowercase() ==
-                                    "disetujui"
+                FilterStatusPengajuan.DISETUJUI -> {
 
-                        FilterStatusPengajuan.DITOLAK ->
-                            pengajuan.status
-                                .trim()
-                                .lowercase() ==
-                                    "ditolak"
+                    semuaPengajuan.filter { item ->
 
-                        FilterStatusPengajuan.SEMUA ->
-                            true
+                        item.status.equals(
+                            "disetujui",
+                            ignoreCase = true
+                        )
+                    }
+                }
+
+                FilterStatusPengajuan.DITOLAK -> {
+
+                    semuaPengajuan.filter { item ->
+
+                        item.status.equals(
+                            "ditolak",
+                            ignoreCase = true
+                        )
                     }
                 }
             }
@@ -702,67 +679,678 @@ fun RiwayatScreen(
     // UI
     // ======================================================
 
-    Surface(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Color(0xFFF7F9FC)
+            )
+            .statusBarsPadding()
+    ) {
+
+        // ==================================================
+        // HEADER
+        // ==================================================
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 10.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            IconButton(
+                onClick = onBack
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription =
+                        "Kembali",
+                    tint =
+                        Color(0xFF1F2937)
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.width(4.dp)
+            )
+
+            Text(
+                text = "Riwayat",
+                fontSize = 22.sp,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(0xFF1F2937)
+            )
+        }
+
+        // ==================================================
+        // TAB ABSENSI / PENGAJUAN
+        // ==================================================
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 16.dp
+                ),
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            TabButtonRiwayat(
+                text = "Absensi",
+                selected =
+                    tabAktif ==
+                            TabRiwayat.ABSENSI,
+                onClick = {
+
+                    tabAktif =
+                        TabRiwayat.ABSENSI
+                },
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            TabButtonRiwayat(
+                text = "Pengajuan",
+                selected =
+                    tabAktif ==
+                            TabRiwayat.PENGAJUAN,
+                onClick = {
+
+                    tabAktif =
+                        TabRiwayat.PENGAJUAN
+                },
+                modifier =
+                    Modifier.weight(1f)
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(12.dp)
+        )
+
+        // ==================================================
+        // LOADING
+        // ==================================================
+
+        if (isLoading) {
+
+            Box(
+                modifier =
+                    Modifier.fillMaxSize(),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                CircularProgressIndicator()
+            }
+
+        } else {
+
+            // ==================================================
+            // ABSENSI
+            // ==================================================
+
+            if (
+                tabAktif ==
+                TabRiwayat.ABSENSI
+            ) {
+
+                Column(
+                    modifier =
+                        Modifier.fillMaxSize()
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(
+                                horizontal = 16.dp
+                            ),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        FilterChipSimple(
+                            text = "7 Hari",
+                            selected =
+                                filterAktif ==
+                                        FilterRiwayat.TUJUH_HARI,
+                            onClick = {
+
+                                filterAktif =
+                                    FilterRiwayat.TUJUH_HARI
+                            }
+                        )
+
+                        FilterChipSimple(
+                            text = "1 Bulan",
+                            selected =
+                                filterAktif ==
+                                        FilterRiwayat.SATU_BULAN,
+                            onClick = {
+
+                                filterAktif =
+                                    FilterRiwayat.SATU_BULAN
+                            }
+                        )
+
+                        FilterChipSimple(
+                            text = "Semua",
+                            selected =
+                                filterAktif ==
+                                        FilterRiwayat.SEMUA,
+                            onClick = {
+
+                                filterAktif =
+                                    FilterRiwayat.SEMUA
+                            }
+                        )
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+                    if (
+                        riwayatAbsensiFiltered.isEmpty()
+                    ) {
+
+                        EmptyRiwayatState(
+                            text =
+                                "Belum ada riwayat absensi."
+                        )
+
+                    } else {
+
+                        LazyColumn(
+                            modifier =
+                                Modifier.fillMaxSize(),
+                            contentPadding =
+                                PaddingValues(
+                                    horizontal = 16.dp,
+                                    vertical = 8.dp
+                                ),
+                            verticalArrangement =
+                                Arrangement.spacedBy(
+                                    10.dp
+                                )
+                        ) {
+
+                            items(
+                                items =
+                                    riwayatAbsensiFiltered,
+                                key = {
+                                    it.id
+                                }
+                            ) { item ->
+
+                                RiwayatAbsensiCard(
+                                    item = item
+                                )
+                            }
+                        }
+                    }
+                }
+
+            } else {
+
+                // ==================================================
+                // PENGAJUAN
+                // ==================================================
+
+                Column(
+                    modifier =
+                        Modifier.fillMaxSize()
+                ) {
+
+                    // --------------------------------------
+                    // FILTER SUMBER
+                    // --------------------------------------
+
+                    if (
+                        roleUser == "SUPERVISOR" ||
+                        roleUser == "MANAGER" ||
+                        roleUser == "HRD" ||
+                        roleUser == "OWNER"
+                    ) {
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(
+                                    rememberScrollState()
+                                )
+                                .padding(
+                                    horizontal = 16.dp
+                                ),
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    8.dp
+                                )
+                        ) {
+
+                            FilterChipSimple(
+                                text =
+                                    "Pengajuan Saya",
+                                selected =
+                                    filterSumberPengajuan ==
+                                            FilterSumberPengajuan.SAYA,
+                                onClick = {
+
+                                    filterSumberPengajuan =
+                                        FilterSumberPengajuan.SAYA
+                                }
+                            )
+
+                            FilterChipSimple(
+                                text =
+                                    "Menunggu Approval",
+                                selected =
+                                    filterSumberPengajuan ==
+                                            FilterSumberPengajuan.MENUNGGU_APPROVAL,
+                                onClick = {
+
+                                    filterSumberPengajuan =
+                                        FilterSumberPengajuan.MENUNGGU_APPROVAL
+
+                                    filterStatusPengajuan =
+                                        FilterStatusPengajuan.MENUNGGU
+                                }
+                            )
+
+                            if (
+                                roleUser != "OWNER"
+                            ) {
+
+                                FilterChipSimple(
+                                    text =
+                                        "Bawahan",
+                                    selected =
+                                        filterSumberPengajuan ==
+                                                FilterSumberPengajuan.BAWAHAN,
+                                    onClick = {
+
+                                        filterSumberPengajuan =
+                                            FilterSumberPengajuan.BAWAHAN
+                                    }
+                                )
+                            }
+
+                            if (
+                                roleUser == "OWNER"
+                            ) {
+
+                                FilterChipSimple(
+                                    text =
+                                        "Semua",
+                                    selected =
+                                        filterSumberPengajuan ==
+                                                FilterSumberPengajuan.SEMUA,
+                                    onClick = {
+
+                                        filterSumberPengajuan =
+                                            FilterSumberPengajuan.SEMUA
+                                    }
+                                )
+                            }
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(10.dp)
+                        )
+                    }
+
+                    // --------------------------------------
+                    // FILTER STATUS
+                    // --------------------------------------
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(
+                                horizontal = 16.dp
+                            ),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                8.dp
+                            )
+                    ) {
+
+                        FilterChipSimple(
+                            text = "Semua",
+                            selected =
+                                filterStatusPengajuan ==
+                                        FilterStatusPengajuan.SEMUA,
+                            onClick = {
+
+                                filterStatusPengajuan =
+                                    FilterStatusPengajuan.SEMUA
+                            }
+                        )
+
+                        FilterChipSimple(
+                            text = "Menunggu",
+                            selected =
+                                filterStatusPengajuan ==
+                                        FilterStatusPengajuan.MENUNGGU,
+                            onClick = {
+
+                                filterStatusPengajuan =
+                                    FilterStatusPengajuan.MENUNGGU
+                            }
+                        )
+
+                        FilterChipSimple(
+                            text = "Disetujui",
+                            selected =
+                                filterStatusPengajuan ==
+                                        FilterStatusPengajuan.DISETUJUI,
+                            onClick = {
+
+                                filterStatusPengajuan =
+                                    FilterStatusPengajuan.DISETUJUI
+                            }
+                        )
+
+                        FilterChipSimple(
+                            text = "Ditolak",
+                            selected =
+                                filterStatusPengajuan ==
+                                        FilterStatusPengajuan.DITOLAK,
+                            onClick = {
+
+                                filterStatusPengajuan =
+                                    FilterStatusPengajuan.DITOLAK
+                            }
+                        )
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+                    // --------------------------------------
+                    // LIST PENGAJUAN
+                    // --------------------------------------
+
+                    if (
+                        pengajuanFiltered.isEmpty()
+                    ) {
+
+                        val emptyText =
+                            when (
+                                filterSumberPengajuan
+                            ) {
+
+                                FilterSumberPengajuan.SAYA ->
+                                    "Belum ada pengajuan."
+
+                                FilterSumberPengajuan.MENUNGGU_APPROVAL ->
+                                    "Tidak ada pengajuan yang menunggu approval."
+
+                                FilterSumberPengajuan.BAWAHAN ->
+                                    "Belum ada pengajuan dari bawahan."
+
+                                FilterSumberPengajuan.SEMUA ->
+                                    "Belum ada data pengajuan."
+                            }
+
+                        EmptyRiwayatState(
+                            text = emptyText
+                        )
+
+                    } else {
+
+                        LazyColumn(
+                            modifier =
+                                Modifier.fillMaxSize(),
+                            contentPadding =
+                                PaddingValues(
+                                    horizontal = 16.dp,
+                                    vertical = 8.dp
+                                ),
+                            verticalArrangement =
+                                Arrangement.spacedBy(
+                                    10.dp
+                                )
+                        ) {
+
+                            items(
+                                items =
+                                    pengajuanFiltered,
+                                key = {
+                                    it.id
+                                }
+                            ) { item ->
+
+                                RiwayatPengajuanCard(
+                                    item = item,
+                                    tampilkanPemohon =
+                                        filterSumberPengajuan !=
+                                                FilterSumberPengajuan.SAYA,
+                                    onClick = {
+
+                                        onDetailClick(
+                                            item
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==========================================================
+// FILTER TANGGAL ABSENSI
+// Aman untuk minSdk 24
+// ==========================================================
+
+private fun filterAbsensiByDays(
+    data: List<RiwayatAbsensi>,
+    jumlahHari: Int
+): List<RiwayatAbsensi> {
+
+    val formatter =
+        SimpleDateFormat(
+            "yyyy-MM-dd",
+            Locale.getDefault()
+        )
+
+    formatter.isLenient = false
+
+    val calendar =
+        Calendar.getInstance()
+
+    calendar.add(
+        Calendar.DAY_OF_YEAR,
+        -(jumlahHari - 1)
+    )
+
+    val startDate =
+        formatter.format(
+            calendar.time
+        )
+
+    return data.filter { item ->
+
+        try {
+
+            val tanggal =
+                item.tanggal.trim()
+
+            if (tanggal.isBlank()) {
+                false
+            } else {
+
+                val parsedDate =
+                    formatter.parse(tanggal)
+
+                val parsedText =
+                    parsedDate?.let {
+                        formatter.format(it)
+                    }
+
+                parsedText != null &&
+                        parsedText >= startDate &&
+                        parsedText <= formatter.format(
+                    Calendar.getInstance().time
+                )
+            }
+
+        } catch (
+            e: Exception
+        ) {
+
+            false
+        }
+    }
+}
+
+// ==========================================================
+// TAB BUTTON
+// ==========================================================
+
+@Composable
+private fun TabButtonRiwayat(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+
+            Text(
+                text = text,
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Normal
+                    }
+            )
+        },
+        modifier = modifier
+    )
+}
+
+// ==========================================================
+// FILTER CHIP
+// ==========================================================
+
+@Composable
+private fun FilterChipSimple(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+
+            Text(
+                text = text,
+                fontSize = 13.sp
+            )
+        }
+    )
+}
+
+// ==========================================================
+// EMPTY STATE
+// ==========================================================
+
+@Composable
+private fun EmptyRiwayatState(
+    text: String
+) {
+
+    Box(
         modifier =
             Modifier.fillMaxSize(),
+        contentAlignment =
+            Alignment.Center
+    ) {
 
-        color =
-            Background
+        Text(
+            text = text,
+            color =
+                Color(0xFF6B7280),
+            fontSize = 14.sp
+        )
+    }
+}
+
+// ==========================================================
+// CARD ABSENSI
+// ==========================================================
+
+@Composable
+private fun RiwayatAbsensiCard(
+    item: RiwayatAbsensi
+) {
+
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            )
     ) {
 
         Column(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(
-                        horizontal = 20.dp,
-                        vertical = 14.dp
-                    )
+                Modifier.padding(16.dp)
         ) {
 
-            // ==================================================
-            // HEADER
-            // ==================================================
-
             Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
-                IconButton(
-                    onClick =
-                        onBack
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.ArrowBack,
-
-                        contentDescription =
-                            "Kembali",
-
-                        tint =
-                            PrimaryGreen
-                    )
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.width(4.dp)
-                )
-
                 Icon(
                     imageVector =
-                        Icons.Default.History,
-
+                        Icons.Default.CalendarMonth,
                     contentDescription =
                         null,
-
                     tint =
-                        PrimaryGreen
+                        Color(0xFF16A34A)
                 )
 
                 Spacer(
@@ -772,1065 +1360,309 @@ fun RiwayatScreen(
 
                 Text(
                     text =
-                        "Riwayat Absensi",
-
-                    fontSize =
-                        22.sp,
-
+                        item.tanggal.ifBlank {
+                            "-"
+                        },
                     fontWeight =
                         FontWeight.Bold,
-
+                    fontSize = 16.sp,
                     color =
-                        TextDark
+                        Color(0xFF1F2937)
                 )
             }
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.height(10.dp)
             )
 
-            // ==================================================
-            // TAB
-            // ==================================================
+            Row {
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color =
-                                Color.White,
+                Icon(
+                    imageVector =
+                        Icons.Default.AccessTime,
+                    contentDescription =
+                        null,
+                    tint =
+                        Color(0xFF6B7280)
+                )
 
-                            shape =
-                                RoundedCornerShape(
-                                    12.dp
-                                )
-                        )
-                        .padding(4.dp)
-            ) {
-
-                Button(
-                    onClick = {
-
-                        tabAktif =
-                            TabRiwayat.ABSENSI
-                    },
-
+                Spacer(
                     modifier =
-                        Modifier.weight(1f),
+                        Modifier.width(8.dp)
+                )
 
-                    shape =
-                        RoundedCornerShape(
-                            9.dp
-                        ),
+                Text(
+                    text =
+                        "Masuk: ${
+                            item.jamMasuk.ifBlank {
+                                "-"
+                            }
+                        }",
+                    color =
+                        Color(0xFF4B5563)
+                )
 
-                    colors =
-                        ButtonDefaults.buttonColors(
-
-                            containerColor =
-                                if (
-                                    tabAktif ==
-                                    TabRiwayat.ABSENSI
-                                ) {
-                                    PrimaryGreen
-                                } else {
-                                    Color.Transparent
-                                },
-
-                            contentColor =
-                                if (
-                                    tabAktif ==
-                                    TabRiwayat.ABSENSI
-                                ) {
-                                    Color.White
-                                } else {
-                                    TextGray
-                                }
-                        )
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.CheckCircle,
-
-                        contentDescription =
-                            null,
-
-                        modifier =
-                            Modifier.size(18.dp)
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(6.dp)
-                    )
-
-                    Text(
-                        text =
-                            "Absensi",
-
-                        fontSize =
-                            13.sp,
-
-                        fontWeight =
-                            FontWeight.SemiBold
-                    )
-                }
-
-                Button(
-                    onClick = {
-
-                        tabAktif =
-                            TabRiwayat.PENGAJUAN
-                    },
-
+                Spacer(
                     modifier =
-                        Modifier.weight(1f),
+                        Modifier.width(16.dp)
+                )
 
-                    shape =
-                        RoundedCornerShape(
-                            9.dp
-                        ),
-
-                    colors =
-                        ButtonDefaults.buttonColors(
-
-                            containerColor =
-                                if (
-                                    tabAktif ==
-                                    TabRiwayat.PENGAJUAN
-                                ) {
-                                    PrimaryGreen
-                                } else {
-                                    Color.Transparent
-                                },
-
-                            contentColor =
-                                if (
-                                    tabAktif ==
-                                    TabRiwayat.PENGAJUAN
-                                ) {
-                                    Color.White
-                                } else {
-                                    TextGray
-                                }
-                        )
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.Description,
-
-                        contentDescription =
-                            null,
-
-                        modifier =
-                            Modifier.size(18.dp)
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(6.dp)
-                    )
-
-                    Text(
-                        text =
-                            "Pengajuan",
-
-                        fontSize =
-                            13.sp,
-
-                        fontWeight =
-                            FontWeight.SemiBold
-                    )
-                }
+                Text(
+                    text =
+                        "Pulang: ${
+                            item.jamPulang.ifBlank {
+                                "-"
+                            }
+                        }",
+                    color =
+                        Color(0xFF4B5563)
+                )
             }
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.height(8.dp)
             )
 
-            // ==================================================
-            // TAB ABSENSI
-            // ==================================================
-
             if (
-                tabAktif ==
-                TabRiwayat.ABSENSI
+                item.kantor.isNotBlank()
             ) {
 
                 Text(
                     text =
-                        "Filter Riwayat",
-
-                    fontSize =
-                        12.sp,
-
-                    fontWeight =
-                        FontWeight.Medium,
-
+                        "Kantor: ${item.kantor}",
+                    fontSize = 13.sp,
                     color =
-                        TextGray
+                        Color(0xFF6B7280)
                 )
+            }
+
+            if (
+                item.status.isNotBlank()
+            ) {
 
                 Spacer(
                     modifier =
                         Modifier.height(6.dp)
                 )
 
-                Card(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-
-                                dropdownTerbuka =
-                                    !dropdownTerbuka
-                            },
-
-                    shape =
-                        RoundedCornerShape(14.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Color.White
-                        ),
-
-                    elevation =
-                        CardDefaults.cardElevation(
-                            defaultElevation = 1.dp
-                        )
-                ) {
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = 16.dp,
-                                    vertical = 13.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Column(
-                            modifier =
-                                Modifier.weight(1f)
-                        ) {
-
-                            Text(
-                                text = "Filter",
-                                fontSize = 10.sp,
-                                color = TextGray
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
-                            Text(
-                                text =
-                                    filterAktif.label,
-
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
-                            )
-                        }
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.KeyboardArrowDown,
-
-                            contentDescription =
-                                "Pilih filter",
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                DropdownMenu(
-                    expanded =
-                        dropdownTerbuka,
-
-                    onDismissRequest = {
-
-                        dropdownTerbuka =
-                            false
-                    }
-                ) {
-
-                    FilterRiwayat
-                        .values()
-                        .forEach { filter ->
-
-                            DropdownMenuItem(
-
-                                text = {
-
-                                    Text(
-                                        text =
-                                            filter.label,
-
-                                        fontSize =
-                                            14.sp
-                                    )
-                                },
-
-                                onClick = {
-
-                                    filterAktif =
-                                        filter
-
-                                    dropdownTerbuka =
-                                        false
-                                }
-                            )
-                        }
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
+                Text(
+                    text =
+                        "Status: ${item.status}",
+                    fontSize = 13.sp,
+                    fontWeight =
+                        FontWeight.Medium,
+                    color =
+                        Color(0xFF374151)
                 )
-
-                // ==================================================
-                // ISI ABSENSI
-                // ==================================================
-
-                if (loading) {
-
-                    LoadingRiwayat()
-
-                } else if (
-                    errorMessage.isNotEmpty()
-                ) {
-
-                    ErrorRiwayat(
-                        message =
-                            errorMessage
-                    )
-
-                } else if (
-                    daftarRiwayat.isEmpty()
-                ) {
-
-                    EmptyRiwayat(
-                        message =
-                            "Tidak ada absensi dalam " +
-                                    filterAktif.label.lowercase()
-                    )
-
-                } else {
-
-                    LazyColumn(
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        verticalArrangement =
-                            Arrangement.spacedBy(
-                                12.dp
-                            )
-                    ) {
-
-                        items(
-                            items =
-                                daftarRiwayat,
-
-                            key = {
-                                "${it.tanggal}_${it.jamMasuk}_${it.jamPulang}"
-                            }
-                        ) { riwayat ->
-
-                            RiwayatCard(
-                                riwayat =
-                                    riwayat
-                            )
-                        }
-                    }
-                }
-
-            } else {
-
-                // ==================================================
-                // TAB PENGAJUAN STAFF
-                // ==================================================
-
-                if (loading) {
-
-                    LoadingRiwayat()
-
-                } else if (
-                    errorMessage.isNotEmpty()
-                ) {
-
-                    ErrorRiwayat(
-                        message =
-                            errorMessage
-                    )
-
-                } else if (
-                    daftarPengajuanTerfilter.isEmpty()
-                ) {
-
-                    EmptyPengajuanStaff()
-
-                } else {
-
-                    LazyColumn(
-                        modifier =
-                            Modifier.fillMaxSize(),
-
-                        verticalArrangement =
-                            Arrangement.spacedBy(
-                                12.dp
-                            )
-                    ) {
-
-                        items(
-                            items =
-                                daftarPengajuanTerfilter,
-
-                            key = {
-                                it.documentId
-                            }
-                        ) { pengajuan ->
-
-                            RiwayatPengajuanStaffCard(
-
-                                pengajuan =
-                                    pengajuan,
-
-                                onClick = {
-
-                                    onDetailClick(
-                                        pengajuan
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
             }
         }
     }
 }
 
 // ==========================================================
-// LOADING
+// CARD PENGAJUAN
 // ==========================================================
 
 @Composable
-private fun LoadingRiwayat() {
-
-    Column(
-        modifier =
-            Modifier.fillMaxSize(),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
-
-        verticalArrangement =
-            Arrangement.Center
-    ) {
-
-        CircularProgressIndicator(
-            color =
-                PrimaryGreen
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(10.dp)
-        )
-
-        Text(
-            text =
-                "Memuat riwayat...",
-
-            color =
-                TextGray,
-
-            fontSize =
-                13.sp
-        )
-    }
-}
-
-// ==========================================================
-// ERROR
-// ==========================================================
-
-@Composable
-private fun ErrorRiwayat(
-    message: String
+private fun RiwayatPengajuanCard(
+    item: RiwayatPengajuan,
+    tampilkanPemohon: Boolean,
+    onClick: () -> Unit
 ) {
 
-    Column(
-        modifier =
-            Modifier.fillMaxSize(),
+    val statusLower =
+        item.status.lowercase()
 
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
+    val statusIcon =
+        when {
 
-        verticalArrangement =
-            Arrangement.Center
-    ) {
+            statusLower.contains("setuju") ->
+                Icons.Default.CheckCircle
 
-        Icon(
-            imageVector =
-                Icons.Default.Warning,
+            statusLower.contains("tolak") ->
+                Icons.Default.Close
 
-            contentDescription =
-                null,
-
-            tint =
-                Color.Red,
-
-            modifier =
-                Modifier.size(40.dp)
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(10.dp)
-        )
-
-        Text(
-            text =
-                message,
-
-            color =
-                Color.Red,
-
-            fontSize =
-                14.sp,
-
-            textAlign =
-                TextAlign.Center
-        )
-    }
-}
-
-// ==========================================================
-// EMPTY ABSENSI
-// ==========================================================
-
-@Composable
-private fun EmptyRiwayat(
-    message: String
-) {
-
-    Column(
-        modifier =
-            Modifier.fillMaxSize(),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
-
-        verticalArrangement =
-            Arrangement.Center
-    ) {
-
-        Icon(
-            imageVector =
-                Icons.Default.History,
-
-            contentDescription =
-                null,
-
-            tint =
-                TextGray,
-
-            modifier =
-                Modifier.size(42.dp)
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
-
-        Text(
-            text =
-                "Tidak ada riwayat",
-
-            fontSize =
-                15.sp,
-
-            fontWeight =
-                FontWeight.Medium,
-
-            color =
-                TextDark
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(5.dp)
-        )
-
-        Text(
-            text =
-                message,
-
-            fontSize =
-                12.sp,
-
-            color =
-                TextGray,
-
-            textAlign =
-                TextAlign.Center
-        )
-    }
-}
-
-// ==========================================================
-// EMPTY PENGAJUAN STAFF
-// ==========================================================
-
-@Composable
-private fun EmptyPengajuanStaff() {
-
-    Column(
-        modifier =
-            Modifier.fillMaxSize(),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
-
-        verticalArrangement =
-            Arrangement.Center
-    ) {
-
-        Surface(
-            modifier =
-                Modifier.size(64.dp),
-
-            shape =
-                CircleShape,
-
-            color =
-                Color(0xFFE8F5E9)
-        ) {
-
-            Icon(
-                imageVector =
-                    Icons.Default.Description,
-
-                contentDescription =
-                    null,
-
-                tint =
-                    PrimaryGreen,
-
-                modifier =
-                    Modifier.padding(
-                        17.dp
-                    )
-            )
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(14.dp)
-        )
-
-        Text(
-            text =
-                "Belum Ada Pengajuan",
-
-            fontSize =
-                16.sp,
-
-            fontWeight =
-                FontWeight.Bold,
-
-            color =
-                TextDark
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(5.dp)
-        )
-
-        Text(
-            text =
-                "Pengajuan yang kamu buat akan\n" +
-                        "tampil di halaman ini.",
-
-            fontSize =
-                12.sp,
-
-            color =
-                TextGray,
-
-            textAlign =
-                TextAlign.Center
-        )
-    }
-}
-
-// ==========================================================
-// CARD RIWAYAT ABSENSI
-// ==========================================================
-
-@Composable
-private fun RiwayatCard(
-    riwayat: RiwayatAbsensi
-) {
-
-    val sudahPulang =
-        riwayat.jamPulang.isNotBlank() &&
-                riwayat.jamPulang != "-"
-
-    val statusText =
-        if (sudahPulang) {
-            "HADIR"
-        } else {
-            "BELUM PULANG"
+            else ->
+                Icons.Default.Pending
         }
 
     val statusColor =
-        if (sudahPulang) {
-            PrimaryGreen
-        } else {
-            Color(0xFFD97706)
-        }
+        when {
 
-    val statusBackground =
-        if (sudahPulang) {
-            Color(0xFFE8F5E9)
-        } else {
-            Color(0xFFFFF3E0)
+            statusLower.contains("setuju") ->
+                Color(0xFF16A34A)
+
+            statusLower.contains("tolak") ->
+                Color(0xFFDC2626)
+
+            else ->
+                Color(0xFFD97706)
         }
 
     Card(
         modifier =
             Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(18.dp),
-
+        onClick = onClick,
         colors =
             CardDefaults.cardColors(
                 containerColor =
                     Color.White
             ),
-
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
+                defaultElevation = 2.dp
             )
     ) {
 
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(17.dp)
+                Modifier.padding(16.dp)
         ) {
+
+            // ==============================================
+            // HEADER
+            // ==============================================
 
             Row(
                 modifier =
                     Modifier.fillMaxWidth(),
-
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
-                Column(
+                Icon(
+                    imageVector =
+                        Icons.Default.Description,
+                    contentDescription =
+                        null,
+                    tint =
+                        Color(0xFF16A34A)
+                )
+
+                Spacer(
                     modifier =
-                        Modifier.weight(1f)
-                ) {
+                        Modifier.width(8.dp)
+                )
 
-                    Text(
-                        text =
-                            formatTanggal(
-                                riwayat.tanggal
-                            ),
-
-                        fontSize =
-                            16.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
-                    Text(
-                        text =
-                            riwayat.tanggal,
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-                Surface(
-                    shape =
-                        RoundedCornerShape(
-                            20.dp
-                        ),
-
+                Text(
+                    text =
+                        item.jenis.ifBlank {
+                            "Pengajuan"
+                        },
+                    modifier =
+                        Modifier.weight(1f),
+                    fontSize = 16.sp,
+                    fontWeight =
+                        FontWeight.Bold,
                     color =
-                        statusBackground
-                ) {
+                        Color(0xFF1F2937)
+                )
 
-                    Row(
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 10.dp,
-                                vertical = 6.dp
-                            ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                if (sudahPulang) {
-                                    Icons.Default.CheckCircle
-                                } else {
-                                    Icons.Default.Schedule
-                                },
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                statusColor,
-
-                            modifier =
-                                Modifier.size(15.dp)
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(4.dp)
-                        )
-
-                        Text(
-                            text =
-                                statusText,
-
-                            fontSize =
-                                10.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                statusColor
-                        )
-                    }
-                }
+                Icon(
+                    imageVector =
+                        statusIcon,
+                    contentDescription =
+                        null,
+                    tint =
+                        statusColor
+                )
             }
 
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.SpaceBetween
-            ) {
-
-                Column {
-
-                    Text(
-                        text =
-                            "Jam Masuk",
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
-
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.AccessTime,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(18.dp)
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(5.dp)
-                        )
-
-                        Text(
-                            text =
-                                riwayat.jamMasuk,
-
-                            fontSize =
-                                15.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-                    }
-                }
-
-                Column(
-                    horizontalAlignment =
-                        Alignment.End
-                ) {
-
-                    Text(
-                        text =
-                            "Jam Pulang",
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(4.dp)
-                    )
-
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Text(
-                            text =
-                                riwayat.jamPulang,
-
-                            fontSize =
-                                15.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                TextDark
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(5.dp)
-                        )
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.AccessTime,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
+            // ==============================================
+            // PEMOHON
+            // ==============================================
 
             if (
-                riwayat.catatan.isNotBlank()
+                tampilkanPemohon
             ) {
 
                 Spacer(
                     modifier =
-                        Modifier.height(14.dp)
+                        Modifier.height(12.dp)
                 )
 
-                Text(
-                    text =
-                        "Catatan",
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
+                Surface(
                     modifier =
-                        Modifier.height(3.dp)
-                )
-
-                Text(
-                    text =
-                        riwayat.catatan,
-
-                    fontSize =
-                        13.sp,
-
+                        Modifier.fillMaxWidth(),
                     color =
-                        TextDark
-                )
+                        Color(0xFFF3F4F6),
+                    shape =
+                        MaterialTheme.shapes.medium
+                ) {
+
+                    Column(
+                        modifier =
+                            Modifier.padding(10.dp)
+                    ) {
+
+                        Text(
+                            text = "Pemohon",
+                            fontSize = 12.sp,
+                            color =
+                                Color(0xFF6B7280),
+                            fontWeight =
+                                FontWeight.Medium
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(3.dp)
+                        )
+
+                        Text(
+                            text =
+                                item.namaPemohon
+                                    .ifBlank {
+                                        "-"
+                                    },
+                            fontSize = 14.sp,
+                            fontWeight =
+                                FontWeight.Bold,
+                            color =
+                                Color(0xFF1F2937)
+                        )
+
+                        if (
+                            item.jabatanPemohon
+                                .isNotBlank()
+                        ) {
+
+                            Text(
+                                text =
+                                    item.jabatanPemohon,
+                                fontSize = 12.sp,
+                                color =
+                                    Color(0xFF6B7280)
+                            )
+                        }
+
+                        if (
+                            item.divisiPemohon
+                                .isNotBlank()
+                        ) {
+
+                            Text(
+                                text =
+                                    item.divisiPemohon,
+                                fontSize = 12.sp,
+                                color =
+                                    Color(0xFF6B7280)
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(
                 modifier =
-                    Modifier.height(14.dp)
+                    Modifier.height(10.dp)
             )
+
+            // ==============================================
+            // TANGGAL
+            // ==============================================
 
             Row(
                 verticalAlignment =
@@ -1839,814 +1671,108 @@ private fun RiwayatCard(
 
                 Icon(
                     imageVector =
-                        if (sudahPulang) {
-                            Icons.Default.CheckCircle
-                        } else {
-                            Icons.Default.Schedule
-                        },
-
+                        Icons.Default.CalendarMonth,
                     contentDescription =
                         null,
-
                     tint =
-                        if (sudahPulang) {
-                            PrimaryGreen
-                        } else {
-                            Color(0xFFD97706)
-                        },
-
-                    modifier =
-                        Modifier.size(18.dp)
+                        Color(0xFF6B7280)
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.width(5.dp)
+                        Modifier.width(8.dp)
                 )
 
-                Text(
-                    text =
-                        if (sudahPulang) {
-                            "Absensi Lengkap"
-                        } else {
-                            "Belum Absen Pulang"
-                        },
-
-                    fontSize =
-                        12.sp,
-
-                    fontWeight =
-                        FontWeight.Medium,
-
-                    color =
-                        if (sudahPulang) {
-                            PrimaryGreen
-                        } else {
-                            Color(0xFFD97706)
-                        }
-                )
-            }
-        }
-    }
-}
-
-// ==========================================================
-// CARD PENGAJUAN STAFF
-// ==========================================================
-
-@Composable
-private fun RiwayatPengajuanStaffCard(
-    pengajuan: RiwayatPengajuan,
-    onClick: () -> Unit
-) {
-
-    val statusNormal =
-        pengajuan.status
-            .trim()
-            .lowercase()
-
-    val statusText =
-        when (statusNormal) {
-
-            "menunggu" ->
-                "MENUNGGU"
-
-            "disetujui" ->
-                "DISETUJUI"
-
-            "ditolak" ->
-                "DITOLAK"
-
-            else ->
-                pengajuan.status.uppercase()
-        }
-
-    val statusColor =
-        when (statusNormal) {
-
-            "disetujui" ->
-                PrimaryGreen
-
-            "ditolak" ->
-                Color(0xFFB91C1C)
-
-            else ->
-                Color(0xFFE67E22)
-        }
-
-    val statusBackground =
-        when (statusNormal) {
-
-            "disetujui" ->
-                Color(0xFFE8F5E9)
-
-            "ditolak" ->
-                Color(0xFFFFEBEE)
-
-            else ->
-                Color(0xFFFFF3E0)
-        }
-
-    Card(
-        onClick =
-            onClick,
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(18.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
-            )
-    ) {
-
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(17.dp)
-        ) {
-
-            // ==================================================
-            // HEADER
-            // ==================================================
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Surface(
-                    modifier =
-                        Modifier.size(44.dp),
-
-                    shape =
-                        RoundedCornerShape(
-                            12.dp
-                        ),
-
-                    color =
-                        Color(0xFFE8F5E9)
-                ) {
-
-                    Icon(
-                        imageVector =
-                            Icons.Default.Description,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            PrimaryGreen,
-
-                        modifier =
-                            Modifier.padding(
-                                10.dp
-                            )
-                    )
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.width(12.dp)
-                )
-
-                Column(
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text =
-                            pengajuan.jenis
-                                .ifBlank {
-                                    "Pengajuan"
-                                },
-
-                        fontSize =
-                            16.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
-                    Text(
-                        text =
-                            if (
-                                pengajuan.tanggalSelesai
-                                    .isNotBlank() &&
-                                pengajuan.tanggalSelesai !=
-                                pengajuan.tanggalMulai
-                            ) {
-
-                                "${pengajuan.tanggalMulai} - " +
-                                        pengajuan.tanggalSelesai
-
-                            } else {
-
-                                pengajuan.tanggalMulai
-                            },
-
-                        fontSize =
-                            11.sp,
-
-                        color =
-                            TextGray
-                    )
-                }
-
-                Surface(
-                    shape =
-                        RoundedCornerShape(
-                            20.dp
-                        ),
-
-                    color =
-                        statusBackground
-                ) {
-
-                    Text(
-                        text =
-                            statusText,
-
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 10.dp,
-                                vertical = 6.dp
-                            ),
-
-                        fontSize =
-                            10.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            statusColor
-                    )
-                }
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            // ==================================================
-            // DETAIL WAKTU
-            // ==================================================
-
-            if (
-                pengajuan.jamPulang.isNotBlank() ||
-                pengajuan.jamKeluar.isNotBlank() ||
-                pengajuan.jamKembali.isNotBlank()
-            ) {
-
-                Surface(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(
-                            12.dp
-                        ),
-
-                    color =
-                        Background
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier.padding(
-                                12.dp
-                            )
+                val tanggalText =
+                    if (
+                        item.tanggalMulai.isNotBlank() &&
+                        item.tanggalSelesai.isNotBlank() &&
+                        item.tanggalMulai !=
+                        item.tanggalSelesai
                     ) {
 
-                        Text(
-                            text =
-                                "Detail Waktu",
+                        "${item.tanggalMulai} - ${item.tanggalSelesai}"
 
-                            fontSize =
-                                11.sp,
+                    } else {
 
-                            fontWeight =
-                                FontWeight.SemiBold,
-
-                            color =
-                                TextGray
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(8.dp)
-                        )
-
-                        if (
-                            pengajuan.jamPulang.isNotBlank()
-                        ) {
-
-                            PengajuanDetailRow(
-                                label =
-                                    "Jam Pulang",
-
-                                value =
-                                    pengajuan.jamPulang
-                            )
-                        }
-
-                        if (
-                            pengajuan.jamKeluar.isNotBlank()
-                        ) {
-
-                            PengajuanDetailRow(
-                                label =
-                                    "Jam Keluar",
-
-                                value =
-                                    pengajuan.jamKeluar
-                            )
-                        }
-
-                        if (
-                            pengajuan.jamKembali.isNotBlank()
-                        ) {
-
-                            PengajuanDetailRow(
-                                label =
-                                    "Jam Kembali",
-
-                                value =
-                                    pengajuan.jamKembali
-                            )
+                        item.tanggalMulai.ifBlank {
+                            item.tanggalSelesai.ifBlank {
+                                "-"
+                            }
                         }
                     }
-                }
 
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
+                Text(
+                    text = tanggalText,
+                    fontSize = 13.sp,
+                    color =
+                        Color(0xFF4B5563)
                 )
             }
 
-            // ==================================================
+            // ==============================================
             // ALASAN
-            // ==================================================
+            // ==============================================
 
             if (
-                pengajuan.alasan.isNotBlank()
+                item.alasan.isNotBlank()
             ) {
-
-                Text(
-                    text =
-                        "Alasan",
-
-                    fontSize =
-                        11.sp,
-
-                    fontWeight =
-                        FontWeight.Medium,
-
-                    color =
-                        TextGray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(4.dp)
-                )
-
-                Text(
-                    text =
-                        pengajuan.alasan,
-
-                    fontSize =
-                        13.sp,
-
-                    color =
-                        TextDark
-                )
-            }
-
-            // ==================================================
-// JALUR APPROVAL
-// ==================================================
-
-            if (pengajuan.approvalChain.isNotEmpty()) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
-                )
-
-                Text(
-                    text =
-                        "Jalur Approval",
-
-                    fontSize =
-                        11.sp,
-
-                    fontWeight =
-                        FontWeight.SemiBold,
-
-                    color =
-                        TextGray
-                )
 
                 Spacer(
                     modifier =
                         Modifier.height(8.dp)
                 )
 
-                val approvalStages =
-                    pengajuan.approvalChain
-                        .sortedBy {
-                            (it["urutan"] as? Number)
-                                ?.toInt()
-                                ?: it["urutan"]
-                                    ?.toString()
-                                    ?.toIntOrNull()
-                                ?: 0
-                        }
-
-                approvalStages.forEachIndexed { index, stage ->
-
-                    val uid =
-                        stage["uid"]
-                            ?.toString()
-                            .orEmpty()
-
-                    val nama =
-                        stage["nama"]
-                            ?.toString()
-                            .orEmpty()
-                            .ifBlank {
-                                "Approver"
-                            }
-
-                    val jabatan =
-                        stage["jabatan"]
-                            ?.toString()
-                            ?.uppercase()
-                            .orEmpty()
-
-                    val savedStatus =
-                        pengajuan.approvalStatuses[uid]
-                            ?.toString()
-                            ?.trim()
-                            ?.lowercase()
-                            .orEmpty()
-
-                    val stageStatus =
-                        when {
-
-                            savedStatus == "disetujui" ->
-                                "disetujui"
-
-                            savedStatus == "ditolak" ->
-                                "ditolak"
-
-                            uid ==
-                                    pengajuan.currentApproverUid ->
-                                "sedang_diproses"
-
-                            else ->
-                                "menunggu"
-                        }
-
-                    val statusText =
-                        when (stageStatus) {
-
-                            "disetujui" ->
-                                "Disetujui"
-
-                            "ditolak" ->
-                                "Ditolak"
-
-                            "sedang_diproses" ->
-                                "Sedang diproses"
-
-                            else ->
-                                "Menunggu"
-                        }
-
-                    val statusColor =
-                        when (stageStatus) {
-
-                            "disetujui" ->
-                                PrimaryGreen
-
-                            "ditolak" ->
-                                Color(0xFFB91C1C)
-
-                            "sedang_diproses" ->
-                                Color(0xFF2563EB)
-
-                            else ->
-                                TextGray
-                        }
-
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Surface(
-                            modifier =
-                                Modifier.size(30.dp),
-
-                            shape =
-                                CircleShape,
-
-                            color =
-                                when (stageStatus) {
-
-                                    "disetujui" ->
-                                        Color(0xFFE8F5E9)
-
-                                    "ditolak" ->
-                                        Color(0xFFFFEBEE)
-
-                                    "sedang_diproses" ->
-                                        Color(0xFFEFF6FF)
-
-                                    else ->
-                                        Color(0xFFF3F4F6)
-                                }
-                        ) {
-
-                            Icon(
-                                imageVector =
-                                    when (stageStatus) {
-
-                                        "disetujui" ->
-                                            Icons.Default.CheckCircle
-
-                                        "ditolak" ->
-                                            Icons.Default.Warning
-
-                                        "sedang_diproses" ->
-                                            Icons.Default.Schedule
-
-                                        else ->
-                                            Icons.Default.Schedule
-                                    },
-
-                                contentDescription =
-                                    null,
-
-                                tint =
-                                    statusColor,
-
-                                modifier =
-                                    Modifier.padding(7.dp)
-                            )
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(10.dp)
-                        )
-
-                        Column(
-                            modifier =
-                                Modifier.weight(1f)
-                        ) {
-
-                            Text(
-                                text =
-                                    if (jabatan.isNotBlank()) {
-                                        "$jabatan • $nama"
-                                    } else {
-                                        nama
-                                    },
-
-                                fontSize =
-                                    12.sp,
-
-                                fontWeight =
-                                    FontWeight.SemiBold,
-
-                                color =
-                                    TextDark
-                            )
-
-                            Text(
-                                text =
-                                    statusText,
-
-                                fontSize =
-                                    11.sp,
-
-                                color =
-                                    statusColor
-                            )
-                        }
-                    }
-
-                    if (
-                        index <
-                        approvalStages.lastIndex
-                    ) {
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(6.dp)
-                        )
-                    }
-                }
+                Text(
+                    text =
+                        item.alasan,
+                    fontSize = 13.sp,
+                    color =
+                        Color(0xFF4B5563),
+                    maxLines = 3
+                )
             }
 
-            // ==================================================
-            // CATATAN ADMIN
-            // ==================================================
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
 
-            if (
-                pengajuan.catatanAdmin.isNotBlank()
+            // ==============================================
+            // STATUS
+            // ==============================================
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
+
+                Icon(
+                    imageVector =
+                        statusIcon,
+                    contentDescription =
+                        null,
+                    tint =
+                        statusColor
+                )
 
                 Spacer(
                     modifier =
-                        Modifier.height(14.dp)
+                        Modifier.width(6.dp)
                 )
 
-                Surface(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(
-                            12.dp
-                        ),
-
+                Text(
+                    text =
+                        item.status.ifBlank {
+                            "Menunggu"
+                        },
+                    fontSize = 13.sp,
+                    fontWeight =
+                        FontWeight.Bold,
                     color =
-                        Color(0xFFF5F5F5)
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier.padding(
-                                12.dp
-                            )
-                    ) {
-
-                        Text(
-                            text =
-                                "Catatan Admin",
-
-                            fontSize =
-                                11.sp,
-
-                            fontWeight =
-                                FontWeight.SemiBold,
-
-                            color =
-                                TextGray
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(4.dp)
-                        )
-
-                        Text(
-                            text =
-                                pengajuan.catatanAdmin,
-
-                            fontSize =
-                                13.sp,
-
-                            color =
-                                TextDark
-                        )
-                    }
-                }
+                        statusColor
+                )
             }
         }
-    }
-}
-
-// ==========================================================
-// DETAIL ROW PENGAJUAN
-// ==========================================================
-
-@Composable
-private fun PengajuanDetailRow(
-    label: String,
-    value: String
-) {
-
-    Row(
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        horizontalArrangement =
-            Arrangement.SpaceBetween
-    ) {
-
-        Text(
-            text =
-                label,
-
-            fontSize =
-                12.sp,
-
-            color =
-                TextGray
-        )
-
-        Text(
-            text =
-                value,
-
-            fontSize =
-                12.sp,
-
-            fontWeight =
-                FontWeight.SemiBold,
-
-            color =
-                TextDark
-        )
-    }
-
-    Spacer(
-        modifier =
-            Modifier.height(5.dp)
-    )
-}
-
-// ==========================================================
-// FORMAT TANGGAL
-// ==========================================================
-
-private fun formatTanggal(
-    tanggal: String
-): String {
-
-    return try {
-
-        val input =
-            SimpleDateFormat(
-                "yyyy-MM-dd",
-                Locale.getDefault()
-            )
-
-        input.isLenient =
-            false
-
-        val output =
-            SimpleDateFormat(
-                "dd MMMM yyyy",
-                Locale(
-                    "id",
-                    "ID"
-                )
-            )
-
-        val date =
-            input.parse(
-                tanggal
-            )
-
-        if (date != null) {
-
-            output.format(
-                date
-            )
-
-        } else {
-
-            tanggal
-        }
-
-    } catch (
-        e: Exception
-    ) {
-
-        tanggal
     }
 }

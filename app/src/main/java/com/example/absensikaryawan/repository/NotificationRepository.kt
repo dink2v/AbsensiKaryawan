@@ -3,7 +3,6 @@ package com.example.absensikaryawan.repository
 import com.example.absensikaryawan.models.Notification
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
 
 class NotificationRepository {
 
@@ -59,10 +58,9 @@ class NotificationRepository {
     ): ListenerRegistration {
 
         return notificationsCollection
-            .whereEqualTo("userId", userId)
-            .orderBy(
-                "timestamp",
-                Query.Direction.DESCENDING
+            .whereEqualTo(
+                "userId",
+                userId
             )
             .addSnapshotListener { snapshot, exception ->
 
@@ -105,8 +103,8 @@ class NotificationRepository {
                             // ==================================
                             // READ STATUS
                             // Mendukung:
-                            // - read
-                            // - isRead
+                            // read
+                            // isRead
                             // ==================================
 
                             val isRead =
@@ -160,6 +158,9 @@ class NotificationRepository {
                             null
                         }
                     }
+                        .sortedByDescending {
+                            it.timestamp
+                        }
 
                 onNotificationsChanged(
                     notifications
@@ -205,10 +206,6 @@ class NotificationRepository {
             .whereEqualTo(
                 "userId",
                 userId
-            )
-            .whereEqualTo(
-                "read",
-                false
             )
             .get()
             .addOnSuccessListener { snapshot ->

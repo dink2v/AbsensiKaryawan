@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.NoteAdd
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 
@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.example.absensikaryawan.ThemeDataStore
+import com.example.absensikaryawan.data.PengajuanData
 import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.repository.ChatRoom
 
@@ -46,6 +47,7 @@ import com.example.absensikaryawan.screens.AdminNotifikasiScreen
 import com.example.absensikaryawan.screens.AdminSettingsScreen
 import com.example.absensikaryawan.screens.ApprovalScreen
 import com.example.absensikaryawan.screens.BantuanScreen
+import com.example.absensikaryawan.screens.DetailPengajuanScreen
 import com.example.absensikaryawan.screens.KaryawanScreen
 import com.example.absensikaryawan.screens.ProfileScreen
 import com.example.absensikaryawan.screens.RekapAdminScreen
@@ -77,6 +79,8 @@ private enum class AdminScreen {
     Chat,
 
     Approval,
+
+    ApprovalDetail,
 
     Karyawan,
 
@@ -187,6 +191,25 @@ fun AdminNavigation(
 
 
     // ======================================================
+    // APPROVAL TERPILIH
+    // ======================================================
+
+    var selectedApprovalId by
+    remember {
+
+        mutableStateOf("")
+    }
+
+    var selectedApproval by
+    remember {
+
+        mutableStateOf<PengajuanData?>(
+            null
+        )
+    }
+
+
+    // ======================================================
     // BOTTOM MENU
     // ======================================================
 
@@ -213,8 +236,7 @@ fun AdminNavigation(
                 label =
                     "Approval",
 
-                icon =
-                    Icons.Default.NoteAdd
+                Icons.AutoMirrored.Filled.NoteAdd
             ),
 
             AdminBottomItem(
@@ -285,24 +307,20 @@ fun AdminNavigation(
                                 currentScreen ==
                                         AdminScreen.Dashboard
 
-
                             AdminScreen.Approval ->
 
                                 currentScreen ==
                                         AdminScreen.Approval
-
 
                             AdminScreen.Karyawan ->
 
                                 currentScreen ==
                                         AdminScreen.Karyawan
 
-
                             AdminScreen.Rekap ->
 
                                 currentScreen ==
                                         AdminScreen.Rekap
-
 
                             AdminScreen.Settings ->
 
@@ -319,7 +337,6 @@ fun AdminNavigation(
 
                                             AdminScreen.TentangAplikasi
                                         )
-
 
                             else ->
                                 false
@@ -341,10 +358,6 @@ fun AdminNavigation(
                             currentScreen =
                                 item.screen
 
-                            // ==================================
-                            // RESET CHAT
-                            // ==================================
-
                             if (
                                 item.screen !=
                                 AdminScreen.Chat
@@ -352,6 +365,18 @@ fun AdminNavigation(
 
                                 chatRoomTerpilih =
                                     null
+                            }
+
+                            if (
+                                item.screen !=
+                                AdminScreen.Approval
+                            ) {
+
+                                selectedApproval =
+                                    null
+
+                                selectedApprovalId =
+                                    ""
                             }
                         },
 
@@ -437,10 +462,6 @@ fun AdminNavigation(
                     )
         ) {
 
-            // ==================================================
-            // ROUTING ADMIN
-            // ==================================================
-
             when (
                 currentScreen
             ) {
@@ -459,6 +480,12 @@ fun AdminNavigation(
                                 "ADMIN_NAV",
                                 "APPROVAL DIKLIK"
                             )
+
+                            selectedApprovalId =
+                                ""
+
+                            selectedApproval =
+                                null
 
                             currentScreen =
                                 AdminScreen.Approval
@@ -521,6 +548,7 @@ fun AdminNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // NOTIFIKASI
                 // ==================================================
@@ -528,26 +556,54 @@ fun AdminNavigation(
                 AdminScreen.Notifikasi -> {
 
                     AdminNotifikasiScreen(
+
                         onBack = {
-                            currentScreen = AdminScreen.Dashboard
+
+                            currentScreen =
+                                AdminScreen.Dashboard
                         },
 
-                        onApprovalClick = {
-                            Log.d("ADMIN_NAV", "NOTIFIKASI -> APPROVAL")
-                            currentScreen = AdminScreen.Approval
+                        onApprovalClick = { relatedId ->
+
+                            Log.d(
+                                "ADMIN_NAV",
+                                "NOTIFIKASI -> APPROVAL: $relatedId"
+                            )
+
+                            selectedApprovalId =
+                                relatedId
+
+                            selectedApproval =
+                                null
+
+                            currentScreen =
+                                AdminScreen.Approval
                         },
 
                         onRekapClick = {
-                            Log.d("ADMIN_NAV", "NOTIFIKASI -> REKAP")
-                            currentScreen = AdminScreen.Rekap
+
+                            Log.d(
+                                "ADMIN_NAV",
+                                "NOTIFIKASI -> REKAP"
+                            )
+
+                            currentScreen =
+                                AdminScreen.Rekap
                         },
 
                         onChatClick = {
-                            Log.d("ADMIN_NAV", "NOTIFIKASI -> CHAT")
-                            currentScreen = AdminScreen.Chat
+
+                            Log.d(
+                                "ADMIN_NAV",
+                                "NOTIFIKASI -> CHAT"
+                            )
+
+                            currentScreen =
+                                AdminScreen.Chat
                         }
                     )
                 }
+
 
                 // ==================================================
                 // CHAT
@@ -594,6 +650,7 @@ fun AdminNavigation(
                     }
                 }
 
+
                 // ==================================================
                 // APPROVAL
                 // ==================================================
@@ -602,15 +659,88 @@ fun AdminNavigation(
 
                     ApprovalScreen(
 
-                        onDetailClick = {
+                        initialDocumentId =
+                            selectedApprovalId,
+
+                        onDetailClick = { pengajuan ->
 
                             Log.d(
                                 "ADMIN_NAV",
-                                "DETAIL APPROVAL"
+                                "DETAIL APPROVAL: ${pengajuan.id}"
                             )
+
+                            selectedApproval =
+                                pengajuan
+
+                            selectedApprovalId =
+                                ""
+
+                            currentScreen =
+                                AdminScreen.ApprovalDetail
                         }
                     )
                 }
+
+
+                // ==================================================
+                // APPROVAL DETAIL
+                // ==================================================
+
+                AdminScreen.ApprovalDetail -> {
+
+                    val pengajuan =
+                        selectedApproval
+
+                    if (
+                        pengajuan != null
+                    ) {
+
+                        DetailPengajuanScreen(
+
+                            jenis =
+                                pengajuan.jenis,
+
+                            tanggal =
+                                pengajuan.tanggal,
+
+                            status =
+                                pengajuan.status,
+
+                            jamPulang =
+                                pengajuan.jamPulang,
+
+                            jamKeluar =
+                                pengajuan.jamKeluar,
+
+                            jamKembali =
+                                pengajuan.jamKembali,
+
+                            tanggalMulai =
+                                pengajuan.tanggalMulai,
+
+                            tanggalSelesai =
+                                pengajuan.tanggalSelesai,
+
+                            alasan =
+                                pengajuan.alasan,
+
+                            onBack = {
+
+                                selectedApproval =
+                                    null
+
+                                currentScreen =
+                                    AdminScreen.Approval
+                            }
+                        )
+
+                    } else {
+
+                        currentScreen =
+                            AdminScreen.Approval
+                    }
+                }
+
 
                 // ==================================================
                 // KARYAWAN
@@ -628,6 +758,7 @@ fun AdminNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // REKAP
                 // ==================================================
@@ -636,6 +767,7 @@ fun AdminNavigation(
 
                     RekapAdminScreen()
                 }
+
 
                 // ==================================================
                 // SETTINGS
@@ -681,6 +813,7 @@ fun AdminNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // QR KANTOR
                 // ==================================================
@@ -697,6 +830,7 @@ fun AdminNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // PROFILE
                 // ==================================================
@@ -712,6 +846,7 @@ fun AdminNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // TAMPILAN
@@ -743,6 +878,7 @@ fun AdminNavigation(
                     )
                 }
 
+
                 // ==================================================
                 // BANTUAN
                 // ==================================================
@@ -764,6 +900,7 @@ fun AdminNavigation(
                         }
                     )
                 }
+
 
                 // ==================================================
                 // TENTANG APLIKASI

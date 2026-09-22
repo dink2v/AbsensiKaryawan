@@ -270,11 +270,22 @@ exports.kirimNotifikasiFCM = onDocumentCreated(
         // AMBIL USER
         // =================================================
 
-        const userRef = db
-            .collection("users")
-            .doc(userId);
+        const userQuery = await db
+    .collection("users")
+    .where("uid", "==", userId)
+    .limit(1)
+    .get();
 
-        const userSnapshot = await userRef.get();
+if (userQuery.empty) {
+    console.log(
+        "User dengan Auth UID tidak ditemukan:",
+        userId
+    );
+    return;
+}
+
+const userSnapshot = userQuery.docs[0];
+const userRef = userSnapshot.ref;
 
 
         if (!userSnapshot.exists) {

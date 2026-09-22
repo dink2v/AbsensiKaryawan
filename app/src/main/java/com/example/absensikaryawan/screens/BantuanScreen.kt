@@ -18,18 +18,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NoteAdd
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,10 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ==========================================================
-// DATA PANDUAN
-// ==========================================================
-
 private data class HelpItem(
     val icon: ImageVector,
     val title: String,
@@ -54,70 +52,52 @@ private data class HelpItem(
     val steps: List<String>
 )
 
-
-// ==========================================================
-// BANTUAN SCREEN
-// ==========================================================
-
 @Composable
 fun BantuanScreen(
     onBack: () -> Unit,
     onChatAdmin: () -> Unit
 ) {
-
     var selectedHelp by remember {
         mutableStateOf<HelpItem?>(null)
     }
-
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Background
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Background)
                 .statusBarsPadding()
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 16.dp
-                )
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
 
-            // ==================================================
+            // =========================
             // HEADER
-            // ==================================================
-
+            // =========================
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 IconButton(
-                    onClick = onBack
+                    onClick = onBack,
+                    modifier = Modifier.size(44.dp)
                 ) {
-
                     Icon(
-                        imageVector =
-                            Icons.Default.ArrowBack,
-
-                        contentDescription =
-                            "Kembali",
-
-                        tint =
-                            PrimaryGreen
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = PrimaryGreen,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
+                Spacer(modifier = Modifier.width(4.dp))
 
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-
                     Text(
                         text = "Bantuan",
                         fontSize = 23.sp,
@@ -125,30 +105,21 @@ fun BantuanScreen(
                         color = TextDark
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(2.dp)
-                    )
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text =
-                            "Bantuan & informasi penggunaan",
-
+                        text = "Bantuan & informasi penggunaan",
                         fontSize = 12.sp,
                         color = TextGray
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.height(26.dp))
 
-            Spacer(
-                modifier = Modifier.height(26.dp)
-            )
-
-
-            // ==================================================
-            // JUDUL PANDUAN
-            // ==================================================
-
+            // =========================
+            // JUDUL SECTION
+            // =========================
             Text(
                 text = "Panduan Penggunaan",
                 fontSize = 17.sp,
@@ -156,337 +127,292 @@ fun BantuanScreen(
                 color = TextDark
             )
 
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
+            // =========================
+            // CARA MELAKUKAN ABSEN
+            // =========================
+            HelpCard(
+                item = HelpItem(
+                    icon = Icons.Default.QrCodeScanner,
+                    title = "Cara Melakukan Absen",
+                    description = "Panduan melakukan absensi masuk menggunakan QR Code.",
+                    steps = listOf(
+                        "Buka menu Scan pada halaman utama aplikasi.",
+                        "Arahkan kamera ke QR Code kantor yang telah terdaftar.",
+                        "Tunggu sampai QR Code berhasil terbaca.",
+                        "Pastikan kantor yang terdeteksi sudah sesuai.",
+                        "Isi catatan jika diperlukan.",
+                        "Absensi masuk akan tersimpan secara otomatis."
+                    )
+                ),
+                onClick = {
+                    selectedHelp = it
+                }
             )
 
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // ==================================================
-            // PANDUAN
-            // ==================================================
-
-            val helpItems = listOf(
-
-                HelpItem(
-                    icon =
-                        Icons.Default.QrCodeScanner,
-
-                    title =
-                        "Cara Melakukan Absen",
-
-                    description =
-                        "Panduan melakukan Absen Masuk",
-
+            // =========================
+            // ABSEN PULANG
+            // =========================
+            HelpCard(
+                item = HelpItem(
+                    icon = Icons.Default.QrCodeScanner,
+                    title = "Cara Melakukan Absen Pulang",
+                    description = "Panduan melakukan absensi pulang setelah menyelesaikan pekerjaan.",
                     steps = listOf(
-                        "Buka menu Scan.",
-                        "Arahkan kamera ke QR Code absensi.",
-                        "Pastikan QR Code terbaca.",
-                        "Isi catatan jika diperlukan.",
-                        "Absensi akan tersimpan otomatis."
+                        "Buka menu Scan pada aplikasi.",
+                        "Arahkan kamera ke QR Code kantor.",
+                        "Sistem akan mengenali bahwa absensi masuk sudah dilakukan.",
+                        "Lakukan proses scan seperti biasa.",
+                        "Sistem akan mencatat waktu sebagai jam pulang.",
+                        "Data absensi pulang akan tersimpan otomatis."
                     )
                 ),
+                onClick = {
+                    selectedHelp = it
+                }
+            )
 
-                HelpItem(
-                    icon =
-                        Icons.Default.QrCodeScanner,
+            Spacer(modifier = Modifier.height(10.dp))
 
-                    title =
-                        "Cara Melakukan Absen Pulang",
-
-                    description =
-                        "Panduan melakukan Absen Pulang",
-
+            // =========================
+            // ABSEN LUAR KANTOR
+            // =========================
+            HelpCard(
+                item = HelpItem(
+                    icon = Icons.Default.QrCodeScanner,
+                    title = "Cara Absen di Luar Kantor",
+                    description = "Panduan melakukan absensi ketika sedang berada di luar kantor.",
                     steps = listOf(
                         "Buka menu Scan.",
-                        "Arahkan kamera ke QR Code absensi.",
-                        "Sistem akan mengenali bahwa Absen Masuk sudah dilakukan.",
-                        "Sistem otomatis mencatat waktu Absen Pulang."
+                        "Tekan pilihan Absen di Luar Kantor.",
+                        "Isi lokasi tempat Anda melakukan pekerjaan.",
+                        "Contoh lokasi: SMK Negeri 1 Blitar atau Kantor Cabang Kediri.",
+                        "Isi alasan melakukan pekerjaan di luar kantor.",
+                        "Tekan Kirim Absen.",
+                        "Sistem akan mencatat absensi masuk menggunakan waktu saat pengajuan dikirim.",
+                        "Setelah selesai bekerja, lakukan absensi pulang seperti biasa."
                     )
                 ),
+                onClick = {
+                    selectedHelp = it
+                }
+            )
 
-                HelpItem(
-                    icon =
-                        Icons.Default.QrCodeScanner,
+            Spacer(modifier = Modifier.height(10.dp))
 
-                    title =
-                        "Cara Absen di Luar Kantor",
-
-                    description =
-                        "Panduan melakukan absensi dari lokasi tugas",
-
-                    steps = listOf(
-                        "Buka menu Scan.",
-                        "Tekan tombol Absen di Luar Kantor.",
-                        "Isi Lokasi tempat kamu sedang bertugas, misalnya SMK Negeri 1 Blitar atau Kantor Cabang Kediri.",
-                        "Isi Alasan / Keperluan sesuai kegiatan atau tugas yang sedang dilakukan.",
-                        "Tekan tombol Kirim Absen.",
-                        "Sistem akan mencatat Absen Masuk secara langsung.",
-                        "Jam Masuk otomatis mengikuti waktu saat Absen dikirim.",
-                        "Setelah selesai bekerja, lakukan Absen Pulang seperti biasa."
-                    )
-                ),
-
-                HelpItem(
-                    icon =
-                        Icons.Default.History,
-
-                    title =
-                        "Cara Melihat Riwayat",
-
-                    description =
-                        "Lihat data kehadiran",
-
+            // =========================
+            // RIWAYAT
+            // =========================
+            HelpCard(
+                item = HelpItem(
+                    icon = Icons.Default.History,
+                    title = "Cara Melihat Riwayat",
+                    description = "Melihat riwayat absensi dan pengajuan yang telah dilakukan.",
                     steps = listOf(
                         "Buka menu Riwayat.",
-                        "Pilih bagian Absensi.",
-                        "Lihat data Absen Masuk dan Absen Pulang.",
-                        "Gunakan filter jika ingin melihat periode tertentu."
+                        "Pilih tab Absensi untuk melihat data kehadiran.",
+                        "Pilih tab Pengajuan untuk melihat pengajuan.",
+                        "Data masuk dan pulang akan ditampilkan pada riwayat absensi.",
+                        "Gunakan filter yang tersedia untuk membantu mencari data."
                     )
                 ),
+                onClick = {
+                    selectedHelp = it
+                }
+            )
 
-                HelpItem(
-                    icon =
-                        Icons.Default.NoteAdd,
+            Spacer(modifier = Modifier.height(10.dp))
 
-                    title =
-                        "Cara Membuat Pengajuan",
-
-                    description =
-                        "Buat pengajuan izin atau keperluan lainnya",
-
+            // =========================
+            // PENGAJUAN
+            // =========================
+            HelpCard(
+                item = HelpItem(
+                    icon = Icons.Default.NoteAdd,
+                    title = "Cara Membuat Pengajuan",
+                    description = "Panduan membuat pengajuan izin, keperluan, atau kebutuhan lainnya.",
                     steps = listOf(
                         "Buka menu Pengajuan.",
-                        "Tekan Pengajuan Baru.",
+                        "Tekan tombol Pengajuan Baru.",
                         "Pilih jenis pengajuan.",
                         "Isi tanggal dan waktu sesuai kebutuhan.",
-                        "Isi alasan pengajuan.",
-                        "Kirim pengajuan."
+                        "Masukkan alasan pengajuan.",
+                        "Periksa kembali data yang telah diisi.",
+                        "Tekan Kirim Pengajuan.",
+                        "Pengajuan akan masuk ke proses approval sesuai hierarki yang telah ditentukan."
                     )
                 ),
+                onClick = {
+                    selectedHelp = it
+                }
+            )
 
-                HelpItem(
-                    icon =
-                        Icons.Default.Notifications,
+            Spacer(modifier = Modifier.height(10.dp))
 
-                    title =
-                        "Cara Melihat Notifikasi",
-
-                    description =
-                        "Lihat informasi dan status pengajuan",
-
+            // =========================
+            // NOTIFIKASI
+            // =========================
+            HelpCard(
+                item = HelpItem(
+                    icon = Icons.Default.Notifications,
+                    title = "Cara Melihat Notifikasi",
+                    description = "Melihat informasi terbaru mengenai absensi, pengajuan, dan chat.",
                     steps = listOf(
-                        "Buka Beranda.",
+                        "Buka halaman Beranda.",
                         "Tekan ikon Notifikasi.",
-                        "Lihat informasi atau status pengajuan yang tersedia."
+                        "Daftar pemberitahuan terbaru akan ditampilkan.",
+                        "Notifikasi dapat berisi informasi absensi, pengajuan, atau pesan dari Admin.",
+                        "Tekan notifikasi untuk membuka informasi terkait."
                     )
-                )
+                ),
+                onClick = {
+                    selectedHelp = it
+                }
             )
 
+            Spacer(modifier = Modifier.height(24.dp))
 
-            helpItems.forEach { item ->
-
-                HelpCard(
-                    item = item,
-                    onClick = {
-                        selectedHelp = item
-                    }
-                )
-
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-            }
-
-
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
-
-
-            // ==================================================
+            // =========================
             // CHAT ADMIN / HRD
-            // ==================================================
+            // =========================
+            Text(
+                text = "Chat Admin / HRD",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(18.dp),
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-
-                elevation =
-                    CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    )
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 2.dp
+                )
             ) {
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(18.dp)
+                        .padding(16.dp)
                 ) {
-
                     Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Card(
+                            modifier = Modifier.size(44.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = SoftGreen
+                            ),
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = 0.dp
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Chat,
+                                    contentDescription = "Chat Admin",
+                                    tint = PrimaryGreen,
+                                    modifier = Modifier.size(23.dp)
+                                )
+                            }
+                        }
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.Chat,
-
-                            contentDescription =
-                                "Chat Admin / HRD",
-
-                            tint =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.size(28.dp)
-                        )
-
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(14.dp)
-                        )
-
+                        Spacer(modifier = Modifier.width(14.dp))
 
                         Column(
-                            modifier =
-                                Modifier.weight(1f)
+                            modifier = Modifier.weight(1f)
                         ) {
-
                             Text(
-                                text =
-                                    "Chat Admin / HRD",
-
-                                fontSize =
-                                    16.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    TextDark
+                                text = "Butuh bantuan?",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
                             )
 
-                            Spacer(
-                                modifier =
-                                    Modifier.height(3.dp)
-                            )
+                            Spacer(modifier = Modifier.height(3.dp))
 
                             Text(
-                                text =
-                                    "Ada masalah atau bingung menggunakan aplikasi?",
-
-                                fontSize =
-                                    12.sp,
-
-                                color =
-                                    TextGray
+                                text = "Ada masalah atau bingung menggunakan aplikasi?",
+                                fontSize = 11.sp,
+                                color = TextGray
                             )
                         }
                     }
 
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(14.dp)
-                    )
-
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Card(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onChatAdmin()
-                                },
-
-                        shape =
-                            RoundedCornerShape(12.dp),
-
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    SoftGreen
-                            )
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onChatAdmin()
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = SoftGreen
+                        ),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 0.dp
+                        )
                     ) {
-
                         Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(
-                                        horizontal = 16.dp,
-                                        vertical = 13.dp
-                                    ),
-
-                            verticalAlignment =
-                                Alignment.CenterVertically,
-
-                            horizontalArrangement =
-                                Arrangement.Center
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 14.dp,
+                                    vertical = 12.dp
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-
                             Icon(
-                                imageVector =
-                                    Icons.Default.Chat,
-
-                                contentDescription =
-                                    null,
-
-                                tint =
-                                    PrimaryGreen,
-
-                                modifier =
-                                    Modifier.size(20.dp)
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = "Chat Admin / HRD",
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(20.dp)
                             )
 
-                            Spacer(
-                                modifier =
-                                    Modifier.width(8.dp)
-                            )
+                            Spacer(modifier = Modifier.width(10.dp))
 
                             Text(
-                                text =
-                                    "Chat Admin / HRD",
+                                text = "Chat Admin / HRD",
+                                modifier = Modifier.weight(1f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryGreen
+                            )
 
-                                fontSize =
-                                    14.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                color =
-                                    PrimaryGreen
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
                 }
             }
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(24.dp)
-            )
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
-
-    // ==========================================================
-    // DETAIL PANDUAN
-    // ==========================================================
-
+    // =========================
+    // DETAIL BANTUAN
+    // =========================
     selectedHelp?.let { item ->
-
         HelpDetailDialog(
             item = item,
             onDismiss = {
@@ -496,239 +422,148 @@ fun BantuanScreen(
     }
 }
 
-
-// ==========================================================
-// HELP CARD
-// ==========================================================
-
 @Composable
 private fun HelpCard(
     item: HelpItem,
-    onClick: () -> Unit
+    onClick: (HelpItem) -> Unit
 ) {
-
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable {
-                    onClick()
-                },
-
-        shape =
-            RoundedCornerShape(16.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 2.dp
-            )
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onClick(item)
+            },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
     ) {
-
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 16.dp,
-                        vertical = 15.dp
-                    ),
-
-            verticalAlignment =
-                Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 15.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Card(
+                modifier = Modifier.size(44.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = SoftGreen
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 0.dp
+                )
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title,
+                        tint = PrimaryGreen,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
 
-            Icon(
-                imageVector =
-                    item.icon,
-
-                contentDescription =
-                    item.title,
-
-                tint =
-                    PrimaryGreen,
-
-                modifier =
-                    Modifier.size(25.dp)
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.width(14.dp)
-            )
-
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(
-                modifier =
-                    Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             ) {
-
                 Text(
-                    text =
-                        item.title,
-
-                    fontSize =
-                        14.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
+                    text = item.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(2.dp)
-                )
+                Spacer(modifier = Modifier.height(3.dp))
 
                 Text(
-                    text =
-                        item.description,
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
+                    text = item.description,
+                    fontSize = 11.sp,
+                    color = TextGray
                 )
             }
 
+            Spacer(modifier = Modifier.width(8.dp))
 
             Icon(
-                imageVector =
-                    Icons.Default.ChevronRight,
-
-                contentDescription =
-                    null,
-
-                tint =
-                    TextGray,
-
-                modifier =
-                    Modifier.size(21.dp)
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextGray,
+                modifier = Modifier.size(21.dp)
             )
         }
     }
 }
-
-
-// ==========================================================
-// DETAIL DIALOG
-// ==========================================================
 
 @Composable
 private fun HelpDetailDialog(
     item: HelpItem,
     onDismiss: () -> Unit
 ) {
-
-    androidx.compose.material3.AlertDialog(
-
-        onDismissRequest =
-            onDismiss,
-
+    AlertDialog(
+        onDismissRequest = onDismiss,
         title = {
-
             Text(
-                text =
-                    item.title,
-
-                fontSize =
-                    19.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    TextDark
+                text = item.title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
             )
         },
-
         text = {
-
-            Column {
-
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
                 item.steps.forEachIndexed { index, step ->
-
                     Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    vertical = 5.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.Top
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 10.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-
                         Text(
-                            text =
-                                "${index + 1}.",
-
-                            fontSize =
-                                13.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                PrimaryGreen,
-
-                            modifier =
-                                Modifier.width(24.dp)
+                            text = "${index + 1}.",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryGreen,
+                            modifier = Modifier.width(24.dp)
                         )
 
                         Text(
-                            text =
-                                step,
-
-                            fontSize =
-                                13.sp,
-
-                            color =
-                                TextDark,
-
-                            modifier =
-                                Modifier.weight(1f)
+                            text = step,
+                            fontSize = 13.sp,
+                            color = TextDark,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
         },
-
         confirmButton = {
-
-            Text(
-                text =
-                    "Tutup",
-
-                modifier =
-                    Modifier
-                        .clickable {
-                            onDismiss()
-                        }
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 8.dp
-                        ),
-
-                fontSize =
-                    14.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    PrimaryGreen
-            )
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text(
+                    text = "Tutup",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryGreen
+                )
+            }
         }
     )
 }

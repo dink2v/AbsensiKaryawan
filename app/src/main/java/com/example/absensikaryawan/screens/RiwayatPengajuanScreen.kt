@@ -3,6 +3,7 @@ package com.example.absensikaryawan.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,7 +49,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-import com.example.absensikaryawan.data.PengajuanRepository
+import com.example.absensikaryawan.data.FirestoreRepository
+import com.example.absensikaryawan.data.PengajuanData
+import com.google.firebase.auth.FirebaseAuth
 
 
 // ==========================================================
@@ -57,188 +60,129 @@ import com.example.absensikaryawan.data.PengajuanRepository
 
 @Composable
 fun RiwayatPengajuanScreen(
-
     filterStatus: String,
-
     onBack: () -> Unit,
-
-    onDetailClick: (Map<String, Any>) -> Unit
-
+    onDetailClick: (PengajuanData) -> Unit
 ) {
 
-    // ======================================================
-    // REPOSITORY
-    // ======================================================
-
-    val repository = PengajuanRepository
-
-
-    // ======================================================
-    // STATE
-    // ======================================================
-
-    var daftarPengajuan by remember {
-
-        mutableStateOf<List<Map<String, Any>>>(
-            emptyList()
-        )
+    val repository = remember {
+        FirestoreRepository()
     }
 
+    val firebaseAuth = remember {
+        FirebaseAuth.getInstance()
+    }
+
+    var daftarPengajuan by remember {
+        mutableStateOf<List<PengajuanData>>(emptyList())
+    }
 
     var sedangMemuat by remember {
-
         mutableStateOf(true)
     }
 
-
     // ======================================================
-    // AMBIL DATA FIRESTORE
+    // AMBIL DATA
     // ======================================================
 
     LaunchedEffect(Unit) {
 
         sedangMemuat = true
 
-        try {
+        val uid = firebaseAuth.currentUser?.uid
 
-            val data: List<Map<String, Any>> =
-                repository.ambilPengajuanSaya()
-
-            daftarPengajuan = data
-
-        } catch (e: Exception) {
+        if (uid.isNullOrBlank()) {
 
             daftarPengajuan = emptyList()
+
+        } else {
+
+            val result = repository.getPengajuanSaya(uid)
+
+            result.onSuccess { data ->
+                daftarPengajuan = data
+            }.onFailure {
+                daftarPengajuan = emptyList()
+            }
         }
 
         sedangMemuat = false
     }
 
-
     // ======================================================
-    // NORMALISASI FILTER
-    // ======================================================
-
-    val filter =
-        filterStatus
-            .trim()
-            .lowercase()
-
-
-    // ======================================================
-    // FILTER DATA
+    // FILTER
     // ======================================================
 
-    val daftarFiltered =
+    val filter = filterStatus
+        .trim()
+        .lowercase()
 
-        when (filter) {
+    val daftarFiltered = when (filter) {
 
-            "menunggu" -> {
-
-                daftarPengajuan.filter {
-
-                    it["status"]
-                        ?.toString()
-                        ?.trim()
-                        ?.lowercase() ==
-                            "menunggu"
-                }
-            }
-
-            "disetujui" -> {
-
-                daftarPengajuan.filter {
-
-                    it["status"]
-                        ?.toString()
-                        ?.trim()
-                        ?.lowercase() ==
-                            "disetujui"
-                }
-            }
-
-            "ditolak" -> {
-
-                daftarPengajuan.filter {
-
-                    it["status"]
-                        ?.toString()
-                        ?.trim()
-                        ?.lowercase() ==
-                            "ditolak"
-                }
-            }
-
-            else -> {
-
-                daftarPengajuan
+        "menunggu" -> {
+            daftarPengajuan.filter {
+                it.status.trim().lowercase() == "menunggu"
             }
         }
 
-
-    // ======================================================
-    // JUDUL HALAMAN
-    // ======================================================
-
-    val judulHalaman =
-
-        when (filter) {
-
-            "menunggu" ->
-                "Menunggu Persetujuan"
-
-            "disetujui" ->
-                "Disetujui"
-
-            "ditolak" ->
-                "Ditolak"
-
-            else ->
-                "Riwayat Pengajuan"
+        "disetujui" -> {
+            daftarPengajuan.filter {
+                it.status.trim().lowercase() == "disetujui"
+            }
         }
 
-
-    // ======================================================
-    // SUB JUDUL
-    // ======================================================
-
-    val subJudul =
-
-        when (filter) {
-
-            "menunggu" ->
-                "Pengajuan yang sedang menunggu persetujuan."
-
-            "disetujui" ->
-                "Pengajuan yang telah disetujui admin."
-
-            "ditolak" ->
-                "Pengajuan yang telah ditolak admin."
-
-            else ->
-                "Riwayat seluruh pengajuan kamu."
+        "ditolak" -> {
+            daftarPengajuan.filter {
+                it.status.trim().lowercase() == "ditolak"
+            }
         }
 
+        else -> {
+            daftarPengajuan
+        }
+    }
+
+    val judulHalaman = when (filter) {
+
+        "menunggu" ->
+            "Menunggu Persetujuan"
+
+        "disetujui" ->
+            "Disetujui"
+
+        "ditolak" ->
+            "Ditolak"
+
+        else ->
+            "Riwayat Pengajuan"
+    }
+
+    val subJudul = when (filter) {
+
+        "menunggu" ->
+            "Pengajuan yang sedang menunggu persetujuan."
+
+        "disetujui" ->
+            "Pengajuan yang telah disetujui admin."
+
+        "ditolak" ->
+            "Pengajuan yang telah ditolak admin."
+
+        else ->
+            "Riwayat seluruh pengajuan kamu."
+    }
 
     // ======================================================
     // MAIN
     // ======================================================
 
     Surface(
-
-        modifier =
-            Modifier.fillMaxSize(),
-
-        color =
-            Background
-
+        modifier = Modifier.fillMaxSize(),
+        color = Background
     ) {
 
         Column(
-
-            modifier =
-                Modifier.fillMaxSize()
-
+            modifier = Modifier.fillMaxSize()
         ) {
 
             // ==================================================
@@ -246,232 +190,136 @@ fun RiwayatPengajuanScreen(
             // ==================================================
 
             Row(
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 12.dp
-                        ),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 12.dp
+                    ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
 
                 IconButton(
-
-                    onClick =
-                        onBack
-
+                    onClick = onBack
                 ) {
 
                     Icon(
-
-                        imageVector =
-                            Icons.Default.ArrowBack,
-
-                        contentDescription =
-                            "Kembali",
-
-                        tint =
-                            TextDark
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = TextDark
                     )
                 }
 
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
 
-                Column(
-
-                    modifier =
-                        Modifier.weight(1f)
-
-                ) {
+                Column {
 
                     Text(
-
-                        text =
-                            judulHalaman,
-
-                        fontSize =
-                            22.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            TextDark
+                        text = judulHalaman,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
                     )
 
-
                     Text(
-
-                        text =
-                            subJudul,
-
-                        fontSize =
-                            12.sp,
-
-                        color =
-                            TextGray
+                        text = subJudul,
+                        fontSize = 12.sp,
+                        color = TextGray
                     )
                 }
             }
-
 
             // ==================================================
             // CONTENT
             // ==================================================
 
             Column(
-
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(
-                            rememberScrollState()
-                        )
-                        .padding(
-                            horizontal = 20.dp
-                        )
-
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(
+                        horizontal = 20.dp
+                    )
             ) {
 
                 Spacer(
-                    modifier =
-                        Modifier.height(8.dp)
+                    modifier = Modifier.height(8.dp)
                 )
-
-
-                // ==================================================
-                // JUDUL SECTION
-                // ==================================================
 
                 Text(
-
-                    text =
-                        "Riwayat Pengajuan",
-
-                    fontSize =
-                        17.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
+                    text = "Riwayat Pengajuan",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
                 )
-
 
                 Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
+                    modifier = Modifier.height(10.dp)
                 )
-
-
-                // ==================================================
-                // RINGKASAN
-                // ==================================================
 
                 RingkasanPengajuanCard(
-
-                    jumlah =
-                        daftarFiltered.size,
-
-                    filter =
-                        filter
+                    jumlah = daftarFiltered.size,
+                    filter = filter
                 )
-
 
                 Spacer(
-                    modifier =
-                        Modifier.height(20.dp)
+                    modifier = Modifier.height(20.dp)
                 )
-
-
-                // ==================================================
-                // LOADING
-                // ==================================================
 
                 if (sedangMemuat) {
 
                     Column(
-
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    vertical = 30.dp
-                                ),
-
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = 30.dp
+                            ),
                         horizontalAlignment =
                             Alignment.CenterHorizontally
-
                     ) {
 
                         CircularProgressIndicator(
-
-                            color =
-                                PrimaryGreen
+                            color = PrimaryGreen
                         )
-
 
                         Spacer(
-                            modifier =
-                                Modifier.height(10.dp)
+                            modifier = Modifier.height(10.dp)
                         )
 
-
                         Text(
-
                             text =
                                 "Memuat riwayat pengajuan...",
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray
+                            fontSize = 12.sp,
+                            color = TextGray
                         )
                     }
 
                 } else {
 
-                    // ==================================================
-                    // DATA KOSONG
-                    // ==================================================
-
                     if (daftarFiltered.isEmpty()) {
 
                         DataKosongPengajuan(
-
-                            filter =
-                                filter
+                            filter = filter
                         )
 
                     } else {
-
-                        // ==================================================
-                        // LIST DATA
-                        // ==================================================
 
                         daftarFiltered
                             .reversed()
                             .forEach { pengajuan ->
 
                                 RiwayatPengajuanItem(
-
-                                    pengajuan =
-                                        pengajuan,
-
+                                    pengajuan = pengajuan,
                                     onClick = {
-
                                         onDetailClick(
                                             pengajuan
                                         )
                                     }
                                 )
-
 
                                 Spacer(
                                     modifier =
@@ -481,10 +329,8 @@ fun RiwayatPengajuanScreen(
                     }
                 }
 
-
                 Spacer(
-                    modifier =
-                        Modifier.height(30.dp)
+                    modifier = Modifier.height(30.dp)
                 )
             }
         }
@@ -493,167 +339,100 @@ fun RiwayatPengajuanScreen(
 
 
 // ==========================================================
-// RINGKASAN PENGAJUAN
+// RINGKASAN
 // ==========================================================
 
 @Composable
 private fun RingkasanPengajuanCard(
-
     jumlah: Int,
-
     filter: String
-
 ) {
 
-    val icon =
+    val icon = when (filter) {
 
-        when (filter) {
+        "menunggu" ->
+            Icons.Default.Pending
 
-            "menunggu" ->
-                Icons.Default.Pending
+        "disetujui" ->
+            Icons.Default.CheckCircle
 
-            "disetujui" ->
-                Icons.Default.CheckCircle
+        "ditolak" ->
+            Icons.Default.Cancel
 
-            "ditolak" ->
-                Icons.Default.Cancel
+        else ->
+            Icons.Default.Description
+    }
 
-            else ->
-                Icons.Default.Description
-        }
+    val warna = when (filter) {
 
+        "menunggu" ->
+            Color(0xFFD97706)
 
-    val warna =
+        "disetujui" ->
+            PrimaryGreen
 
-        when (filter) {
+        "ditolak" ->
+            Color(0xFFB91C1C)
 
-            "menunggu" ->
-                Color(0xFFD97706)
-
-            "disetujui" ->
-                PrimaryGreen
-
-            "ditolak" ->
-                Color(0xFFB91C1C)
-
-            else ->
-                PrimaryGreen
-        }
-
+        else ->
+            PrimaryGreen
+    }
 
     Card(
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(18.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
-            )
-
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
     ) {
 
         Row(
-
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-
-            verticalAlignment =
-                Alignment.CenterVertically
-
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             Surface(
-
-                modifier =
-                    Modifier.size(48.dp),
-
-                shape =
-                    RoundedCornerShape(14.dp),
-
-                color =
-                    warna.copy(
-                        alpha = 0.10f
-                    )
-
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = warna.copy(alpha = 0.10f)
             ) {
 
                 Icon(
-
-                    imageVector =
-                        icon,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        warna,
-
-                    modifier =
-                        Modifier
-                            .padding(10.dp)
-                            .size(28.dp)
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = warna,
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .size(28.dp)
                 )
             }
 
-
             Spacer(
-                modifier =
-                    Modifier.width(12.dp)
+                modifier = Modifier.width(12.dp)
             )
 
-
-            Column(
-
-                modifier =
-                    Modifier.weight(1f)
-
-            ) {
+            Column {
 
                 Text(
-
-                    text =
-                        "Jumlah Pengajuan",
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        TextGray
+                    text = "Jumlah Pengajuan",
+                    fontSize = 11.sp,
+                    color = TextGray
                 )
-
 
                 Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
+                    modifier = Modifier.height(3.dp)
                 )
 
-
                 Text(
-
-                    text =
-                        jumlah.toString(),
-
-                    fontSize =
-                        22.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        warna
+                    text = jumlah.toString(),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = warna
                 )
             }
         }
@@ -667,95 +446,59 @@ private fun RingkasanPengajuanCard(
 
 @Composable
 private fun DataKosongPengajuan(
-
     filter: String
-
 ) {
 
-    val pesan =
+    val pesan = when (filter) {
 
-        when (filter) {
+        "menunggu" ->
+            "Belum ada pengajuan yang menunggu."
 
-            "menunggu" ->
-                "Belum ada pengajuan yang menunggu."
+        "disetujui" ->
+            "Belum ada pengajuan yang disetujui."
 
-            "disetujui" ->
-                "Belum ada pengajuan yang disetujui."
+        "ditolak" ->
+            "Belum ada pengajuan yang ditolak."
 
-            "ditolak" ->
-                "Belum ada pengajuan yang ditolak."
-
-            else ->
-                "Belum ada riwayat pengajuan."
-        }
-
+        else ->
+            "Belum ada riwayat pengajuan."
+    }
 
     Card(
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(16.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
-            )
-
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
     ) {
 
         Column(
-
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
             horizontalAlignment =
                 Alignment.CenterHorizontally
-
         ) {
 
             Icon(
-
                 imageVector =
                     Icons.Default.Description,
-
-                contentDescription =
-                    null,
-
-                tint =
-                    TextGray,
-
-                modifier =
-                    Modifier.size(40.dp)
+                contentDescription = null,
+                tint = TextGray,
+                modifier = Modifier.size(40.dp)
             )
-
 
             Spacer(
-                modifier =
-                    Modifier.height(10.dp)
+                modifier = Modifier.height(10.dp)
             )
 
-
             Text(
-
-                text =
-                    pesan,
-
-                fontSize =
-                    13.sp,
-
-                color =
-                    TextGray
+                text = pesan,
+                fontSize = 13.sp,
+                color = TextGray
             )
         }
     }
@@ -763,179 +506,118 @@ private fun DataKosongPengajuan(
 
 
 // ==========================================================
-// RIWAYAT PENGAJUAN ITEM
+// RIWAYAT ITEM
 // ==========================================================
 
 @Composable
 private fun RiwayatPengajuanItem(
-
-    pengajuan: Map<String, Any>,
-
+    pengajuan: PengajuanData,
     onClick: () -> Unit
-
 ) {
 
-    val jenis =
-
-        pengajuan["jenis"]
-            ?.toString()
-            ?.ifEmpty {
-                "Pengajuan"
-            }
-            ?: "Pengajuan"
-
+    val jenis = pengajuan.jenis
+        .trim()
+        .ifEmpty {
+            "Pengajuan"
+        }
 
     val tanggalMulai =
-
-        pengajuan["tanggalMulai"]
-            ?.toString()
-            ?: ""
-
+        pengajuan.tanggalMulai.trim()
 
     val tanggalSelesai =
+        pengajuan.tanggalSelesai.trim()
 
-        pengajuan["tanggalSelesai"]
-            ?.toString()
-            ?: ""
+    val tanggal = when {
 
+        tanggalMulai.isNotEmpty() &&
+                tanggalSelesai.isNotEmpty() ->
 
-    val tanggal =
+            "$tanggalMulai - $tanggalSelesai"
 
-        when {
+        tanggalMulai.isNotEmpty() ->
+            tanggalMulai
 
-            tanggalMulai.isNotEmpty() &&
-                    tanggalSelesai.isNotEmpty() ->
+        pengajuan.tanggal.isNotEmpty() ->
+            pengajuan.tanggal
 
-                "$tanggalMulai - $tanggalSelesai"
+        else ->
+            "-"
+    }
 
-            tanggalMulai.isNotEmpty() ->
-
-                tanggalMulai
-
-            else ->
-
-                pengajuan["tanggal"]
-                    ?.toString()
-                    ?: "-"
+    val status = pengajuan.status
+        .trim()
+        .lowercase()
+        .ifEmpty {
+            "menunggu"
         }
 
+    val statusText = when (status) {
 
-    val status =
+        "disetujui" ->
+            "Disetujui"
 
-        pengajuan["status"]
-            ?.toString()
-            ?.trim()
-            ?.lowercase()
-            ?: "menunggu"
+        "ditolak" ->
+            "Ditolak"
 
+        else ->
+            "Menunggu"
+    }
 
-    val statusText =
+    val statusIcon = when (status) {
 
-        when (status) {
+        "disetujui" ->
+            Icons.Default.CheckCircle
 
-            "disetujui" ->
-                "Disetujui"
+        "ditolak" ->
+            Icons.Default.Cancel
 
-            "ditolak" ->
-                "Ditolak"
+        else ->
+            Icons.Default.Pending
+    }
 
-            else ->
-                "Menunggu"
-        }
+    val statusColor = when (status) {
 
+        "disetujui" ->
+            PrimaryGreen
 
-    val statusIcon =
+        "ditolak" ->
+            Color(0xFFB91C1C)
 
-        when (status) {
-
-            "disetujui" ->
-                Icons.Default.CheckCircle
-
-            "ditolak" ->
-                Icons.Default.Cancel
-
-            else ->
-                Icons.Default.Pending
-        }
-
-
-    val statusColor =
-
-        when (status) {
-
-            "disetujui" ->
-                PrimaryGreen
-
-            "ditolak" ->
-                Color(0xFFB91C1C)
-
-            else ->
-                Color(0xFFD97706)
-        }
-
+        else ->
+            Color(0xFFD97706)
+    }
 
     val alasan =
-
-        pengajuan["alasan"]
-            ?.toString()
-            ?: ""
-
+        pengajuan.alasan.trim()
 
     val jamPulang =
-
-        pengajuan["jamPulang"]
-            ?.toString()
-            ?: ""
-
+        pengajuan.jamPulang.trim()
 
     val jamKeluar =
-
-        pengajuan["jamKeluar"]
-            ?.toString()
-            ?: ""
-
+        pengajuan.jamKeluar.trim()
 
     val jamKembali =
-
-        pengajuan["jamKembali"]
-            ?.toString()
-            ?: ""
-
+        pengajuan.jamKembali.trim()
 
     Card(
-
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable {
-
-                    onClick()
-                },
-
-        shape =
-            RoundedCornerShape(16.dp),
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color.White
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
-            )
-
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onClick()
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
     ) {
 
         Column(
-
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
 
             // ==================================================
@@ -943,151 +625,98 @@ private fun RiwayatPengajuanItem(
             // ==================================================
 
             Row(
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment =
                     Alignment.CenterVertically
-
             ) {
 
                 Row(
-
-                    modifier =
-                        Modifier
-                            .size(46.dp)
-                            .background(
-
-                                color =
-                                    statusColor.copy(
-                                        alpha = 0.10f
-                                    ),
-
-                                shape =
-                                    RoundedCornerShape(13.dp)
-                            ),
-
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(
+                            color =
+                                statusColor.copy(
+                                    alpha = 0.10f
+                                ),
+                            shape =
+                                RoundedCornerShape(13.dp)
+                        ),
                     horizontalArrangement =
                         Arrangement.Center,
-
                     verticalAlignment =
                         Alignment.CenterVertically
-
                 ) {
 
                     Icon(
-
-                        imageVector =
-                            statusIcon,
-
+                        imageVector = statusIcon,
                         contentDescription =
                             statusText,
-
-                        tint =
-                            statusColor,
-
+                        tint = statusColor,
                         modifier =
                             Modifier.size(25.dp)
                     )
                 }
 
-
                 Spacer(
-                    modifier =
-                        Modifier.width(12.dp)
+                    modifier = Modifier.width(12.dp)
                 )
 
-
                 Column(
-
-                    modifier =
-                        Modifier.weight(1f)
-
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 4.dp)
                 ) {
 
                     Text(
-
-                        text =
-                            jenis,
-
-                        fontSize =
-                            15.sp,
-
+                        text = jenis,
+                        fontSize = 15.sp,
                         fontWeight =
                             FontWeight.Bold,
-
-                        color =
-                            TextDark
+                        color = TextDark
                     )
-
 
                     Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
+                        modifier = Modifier.height(3.dp)
                     )
 
-
                     Row(
-
                         verticalAlignment =
                             Alignment.CenterVertically
-
                     ) {
 
                         Icon(
-
                             imageVector =
                                 Icons.Default.Event,
-
-                            contentDescription =
-                                null,
-
-                            tint =
-                                TextGray,
-
+                            contentDescription = null,
+                            tint = TextGray,
                             modifier =
                                 Modifier.size(14.dp)
                         )
 
-
                         Spacer(
-                            modifier =
-                                Modifier.width(4.dp)
+                            modifier = Modifier.width(4.dp)
                         )
-
 
                         Text(
-
-                            text =
-                                tanggal,
-
-                            fontSize =
-                                11.sp,
-
-                            color =
-                                TextGray
+                            text = tanggal,
+                            fontSize = 11.sp,
+                            color = TextGray
                         )
                     }
+
+                    Spacer(
+                        modifier = Modifier.height(4.dp)
+                    )
+
+                    Text(
+                        text = statusText,
+                        fontSize = 11.sp,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color = statusColor
+                    )
                 }
-
-
-                Text(
-
-                    text =
-                        statusText,
-
-                    fontSize =
-                        11.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        statusColor
-                )
             }
-
 
             // ==================================================
             // DETAIL WAKTU
@@ -1100,72 +729,46 @@ private fun RiwayatPengajuanItem(
             ) {
 
                 Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
+                    modifier = Modifier.height(12.dp)
                 )
 
-
                 Row(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement =
-                        Arrangement.spacedBy(
-                            8.dp
-                        )
-
+                        Arrangement.spacedBy(8.dp)
                 ) {
 
                     if (jamPulang.isNotEmpty()) {
 
                         InfoMiniItem(
-
                             icon =
                                 Icons.Default.Schedule,
-
-                            title =
-                                "Pulang",
-
-                            value =
-                                jamPulang
+                            title = "Pulang",
+                            value = jamPulang
                         )
                     }
-
 
                     if (jamKeluar.isNotEmpty()) {
 
                         InfoMiniItem(
-
                             icon =
                                 Icons.Default.Schedule,
-
-                            title =
-                                "Keluar",
-
-                            value =
-                                jamKeluar
+                            title = "Keluar",
+                            value = jamKeluar
                         )
                     }
-
 
                     if (jamKembali.isNotEmpty()) {
 
                         InfoMiniItem(
-
                             icon =
                                 Icons.Default.Schedule,
-
-                            title =
-                                "Kembali",
-
-                            value =
-                                jamKembali
+                            title = "Kembali",
+                            value = jamKembali
                         )
                     }
                 }
             }
-
 
             // ==================================================
             // ALASAN
@@ -1174,24 +777,14 @@ private fun RiwayatPengajuanItem(
             if (alasan.isNotEmpty()) {
 
                 Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
+                    modifier = Modifier.height(10.dp)
                 )
 
-
                 Text(
-
-                    text =
-                        alasan,
-
-                    fontSize =
-                        12.sp,
-
-                    color =
-                        TextGray,
-
-                    maxLines =
-                        2
+                    text = alasan,
+                    fontSize = 12.sp,
+                    color = TextGray,
+                    maxLines = 2
                 )
             }
         }
@@ -1205,88 +798,50 @@ private fun RiwayatPengajuanItem(
 
 @Composable
 private fun InfoMiniItem(
-
     icon: ImageVector,
-
     title: String,
-
     value: String
-
 ) {
 
     Surface(
-
-        shape =
-            RoundedCornerShape(10.dp),
-
-        color =
-            SoftGreen
-
+        shape = RoundedCornerShape(10.dp),
+        color = SoftGreen
     ) {
 
         Row(
-
-            modifier =
-                Modifier.padding(
-                    horizontal = 8.dp,
-                    vertical = 6.dp
-                ),
-
+            modifier = Modifier.padding(
+                horizontal = 8.dp,
+                vertical = 6.dp
+            ),
             verticalAlignment =
                 Alignment.CenterVertically
-
         ) {
 
             Icon(
-
-                imageVector =
-                    icon,
-
-                contentDescription =
-                    title,
-
-                tint =
-                    PrimaryGreen,
-
-                modifier =
-                    Modifier.size(14.dp)
+                imageVector = icon,
+                contentDescription = title,
+                tint = PrimaryGreen,
+                modifier = Modifier.size(14.dp)
             )
-
 
             Spacer(
-                modifier =
-                    Modifier.width(4.dp)
+                modifier = Modifier.width(4.dp)
             )
-
 
             Column {
 
                 Text(
-
-                    text =
-                        title,
-
-                    fontSize =
-                        9.sp,
-
-                    color =
-                        TextGray
+                    text = title,
+                    fontSize = 9.sp,
+                    color = TextGray
                 )
 
-
                 Text(
-
-                    text =
-                        value,
-
-                    fontSize =
-                        10.sp,
-
+                    text = value,
+                    fontSize = 10.sp,
                     fontWeight =
                         FontWeight.Bold,
-
-                    color =
-                        TextDark
+                    color = TextDark
                 )
             }
         }

@@ -18,8 +18,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
-import com.example.absensikaryawan.data.PengajuanData
-
 import com.example.absensikaryawan.screens.AbsenLuarKantorScreen
 import com.example.absensikaryawan.screens.BantuanScreen
 import com.example.absensikaryawan.screens.BottomNavigationBar
@@ -48,6 +46,28 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+
+// ==========================================================
+// TARGET NOTIFIKASI
+// ==========================================================
+
+enum class NotificationTarget {
+
+    NONE,
+
+    RIWAYAT_ABSENSI,
+
+    RIWAYAT_PENGAJUAN,
+
+    PENGAJUAN_DISETUJUI,
+
+    PENGAJUAN_DITOLAK,
+
+    PENGAJUAN_MENUNGGU,
+
+    CHAT_ADMIN
+}
 
 
 // ==========================================================
@@ -106,7 +126,7 @@ fun StaffNavigation(
     // ======================================================
 
     var selectedPengajuan by remember {
-        mutableStateOf<PengajuanData?>(null)
+        mutableStateOf<Map<String, Any>?>(null)
     }
 
 
@@ -129,13 +149,12 @@ fun StaffNavigation(
 
 
     // ======================================================
-    // PESAN ABSENSI
+    // PESAN PENOLAKAN ABSENSI
     // ======================================================
 
     var attendanceMessage by remember {
         mutableStateOf<String?>(null)
     }
-
 
     // ======================================================
     // RESET SCANNER QR
@@ -144,7 +163,6 @@ fun StaffNavigation(
     var scanResetKey by remember {
         mutableIntStateOf(0)
     }
-
 
     // ======================================================
     // SCAFFOLD
@@ -306,8 +324,7 @@ fun StaffNavigation(
 
                     ScanAbsenScreen(
 
-                        externalResetKey =
-                            scanResetKey,
+                        externalResetKey = scanResetKey,
 
                         onBack = {
 
@@ -739,7 +756,6 @@ fun StaffNavigation(
                                                     "STAFF_NAV",
                                                     "ABSEN MASUK DITOLAK → Sudah masuk waktu pulang"
                                                 )
-
                                                 attendanceMessage =
                                                     "Absen pulang belum dibuka.\n\n" +
                                                             "Absen pulang dapat dilakukan mulai pukul 16.00."
@@ -925,18 +941,53 @@ fun StaffNavigation(
                     if (data != null) {
 
                         DetailPengajuanScreen(
-                            jenis = data.jenis,
-                            tanggal = data.tanggal,
-                            status = data.status,
-                            jamPulang = data.jamPulang,
-                            jamKeluar = data.jamKeluar,
-                            jamKembali = data.jamKembali,
-                            tanggalMulai = data.tanggalMulai,
-                            tanggalSelesai = data.tanggalSelesai,
-                            alasan = data.alasan,
-                            onBack = { currentScreen = detailReturnScreen }
-                        )
 
+                            jenis =
+                                data["jenis"] as? String
+                                    ?: "",
+
+                            tanggal =
+                                data["tanggal"] as? String
+                                    ?: "",
+
+                            status =
+                                data["status"] as? String
+                                    ?: "",
+
+                            jamPulang =
+                                data["jamPulang"] as? String
+                                    ?: "",
+
+                            jamKeluar =
+                                data["jamKeluar"] as? String
+                                    ?: "",
+
+                            jamKembali =
+                                data["jamKembali"] as? String
+                                    ?: "",
+
+                            tanggalMulai =
+                                data["tanggalMulai"] as? String
+                                    ?: "",
+
+                            tanggalSelesai =
+                                data["tanggalSelesai"] as? String
+                                    ?: "",
+
+                            alasan =
+                                data["alasan"] as? String
+                                    ?: "",
+
+                            catatanAdmin =
+                                data["catatanAdmin"] as? String
+                                    ?: "",
+
+                            onBack = {
+
+                                currentScreen =
+                                    detailReturnScreen
+                            }
+                        )
                     }
                 }
 
@@ -985,19 +1036,42 @@ fun StaffNavigation(
 
                         onDetailClick = { pengajuan ->
 
-                            selectedPengajuan = PengajuanData(
-                                id = pengajuan.id,
-                                nama = pengajuan.namaPemohon,
-                                jenis = pengajuan.jenis,
-                                tanggal = pengajuan.tanggalMulai,
-                                jamPulang = "",
-                                jamKeluar = "",
-                                jamKembali = "",
-                                tanggalMulai = pengajuan.tanggalMulai,
-                                tanggalSelesai = pengajuan.tanggalSelesai,
-                                alasan = pengajuan.alasan,
-                                status = pengajuan.status
-                            )
+                            selectedPengajuan =
+                                mapOf(
+
+                                    "documentId" to
+                                            pengajuan.documentId,
+
+                                    "jenis" to
+                                            pengajuan.jenis,
+
+                                    "tanggal" to
+                                            pengajuan.tanggalMulai,
+
+                                    "status" to
+                                            pengajuan.status,
+
+                                    "jamPulang" to
+                                            pengajuan.jamPulang,
+
+                                    "jamKeluar" to
+                                            pengajuan.jamKeluar,
+
+                                    "jamKembali" to
+                                            pengajuan.jamKembali,
+
+                                    "tanggalMulai" to
+                                            pengajuan.tanggalMulai,
+
+                                    "tanggalSelesai" to
+                                            pengajuan.tanggalSelesai,
+
+                                    "alasan" to
+                                            pengajuan.alasan,
+
+                                    "catatanAdmin" to
+                                            pengajuan.catatanAdmin
+                                )
 
                             detailReturnScreen =
                                 StaffScreen.Riwayat
@@ -1057,16 +1131,16 @@ fun StaffNavigation(
                                 StaffScreen.Dashboard
                         },
 
-                        onNotificationClick = { target, relatedId ->
+                        onNotificationClick = { target ->
 
                             Log.d(
                                 "STAFF_NAV",
-                                "NOTIFIKASI DIKLIK = " +
-                                        "$target | relatedId=$relatedId"
+                                "NOTIFIKASI DIKLIK = $target"
                             )
 
                             notificationTarget =
                                 target
+
 
                             when (target) {
 
@@ -1078,6 +1152,7 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
+
                                 NotificationTarget.RIWAYAT_PENGAJUAN -> {
 
                                     selectedBottomItem = 3
@@ -1085,6 +1160,7 @@ fun StaffNavigation(
                                     currentScreen =
                                         StaffScreen.Riwayat
                                 }
+
 
                                 NotificationTarget.PENGAJUAN_DISETUJUI -> {
 
@@ -1094,6 +1170,7 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
+
                                 NotificationTarget.PENGAJUAN_DITOLAK -> {
 
                                     selectedBottomItem = 3
@@ -1101,6 +1178,7 @@ fun StaffNavigation(
                                     currentScreen =
                                         StaffScreen.Riwayat
                                 }
+
 
                                 NotificationTarget.PENGAJUAN_MENUNGGU -> {
 
@@ -1110,11 +1188,13 @@ fun StaffNavigation(
                                         StaffScreen.Riwayat
                                 }
 
+
                                 NotificationTarget.CHAT_ADMIN -> {
 
                                     currentScreen =
                                         StaffScreen.ChatAdmin
                                 }
+
 
                                 NotificationTarget.NONE -> {
 
