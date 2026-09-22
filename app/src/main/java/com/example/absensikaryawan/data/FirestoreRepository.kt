@@ -376,10 +376,16 @@ class FirestoreRepository {
             kandidat.first()
 
         return ApprovalPerson(
-            uid = document.id,
+            uid =
+                document.getString("uid")
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: document.id,
+
             nama =
                 document.getString("nama")
                     ?: "",
+
             jabatan =
                 document.getString("jabatan")
                     ?: jabatan
@@ -872,11 +878,20 @@ class FirestoreRepository {
             // NAMA DAN JABATAN APPROVER SAAT INI
             // ==================================================
 
-            val approverDocument =
+            val approverSnapshot =
                 usersCollection
-                    .document(approverUid)
+                    .whereEqualTo("uid", approverUid)
+                    .limit(1)
                     .get()
                     .await()
+
+            val approverDocument =
+                approverSnapshot.documents.firstOrNull()
+                    ?: return Result.failure(
+                        IllegalStateException(
+                            "Data approver tidak ditemukan."
+                        )
+                    )
 
             val approverName =
                 approverDocument
@@ -1124,20 +1139,20 @@ class FirestoreRepository {
             // AMBIL DATA APPROVER BERIKUTNYA
             // ==================================================
 
-            val nextApproverDocument =
+            val nextApproverSnapshot =
                 usersCollection
-                    .document(nextApproverUid)
+                    .whereEqualTo("uid", nextApproverUid)
+                    .limit(1)
                     .get()
                     .await()
 
-            if (!nextApproverDocument.exists()) {
-
-                return Result.failure(
-                    IllegalStateException(
-                        "Data approver berikutnya tidak ditemukan."
+            val nextApproverDocument =
+                nextApproverSnapshot.documents.firstOrNull()
+                    ?: return Result.failure(
+                        IllegalStateException(
+                            "Data approver berikutnya tidak ditemukan."
+                        )
                     )
-                )
-            }
 
             val nextApproverName =
                 nextApproverDocument

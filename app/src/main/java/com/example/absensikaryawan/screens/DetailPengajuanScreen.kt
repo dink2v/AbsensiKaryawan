@@ -23,12 +23,20 @@ import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +44,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.repository.PengajuanRepository
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 // ==========================================================
 // DETAIL PENGAJUAN
@@ -52,6 +63,7 @@ fun DetailPengajuanScreen(
     tanggalMulai: String = "",
     tanggalSelesai: String = "",
     alasan: String = "",
+    documentId: String = "",
 
     // ======================================================
     // DATA APPROVAL
@@ -70,6 +82,11 @@ fun DetailPengajuanScreen(
     // ======================================================
     // NORMALISASI DATA
     // ======================================================
+
+    val currentUserUid = remember { FirebaseAuth.getInstance().currentUser?.uid.orEmpty() }
+    val coroutineScope = rememberCoroutineScope()
+    var isProcessingDecision by remember { mutableStateOf(false) }
+    var decisionError by remember { mutableStateOf("") }
 
     val jenisFinal =
         jenis.trim().ifEmpty {
@@ -833,6 +850,73 @@ fun DetailPengajuanScreen(
                     }
                 }
 
+                if (
+                    documentId.isNotBlank() &&
+                    currentUserUid.isNotBlank() &&
+                    currentUserUid == currentApproverUid &&
+                    !approvalLocked &&
+                    statusFinal == "menunggu"
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            modifier = Modifier.weight(1f),
+                            enabled = !isProcessingDecision,
+                            onClick = {
+                                coroutineScope.launch {
+                                    isProcessingDecision = true
+                                    decisionError = ""
+                                    val result = PengajuanRepository.updateStatusPengajuan(
+                                        documentId = documentId,
+                                        status = "ditolak"
+                                    )
+                                    isProcessingDecision = false
+                                    if (result.isSuccess) onBack()
+                                    else decisionError = result.exceptionOrNull()?.message
+                                        ?: "Gagal menolak pengajuan."
+                                }
+                            }
+                        ) {
+                            Text(if (isProcessingDecision) "Memproses…" else "Tolak")
+                        }
+
+                        Button(
+                            modifier = Modifier.weight(1f),
+                            enabled = !isProcessingDecision,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGreen
+                            ),
+                            onClick = {
+                                coroutineScope.launch {
+                                    isProcessingDecision = true
+                                    decisionError = ""
+                                    val result = PengajuanRepository.updateStatusPengajuan(
+                                        documentId = documentId,
+                                        status = "disetujui"
+                                    )
+                                    isProcessingDecision = false
+                                    if (result.isSuccess) onBack()
+                                    else decisionError = result.exceptionOrNull()?.message
+                                        ?: "Gagal menyetujui pengajuan."
+                                }
+                            }
+                        ) {
+                            Text(if (isProcessingDecision) "Memproses…" else "Setujui")
+                        }
+                    }
+
+                    if (decisionError.isNotBlank()) {
+                        Text(
+                            text = decisionError,
+                            color = Color(0xFFDC2626),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
                 Spacer(
                     modifier = Modifier.height(30.dp)
                 )

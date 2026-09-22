@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.PengajuanData
 import com.example.absensikaryawan.repository.PengajuanRepository
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -369,14 +370,10 @@ fun ApprovalScreen(
                                     try {
 
                                         val result =
-                                            repository
-                                                .updateStatusPengajuan(
-                                                    documentId =
-                                                        documentId,
-
-                                                    status =
-                                                        "ditolak"
-                                                )
+                                            repository.updateStatusPengajuan(
+                                                documentId = documentId,
+                                                status = "ditolak"
+                                            )
 
                                         result.getOrThrow()
 

@@ -1,5 +1,6 @@
 package com.example.absensikaryawan.repository
 
+import android.util.Log
 import com.example.absensikaryawan.models.Notification
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -18,7 +19,9 @@ class NotificationRepository {
     fun createNotification(
         notification: Notification,
         onSuccess: () -> Unit = {},
-        onError: (Exception) -> Unit = {}
+        onError: (Exception) -> Unit = { exception ->
+            Log.e("NotificationRepository", "Gagal menyimpan notifikasi", exception)
+        }
     ) {
         val document = notificationsCollection.document()
 
@@ -40,6 +43,7 @@ class NotificationRepository {
                 )
             )
             .addOnSuccessListener {
+                Log.i("NotificationRepository", "Notifikasi tersimpan: userId=${notificationWithId.userId}, type=${notificationWithId.type}, id=${document.id}")
                 onSuccess()
             }
             .addOnFailureListener { exception ->
