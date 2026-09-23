@@ -212,13 +212,21 @@ fun PengajuanScreen(
 
                 PengajuanSource.TEAM -> {
 
-                    /*
-                     * Relasi Team belum tersedia di collection users.
-                     *
-                     * Kita sengaja tidak mengambil semua pengajuan
-                     * karena itu akan membuat data Team menjadi salah.
-                     */
-                    daftarPengajuan = emptyList()
+                    val result =
+                        repository.getPengajuanTeam(uid)
+
+                    result.onSuccess { data ->
+
+                        daftarPengajuan = data
+
+                    }.onFailure { exception ->
+
+                        daftarPengajuan = emptyList()
+
+                        errorMessage =
+                            exception.message
+                                ?: "Gagal mengambil pengajuan Team."
+                    }
                 }
             }
 
@@ -642,33 +650,27 @@ fun PengajuanScreen(
                 )
             }
 
-        } else if (
-            source == PengajuanSource.TEAM
-        ) {
-
-            // ==================================================
-            // TEAM BELUM TERSEDIA
-            // ==================================================
-
-            EmptyState(
-                icon = Icons.Default.Groups,
-                title = "Team belum tersedia",
-                message =
-                    "Struktur Team belum diatur. " +
-                            "Data anggota Team akan ditampilkan setelah " +
-                            "relasi Team tersedia."
-            )
-
         } else if (filteredList.isEmpty()) {
 
             EmptyState(
-                icon = Icons.Default.Description,
+                icon =
+                    if (source == PengajuanSource.TEAM) {
+                        Icons.Default.Groups
+                    } else {
+                        Icons.Default.Description
+                    },
+
                 title =
                     if (filterStatus == "Semua") {
-                        "Belum ada pengajuan"
+                        if (source == PengajuanSource.TEAM) {
+                            "Belum ada pengajuan Team"
+                        } else {
+                            "Belum ada pengajuan"
+                        }
                     } else {
                         "Tidak ada pengajuan"
                     },
+
                 message =
                     when (source) {
 
@@ -708,8 +710,23 @@ fun PengajuanScreen(
                             }
                         }
 
-                        else ->
-                            ""
+                        PengajuanSource.TEAM -> {
+
+                            when (filterStatus) {
+
+                                "Menunggu" ->
+                                    "Tidak ada pengajuan Team yang sedang menunggu approval."
+
+                                "Disetujui" ->
+                                    "Belum ada pengajuan Team yang disetujui."
+
+                                "Ditolak" ->
+                                    "Belum ada pengajuan Team yang ditolak."
+
+                                else ->
+                                    "Pengajuan anggota Team akan muncul di sini."
+                            }
+                        }
                     }
             )
 
@@ -1144,10 +1161,13 @@ private fun PengajuanCard(
                             PengajuanScreenColors.Gray
                     )
 
-                    // Nama pemohon untuk tampilan approval
                     if (
-                        source ==
-                        PengajuanSource.MENUNGGU_APPROVAL &&
+                        (
+                                source ==
+                                        PengajuanSource.MENUNGGU_APPROVAL ||
+                                        source ==
+                                        PengajuanSource.TEAM
+                                ) &&
                         data.nama.isNotBlank()
                     ) {
 

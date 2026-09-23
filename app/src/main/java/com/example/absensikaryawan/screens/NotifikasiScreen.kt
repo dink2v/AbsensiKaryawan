@@ -533,7 +533,6 @@ fun NotifikasiScreen(
         }
     }
 }
-tr
 
 // ==========================================================
 // NOTIFICATION CARD

@@ -785,25 +785,52 @@ class FirestoreRepository {
             }
 
             // ==================================================
-            // CARI ANGGOTA TEAM
+            // CARI SEMUA USER
+            //
+            // Kita tidak menggunakan:
+            //
+            // whereEqualTo("atasan", jabatanApprover)
+            //
+            // secara langsung karena Firestore membedakan
+            // huruf besar dan kecil.
             //
             // Contoh:
             //
-            // Supervisor
-            // ->
-            // users.atasan == "Supervisor"
+            // "Supervisor"
+            // "SUPERVISOR"
+            //
+            // akan dianggap berbeda oleh Firestore.
             // ==================================================
 
-            val teamSnapshot =
+            val semuaUserSnapshot =
                 usersCollection
-                    .whereEqualTo(
-                        "atasan",
-                        jabatanApprover
-                    )
                     .get()
                     .await()
 
-            if (teamSnapshot.isEmpty) {
+            // ==================================================
+            // FILTER ANGGOTA TEAM
+            // ==================================================
+
+            val teamDocuments =
+                semuaUserSnapshot.documents.filter { userDocument ->
+
+                    val atasan =
+                        userDocument
+                            .getString("atasan")
+                            ?.trim()
+                            ?.lowercase()
+                            ?: ""
+
+                    val jabatanApproverNormalized =
+                        jabatanApprover
+                            .trim()
+                            .lowercase()
+
+                    atasan ==
+                            jabatanApproverNormalized
+                }
+
+            if (teamDocuments.isEmpty()) {
                 return Result.success(emptyList())
             }
 
@@ -812,18 +839,15 @@ class FirestoreRepository {
             // ==================================================
 
             val teamUids =
-                teamSnapshot.documents
+                teamDocuments
                     .mapNotNull { userDocument ->
 
-                        val uid =
-                            userDocument
-                                .getString("uid")
-                                ?.trim()
-                                ?.takeIf {
-                                    it.isNotBlank()
-                                }
-
-                        uid
+                        userDocument
+                            .getString("uid")
+                            ?.trim()
+                            ?.takeIf {
+                                it.isNotBlank()
+                            }
                     }
                     .filter {
                         it != approverUid
@@ -837,7 +861,7 @@ class FirestoreRepository {
             // ==================================================
             // FIRESTORE WHERE-IN MAKSIMAL 30 UID
             //
-            // Jika team lebih dari 30 orang,
+            // Jika Team lebih dari 30 orang,
             // otomatis dibagi beberapa batch.
             // ==================================================
 
