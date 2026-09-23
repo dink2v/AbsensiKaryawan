@@ -622,8 +622,8 @@ class FirestoreRepository {
 
 
     // ==========================================================
-// AMBIL PENGAJUAN YANG MENUNGGU APPROVAL USER INI
-// ==========================================================
+    // AMBIL PENGAJUAN YANG MENUNGGU APPROVAL USER INI
+    // ==========================================================
 
     suspend fun getPengajuanMenungguApproval(
         approverUid: String
@@ -660,6 +660,7 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
 
     // ==========================================================
     // AMBIL PENGAJUAN MENUNGGU
@@ -717,6 +718,160 @@ class FirestoreRepository {
                 snapshot.documents.map { document ->
 
                     document.toPengajuanData()
+                }
+
+            Result.success(daftar)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+
+    // ==========================================================
+    // AMBIL PENGAJUAN TEAM
+    //
+    // TEAM DITENTUKAN BERDASARKAN FIELD:
+    // users.atasan == jabatan approver saat ini
+    //
+    // Contoh:
+    //
+    // Supervisor -> users dengan atasan = "Supervisor"
+    // Manager    -> users dengan atasan = "Manager"
+    // HRD        -> users dengan atasan = "HRD"
+    // Owner      -> users dengan atasan = "Owner"
+    //
+    // HANYA pengajuan milik UID anggota team yang diambil.
+    // Tidak mengambil seluruh pengajuan perusahaan.
+    // ==========================================================
+
+    suspend fun getPengajuanTeam(
+        approverUid: String
+    ): Result<List<PengajuanData>> {
+
+        return try {
+
+            if (approverUid.isBlank()) {
+                return Result.success(emptyList())
+            }
+
+            // ==================================================
+            // CARI DATA APPROVER BERDASARKAN AUTH UID
+            // ==================================================
+
+            val approverSnapshot =
+                usersCollection
+                    .whereEqualTo(
+                        "uid",
+                        approverUid
+                    )
+                    .limit(1)
+                    .get()
+                    .await()
+
+            val approverDocument =
+                approverSnapshot.documents.firstOrNull()
+                    ?: return Result.success(emptyList())
+
+            val jabatanApprover =
+                approverDocument
+                    .getString("jabatan")
+                    ?.trim()
+                    ?: ""
+
+            if (jabatanApprover.isBlank()) {
+                return Result.success(emptyList())
+            }
+
+            // ==================================================
+            // CARI ANGGOTA TEAM
+            //
+            // Contoh:
+            //
+            // Supervisor
+            // ->
+            // users.atasan == "Supervisor"
+            // ==================================================
+
+            val teamSnapshot =
+                usersCollection
+                    .whereEqualTo(
+                        "atasan",
+                        jabatanApprover
+                    )
+                    .get()
+                    .await()
+
+            if (teamSnapshot.isEmpty) {
+                return Result.success(emptyList())
+            }
+
+            // ==================================================
+            // AMBIL AUTH UID ANGGOTA TEAM
+            // ==================================================
+
+            val teamUids =
+                teamSnapshot.documents
+                    .mapNotNull { userDocument ->
+
+                        val uid =
+                            userDocument
+                                .getString("uid")
+                                ?.trim()
+                                ?.takeIf {
+                                    it.isNotBlank()
+                                }
+
+                        uid
+                    }
+                    .filter {
+                        it != approverUid
+                    }
+                    .distinct()
+
+            if (teamUids.isEmpty()) {
+                return Result.success(emptyList())
+            }
+
+            // ==================================================
+            // FIRESTORE WHERE-IN MAKSIMAL 30 UID
+            //
+            // Jika team lebih dari 30 orang,
+            // otomatis dibagi beberapa batch.
+            // ==================================================
+
+            val hasil =
+                mutableListOf<PengajuanData>()
+
+            teamUids
+                .chunked(30)
+                .forEach { batchUids ->
+
+                    val snapshot =
+                        pengajuanCollection
+                            .whereIn(
+                                "uid",
+                                batchUids
+                            )
+                            .get()
+                            .await()
+
+                    snapshot.documents.forEach { document ->
+
+                        hasil.add(
+                            document.toPengajuanData()
+                        )
+                    }
+                }
+
+            // ==================================================
+            // URUTKAN DATA
+            // ==================================================
+
+            val daftar =
+                hasil.sortedByDescending {
+                    it.id
                 }
 
             Result.success(daftar)
@@ -1200,7 +1355,7 @@ class FirestoreRepository {
 
             // ==================================================
             // NOTIFIKASI APPROVER BERIKUTNYA
-            // ==================================================
+            // ==========================================================
 
             val notification =
                 Notification(

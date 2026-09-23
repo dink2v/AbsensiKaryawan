@@ -695,16 +695,20 @@ fun AdminNavigation(
                         pengajuan != null
                     ) {
 
-                        DetailPengajuanScreen(
+                            DetailPengajuanScreen(
 
-                            jenis =
-                                pengajuan.jenis,
+                                documentId =
+                                    pengajuan.id,
+
+                                jenis =
+                                    pengajuan.jenis,
 
                             tanggal =
                                 pengajuan.tanggal,
 
+
                             status =
-                                pengajuan.status,
+                                pengajuan   .status,
 
                             jamPulang =
                                 pengajuan.jamPulang,

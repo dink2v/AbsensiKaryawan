@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
@@ -26,8 +29,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,15 +44,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.PengajuanData
 import com.example.absensikaryawan.repository.PengajuanRepository
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
 
 // ==========================================================
 // APPROVAL SCREEN
@@ -99,10 +105,8 @@ fun ApprovalScreen(
             val result =
                 repository.ambilPengajuanUntukApproval()
 
-            val data =
+            daftarPengajuan =
                 result.getOrThrow()
-
-            daftarPengajuan = data
 
         } catch (exception: Exception) {
 
@@ -115,6 +119,7 @@ fun ApprovalScreen(
             isLoading = false
         }
     }
+
 
     // ======================================================
     // AUTO OPEN DARI NOTIFIKASI
@@ -151,20 +156,22 @@ fun ApprovalScreen(
         }
     }
 
+
     // ======================================================
-    // SORT DATA
+    // SORT
     // ======================================================
 
     val daftarTerurut =
         remember(daftarPengajuan) {
 
             daftarPengajuan.sortedWith(
+
                 compareBy<PengajuanData> {
 
                     if (
                         it.status
-                            .lowercase()
-                            .trim() == "menunggu"
+                            .trim()
+                            .lowercase() == "menunggu"
                     ) {
                         0
                     } else {
@@ -178,14 +185,18 @@ fun ApprovalScreen(
             )
         }
 
+
+    // ======================================================
+    // MAIN
+    // ======================================================
+
     Column(
 
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(Background)
-                .padding(
-                    horizontal = 16.dp
+                .background(
+                    Background
                 )
     ) {
 
@@ -199,8 +210,10 @@ fun ApprovalScreen(
                 Modifier
                     .fillMaxWidth()
                     .padding(
-                        top = 8.dp,
-                        bottom = 14.dp
+                        start = 20.dp,
+                        end = 12.dp,
+                        top = 18.dp,
+                        bottom = 10.dp
                     ),
 
             verticalAlignment =
@@ -213,33 +226,22 @@ fun ApprovalScreen(
             ) {
 
                 Text(
-                    text =
-                        "Approval Pengajuan",
-
-                    fontSize =
-                        22.sp,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    color =
-                        TextDark
+                    text = "Persetujuan",
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.size(3.dp)
+                        Modifier.height(4.dp)
                 )
 
                 Text(
                     text =
-                        "Daftar pengajuan yang perlu diproses",
-
-                    fontSize =
-                        12.sp,
-
-                    color =
-                        TextGray
+                        "Kelola pengajuan yang menunggu persetujuan",
+                    fontSize = 13.sp,
+                    color = TextGray
                 )
             }
 
@@ -262,152 +264,202 @@ fun ApprovalScreen(
             }
         }
 
+
         // ==================================================
-        // LOADING
+        // CONTENT
         // ==================================================
 
-        if (isLoading) {
+        when {
 
-            Box(
+            // ==================================================
+            // LOADING
+            // ==================================================
 
-                modifier =
-                    Modifier.fillMaxSize(),
+            isLoading -> {
 
-                contentAlignment =
-                    Alignment.Center
-            ) {
+                Box(
 
-                CircularProgressIndicator(
-                    color =
-                        PrimaryGreen
+                    modifier =
+                        Modifier.fillMaxSize(),
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    CircularProgressIndicator(
+                        color =
+                            PrimaryGreen
+                    )
+                }
+            }
+
+
+            // ==================================================
+            // ERROR
+            // ==================================================
+
+            errorMessage.isNotBlank() -> {
+
+                ApprovalEmptyState(
+
+                    title =
+                        "Gagal memuat pengajuan",
+
+                    message =
+                        errorMessage,
+
+                    onRefresh = {
+                        refreshKey++
+                    }
                 )
             }
-        }
 
-        // ==================================================
-        // ERROR
-        // ==================================================
 
-        else if (errorMessage.isNotBlank()) {
+            // ==================================================
+            // EMPTY
+            // ==================================================
 
-            ApprovalEmptyState(
+            daftarTerurut.isEmpty() -> {
 
-                title =
-                    "Gagal memuat pengajuan",
+                ApprovalEmptyState(
 
-                message =
-                    errorMessage
-            )
-        }
+                    title =
+                        "Tidak ada pengajuan",
 
-        // ==================================================
-        // EMPTY
-        // ==================================================
+                    message =
+                        "Belum ada pengajuan yang perlu diproses.",
 
-        else if (daftarTerurut.isEmpty()) {
+                    onRefresh = {
+                        refreshKey++
+                    }
+                )
+            }
 
-            ApprovalEmptyState(
 
-                title =
-                    "Belum ada pengajuan",
+            // ==================================================
+            // LIST
+            // ==================================================
 
-                message =
-                    "Tidak ada pengajuan yang tersedia untuk diproses."
-            )
-        }
+            else -> {
 
-        // ==================================================
-        // LIST
-        // ==================================================
+                LazyColumn(
 
-        else {
+                    modifier =
+                        Modifier.fillMaxSize(),
 
-            LazyColumn(
+                    contentPadding =
+                        androidx.compose.foundation.layout.PaddingValues(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = 8.dp,
+                            bottom = 24.dp
+                        ),
 
-                modifier =
-                    Modifier.fillMaxSize(),
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            14.dp
+                        )
+                ) {
 
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        12.dp
-                    )
-            ) {
+                    // ==========================================
+                    // SUMMARY
+                    // ==========================================
 
-                items(
-                    items = daftarTerurut,
-                    key = { it.id }
-                ) { pengajuan ->
+                    item {
 
-                    ApprovalRequestCard(
+                        ApprovalSummaryCard(
+                            total =
+                                daftarTerurut.size,
 
-                        pengajuan =
-                            pengajuan,
+                            menunggu =
+                                daftarTerurut.count {
+                                    it.status
+                                        .trim()
+                                        .lowercase() == "menunggu"
+                                }
+                        )
+                    }
 
-                        onDetailClick = {
 
-                            onDetailClick(
-                                pengajuan
-                            )
-                        },
+                    // ==========================================
+                    // REQUEST CARDS
+                    // ==========================================
 
-                        onSetujui = {
+                    items(
+                        items =
+                            daftarTerurut,
 
-                            dialogPengajuan =
-                                pengajuan
-                        },
+                        key = {
+                            it.id
+                        }
+                    ) { pengajuan ->
 
-                        onTolak = {
+                        ApprovalRequestCard(
 
-                            val documentId =
-                                pengajuan.id
+                            pengajuan =
+                                pengajuan,
 
-                            if (
-                                documentId.isNotBlank()
-                            ) {
+                            onDetailClick = {
 
-                                coroutineScope.launch {
+                                onDetailClick(
+                                    pengajuan
+                                )
+                            },
 
-                                    try {
+                            onSetujui = {
 
-                                        val result =
-                                            repository.updateStatusPengajuan(
-                                                documentId = documentId,
-                                                status = "ditolak"
-                                            )
+                                dialogPengajuan =
+                                    pengajuan
+                            },
 
-                                        result.getOrThrow()
+                            onTolak = {
 
-                                        delay(300)
+                                val documentId =
+                                    pengajuan.id
 
-                                        refreshKey++
+                                if (
+                                    documentId.isNotBlank()
+                                ) {
 
-                                    } catch (
-                                        exception: Exception
-                                    ) {
+                                    coroutineScope.launch {
 
-                                        errorMessage =
-                                            exception.message
-                                                ?: "Gagal menolak pengajuan."
+                                        try {
+
+                                            repository
+                                                .updateStatusPengajuan(
+                                                    documentId =
+                                                        documentId,
+
+                                                    status =
+                                                        "ditolak"
+                                                )
+                                                .getOrThrow()
+
+                                            delay(300)
+
+                                            refreshKey++
+
+                                        } catch (
+                                            exception: Exception
+                                        ) {
+
+                                            errorMessage =
+                                                exception.message
+                                                    ?: "Gagal menolak pengajuan."
+                                        }
                                     }
                                 }
                             }
-                        }
-                    )
-                }
-
-                item {
-
-                    Spacer(
-                        modifier =
-                            Modifier.size(20.dp)
-                    )
+                        )
+                    }
                 }
             }
         }
     }
 
+
     // ======================================================
-    // DIALOG APPROVE
+    // APPROVE DIALOG
     // ======================================================
 
     dialogPengajuan?.let { pengajuan ->
@@ -432,7 +484,7 @@ fun ApprovalScreen(
 
                 Text(
                     text =
-                        "Apakah Anda yakin ingin menyetujui pengajuan ini?"
+                        "Pengajuan dari ${pengajuan.nama.ifBlank { "Karyawan" }} akan diteruskan ke tahap persetujuan berikutnya."
                 )
             },
 
@@ -456,17 +508,15 @@ fun ApprovalScreen(
 
                                 try {
 
-                                    val result =
-                                        repository
-                                            .updateStatusPengajuan(
-                                                documentId =
-                                                    documentId,
+                                    repository
+                                        .updateStatusPengajuan(
+                                            documentId =
+                                                documentId,
 
-                                                status =
-                                                    "disetujui"
-                                            )
-
-                                    result.getOrThrow()
+                                            status =
+                                                "disetujui"
+                                        )
+                                        .getOrThrow()
 
                                     delay(300)
 
@@ -521,7 +571,173 @@ fun ApprovalScreen(
 
 
 // ==========================================================
-// CARD APPROVAL
+// SUMMARY CARD
+// ==========================================================
+
+@Composable
+private fun ApprovalSummaryCard(
+
+    total:
+    Int,
+
+    menunggu:
+    Int
+
+) {
+
+    Card(
+
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        shape =
+            RoundedCornerShape(
+                18.dp
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    1.dp
+            )
+    ) {
+
+        Row(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        18.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Box(
+
+                modifier =
+                    Modifier
+                        .size(46.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                14.dp
+                            )
+                        )
+                        .background(
+                            SoftGreen
+                        ),
+
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Description,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(
+                            23.dp
+                        )
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        12.dp
+                    )
+            )
+
+            Column(
+                modifier =
+                    Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text =
+                        "Pengajuan",
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextGray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            2.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        "$total pengajuan",
+
+                    fontSize =
+                        18.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
+                )
+            }
+
+            Column(
+                horizontalAlignment =
+                    Alignment.End
+            ) {
+
+                Text(
+                    text =
+                        "Perlu diproses",
+
+                    fontSize =
+                        11.sp,
+
+                    color =
+                        TextGray
+                )
+
+                Text(
+                    text =
+                        "$menunggu",
+
+                    fontSize =
+                        18.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        PrimaryGreen
+                )
+            }
+        }
+    }
+}
+
+
+// ==========================================================
+// REQUEST CARD
 // ==========================================================
 
 @Composable
@@ -553,19 +769,23 @@ private fun ApprovalRequestCard(
                 "Pengajuan"
             }
 
+    val status =
+        pengajuan.status
+            .trim()
+            .lowercase()
+
     val tanggalMulai =
         pengajuan.tanggalMulai
+            .ifBlank {
+                pengajuan.tanggal
+            }
 
     val tanggalSelesai =
         pengajuan.tanggalSelesai
 
-    val alasan =
-        pengajuan.alasan
+    val isWaiting =
+        status == "menunggu"
 
-    val status =
-        pengajuan.status
-            .lowercase()
-            .trim()
 
     Card(
 
@@ -590,7 +810,7 @@ private fun ApprovalRequestCard(
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation =
-                    3.dp
+                    1.dp
             )
     ) {
 
@@ -600,7 +820,7 @@ private fun ApprovalRequestCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(
-                        16.dp
+                        18.dp
                     )
         ) {
 
@@ -617,31 +837,25 @@ private fun ApprovalRequestCard(
                     Alignment.CenterVertically
             ) {
 
-                Row(
+                Box(
 
                     modifier =
                         Modifier
                             .size(44.dp)
+                            .clip(
+                                RoundedCornerShape(
+                                    12.dp
+                                )
+                            )
                             .background(
-
-                                color =
-                                    Color(0xFFE8F5E9),
-
-                                shape =
-                                    RoundedCornerShape(
-                                        12.dp
-                                    )
+                                SoftGreen
                             ),
 
-                    horizontalArrangement =
-                        Arrangement.Center,
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    contentAlignment =
+                        Alignment.Center
                 ) {
 
                     Icon(
-
                         imageVector =
                             Icons.Default.Description,
 
@@ -660,7 +874,9 @@ private fun ApprovalRequestCard(
 
                 Spacer(
                     modifier =
-                        Modifier.width(12.dp)
+                        Modifier.width(
+                            12.dp
+                        )
                 )
 
                 Column(
@@ -669,9 +885,8 @@ private fun ApprovalRequestCard(
                 ) {
 
                     Text(
-
                         text =
-                            jenis,
+                            nama,
 
                         fontSize =
                             16.sp,
@@ -683,10 +898,16 @@ private fun ApprovalRequestCard(
                             TextDark
                     )
 
-                    Text(
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                2.dp
+                            )
+                    )
 
+                    Text(
                         text =
-                            nama,
+                            jenis,
 
                         fontSize =
                             12.sp,
@@ -702,155 +923,331 @@ private fun ApprovalRequestCard(
                 )
             }
 
+
             Spacer(
                 modifier =
-                    Modifier.size(14.dp)
+                    Modifier.height(
+                        16.dp
+                    )
             )
 
+
+            HorizontalDivider(
+                color =
+                    Color(0xFFE5E7EB)
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        14.dp
+                    )
+            )
+
+
             // ==============================================
-            // TANGGAL
+            // INFORMATION
             // ==============================================
+
+            Text(
+                text =
+                    "Tanggal pengajuan",
+
+                fontSize =
+                    11.sp,
+
+                color =
+                    TextGray
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        3.dp
+                    )
+            )
+
+            Text(
+                text =
+                    if (
+                        tanggalSelesai.isNotBlank() &&
+                        tanggalSelesai != tanggalMulai
+                    ) {
+
+                        "$tanggalMulai - $tanggalSelesai"
+
+                    } else {
+
+                        tanggalMulai
+                    },
+
+                fontSize =
+                    13.sp,
+
+                fontWeight =
+                    FontWeight.Medium,
+
+                color =
+                    TextDark
+            )
+
 
             if (
-                tanggalMulai.isNotBlank()
-            ) {
-
-                Text(
-
-                    text =
-                        if (
-                            tanggalSelesai.isNotBlank() &&
-                            tanggalSelesai != tanggalMulai
-                        ) {
-
-                            "Tanggal: " +
-                                    tanggalMulai +
-                                    " s/d " +
-                                    tanggalSelesai
-
-                        } else {
-
-                            "Tanggal: " +
-                                    tanggalMulai
-                        },
-
-                    fontSize =
-                        12.sp,
-
-                    color =
-                        TextDark
-                )
-            }
-
-            // ==============================================
-            // ALASAN
-            // ==============================================
-
-            if (
-                alasan.isNotBlank()
+                pengajuan.alasan.isNotBlank()
             ) {
 
                 Spacer(
                     modifier =
-                        Modifier.size(5.dp)
+                        Modifier.height(
+                            12.dp
+                        )
                 )
 
                 Text(
-
                     text =
-                        "Alasan: $alasan",
+                        "Alasan",
 
                     fontSize =
                         11.sp,
 
                     color =
-                        TextGray,
+                        TextGray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            3.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        pengajuan.alasan,
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextDark,
 
                     maxLines =
-                        3
+                        2
                 )
             }
 
+
             Spacer(
                 modifier =
-                    Modifier.size(14.dp)
+                    Modifier.height(
+                        16.dp
+                    )
             )
 
+
             // ==============================================
-            // BUTTON
+            // APPROVAL PROGRESS
             // ==============================================
 
-            Row(
+            ApprovalProgress(
+                pengajuan =
+                    pengajuan
+            )
 
+
+            Spacer(
                 modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(
-                        8.dp
+                    Modifier.height(
+                        16.dp
                     )
-            ) {
+            )
 
-                Button(
 
-                    onClick =
-                        onTolak,
+            // ==============================================
+            // ACTIONS
+            // ==============================================
+
+            if (isWaiting) {
+
+                Row(
 
                     modifier =
-                        Modifier.weight(1f),
+                        Modifier.fillMaxWidth(),
 
-                    colors =
-                        ButtonDefaults.buttonColors(
-
-                            containerColor =
-                                Color(0xFFC62828)
-                        ),
-
-                    shape =
-                        RoundedCornerShape(
-                            12.dp
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
                         )
                 ) {
 
-                    Icon(
+                    OutlinedButton(
 
-                        imageVector =
-                            Icons.Default.Close,
-
-                        contentDescription =
-                            null,
+                        onClick =
+                            onDetailClick,
 
                         modifier =
-                            Modifier.size(
-                                17.dp
+                            Modifier.weight(1f),
+
+                        shape =
+                            RoundedCornerShape(
+                                12.dp
                             )
-                    )
+                    ) {
 
-                    Spacer(
-                        modifier =
-                            Modifier.width(5.dp)
-                    )
+                        Text(
+                            text =
+                                "Lihat Detail",
 
-                    Text(
-                        text =
-                            "Tolak"
-                    )
+                            color =
+                                TextDark
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    5.dp
+                                )
+                        )
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.ArrowForward,
+
+                            contentDescription =
+                                null,
+
+                            modifier =
+                                Modifier.size(
+                                    16.dp
+                                )
+                        )
+                    }
                 }
 
-                Button(
 
-                    onClick =
-                        onSetujui,
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            8.dp
+                        )
+                )
+
+
+                Row(
 
                     modifier =
-                        Modifier.weight(1f),
+                        Modifier.fillMaxWidth(),
 
-                    colors =
-                        ButtonDefaults.buttonColors(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
 
-                            containerColor =
-                                PrimaryGreen
-                        ),
+                    Button(
+
+                        onClick =
+                            onTolak,
+
+                        modifier =
+                            Modifier.weight(1f),
+
+                        shape =
+                            RoundedCornerShape(
+                                12.dp
+                            ),
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Color(0xFFC62828)
+                            )
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Close,
+
+                            contentDescription =
+                                null,
+
+                            modifier =
+                                Modifier.size(
+                                    17.dp
+                                )
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    5.dp
+                                )
+                        )
+
+                        Text(
+                            text =
+                                "Tolak"
+                        )
+                    }
+
+
+                    Button(
+
+                        onClick =
+                            onSetujui,
+
+                        modifier =
+                            Modifier.weight(1f),
+
+                        shape =
+                            RoundedCornerShape(
+                                12.dp
+                            ),
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    PrimaryGreen
+                            )
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Check,
+
+                            contentDescription =
+                                null,
+
+                            modifier =
+                                Modifier.size(
+                                    17.dp
+                                )
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    5.dp
+                                )
+                        )
+
+                        Text(
+                            text =
+                                "Setujui"
+                        )
+                    }
+                }
+
+            } else {
+
+                OutlinedButton(
+
+                    onClick =
+                        onDetailClick,
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
 
                     shape =
                         RoundedCornerShape(
@@ -858,32 +1255,402 @@ private fun ApprovalRequestCard(
                         )
                 ) {
 
-                    Icon(
+                    Text(
+                        text =
+                            "Lihat Detail"
+                    )
 
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                5.dp
+                            )
+                    )
+
+                    Icon(
                         imageVector =
-                            Icons.Default.Check,
+                            Icons.Default.ArrowForward,
 
                         contentDescription =
                             null,
 
                         modifier =
                             Modifier.size(
-                                17.dp
+                                16.dp
                             )
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(5.dp)
-                    )
-
-                    Text(
-                        text =
-                            "Setujui"
                     )
                 }
             }
         }
+    }
+}
+
+
+// ==========================================================
+// APPROVAL PROGRESS
+// ==========================================================
+
+@Composable
+private fun ApprovalProgress(
+    pengajuan: PengajuanData
+) {
+
+    val chain =
+        if (
+            pengajuan.approvalChain.isNotEmpty()
+        ) {
+
+            pengajuan.approvalChain
+
+        } else {
+
+            listOf(
+                "SUPERVISOR",
+                "MANAGER",
+                "HRD",
+                "OWNER"
+            )
+        }
+
+    val statuses =
+        pengajuan.approvalStatuses
+
+    val approvedCount =
+        chain.count { uid ->
+
+            statuses[uid]
+                ?.trim()
+                ?.lowercase() == "disetujui"
+        }
+
+    val total =
+        chain.size.coerceAtLeast(1)
+
+    val progress =
+        approvedCount.toFloat() /
+                total.toFloat()
+
+
+    Column {
+
+        Row(
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text =
+                    "Jalur Persetujuan",
+
+                fontSize =
+                    12.sp,
+
+                fontWeight =
+                    FontWeight.SemiBold,
+
+                color =
+                    TextDark,
+
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            Text(
+                text =
+                    "$approvedCount/$total disetujui",
+
+                fontSize =
+                    11.sp,
+
+                color =
+                    PrimaryGreen,
+
+                fontWeight =
+                    FontWeight.Bold
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    8.dp
+                )
+        )
+
+        Box(
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            10.dp
+                        )
+                    )
+                    .background(
+                        Color(0xFFE5E7EB)
+                    )
+        ) {
+
+            Box(
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth(
+                            progress
+                                .coerceIn(
+                                    0f,
+                                    1f
+                                )
+                        )
+                        .height(6.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                10.dp
+                            )
+                        )
+                        .background(
+                            PrimaryGreen
+                        )
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    9.dp
+                )
+        )
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.spacedBy(
+                    6.dp
+                )
+        ) {
+
+            ApprovalStep(
+                label = "Supervisor",
+                status =
+                    approvalStepStatus(
+                        chain,
+                        statuses,
+                        0
+                    ),
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            ApprovalStep(
+                label = "Manager",
+                status =
+                    approvalStepStatus(
+                        chain,
+                        statuses,
+                        1
+                    ),
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            ApprovalStep(
+                label = "HRD",
+                status =
+                    approvalStepStatus(
+                        chain,
+                        statuses,
+                        2
+                    ),
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            ApprovalStep(
+                label = "Owner",
+                status =
+                    approvalStepStatus(
+                        chain,
+                        statuses,
+                        3
+                    ),
+                modifier =
+                    Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+
+private fun approvalStepStatus(
+    chain: List<String>,
+    statuses: Map<String, String>,
+    index: Int
+): String {
+
+    if (
+        index >= chain.size
+    ) {
+        return "belum"
+    }
+
+    return statuses[
+        chain[index]
+    ]
+        ?.trim()
+        ?.lowercase()
+        ?: "menunggu"
+}
+
+
+// ==========================================================
+// APPROVAL STEP
+// ==========================================================
+
+@Composable
+private fun ApprovalStep(
+
+    label:
+    String,
+
+    status:
+    String,
+
+    modifier:
+    Modifier
+
+) {
+
+    val isApproved =
+        status == "disetujui"
+
+    val isWaiting =
+        status == "menunggu"
+
+
+    Column(
+
+        modifier =
+            modifier,
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+
+        Box(
+
+            modifier =
+                Modifier
+                    .size(
+                        24.dp
+                    )
+                    .clip(
+                        CircleShape
+                    )
+                    .background(
+
+                        if (
+                            isApproved
+                        ) {
+
+                            PrimaryGreen
+
+                        } else {
+
+                            Color(0xFFE5E7EB)
+                        }
+                    ),
+
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            if (
+                isApproved
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Check,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            14.dp
+                        )
+                )
+            } else {
+
+                Box(
+
+                    modifier =
+                        Modifier
+                            .size(
+                                if (isWaiting) {
+                                    8.dp
+                                } else {
+                                    6.dp
+                                }
+                            )
+                            .clip(
+                                CircleShape
+                            )
+                            .background(
+                                if (isWaiting) {
+                                    PrimaryGreen
+                                } else {
+                                    Color(0xFF9CA3AF)
+                                }
+                            )
+                )
+            }
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    4.dp
+                )
+        )
+
+        Text(
+            text =
+                label,
+
+            fontSize =
+                9.sp,
+
+            fontWeight =
+                if (
+                    isApproved ||
+                    isWaiting
+                ) {
+                    FontWeight.SemiBold
+                } else {
+                    FontWeight.Normal
+                },
+
+            color =
+                if (
+                    isApproved ||
+                    isWaiting
+                ) {
+                    TextDark
+                } else {
+                    TextGray
+                }
+        )
     }
 }
 
@@ -917,10 +1684,9 @@ private fun ApprovalStatusBadge(
 
                 "Disetujui",
 
-                Color(0xFFE8F5E9),
+                SoftGreen,
 
-                Color(0xFF2E7D32)
-            )
+                PrimaryGreen            )
 
             "ditolak" -> Triple(
 
@@ -943,19 +1709,16 @@ private fun ApprovalStatusBadge(
             )
         }
 
+
     Row(
 
         modifier =
             Modifier
                 .background(
-
-                    color =
-                        background,
-
-                    shape =
-                        RoundedCornerShape(
-                            50.dp
-                        )
+                    background,
+                    RoundedCornerShape(
+                        50.dp
+                    )
                 )
                 .padding(
                     horizontal = 10.dp,
@@ -967,7 +1730,6 @@ private fun ApprovalStatusBadge(
     ) {
 
         Text(
-
             text =
                 text,
 
@@ -995,7 +1757,10 @@ private fun ApprovalEmptyState(
     String,
 
     message:
-    String
+    String,
+
+    onRefresh:
+        () -> Unit
 
 ) {
 
@@ -1010,39 +1775,63 @@ private fun ApprovalEmptyState(
 
         Column(
 
+            modifier =
+                Modifier.padding(
+                    30.dp
+                ),
+
             horizontalAlignment =
                 Alignment.CenterHorizontally
         ) {
 
-            Icon(
-
-                imageVector =
-                    Icons.Default.Description,
-
-                contentDescription =
-                    null,
-
-                tint =
-                    PrimaryGreen,
+            Box(
 
                 modifier =
-                    Modifier.size(
-                        42.dp
-                    )
-            )
+                    Modifier
+                        .size(
+                            64.dp
+                        )
+                        .clip(
+                            CircleShape
+                        )
+                        .background(
+                            SoftGreen
+                        ),
+
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Description,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        PrimaryGreen,
+
+                    modifier =
+                        Modifier.size(
+                            30.dp
+                        )
+                )
+            }
 
             Spacer(
                 modifier =
-                    Modifier.size(12.dp)
+                    Modifier.height(
+                        16.dp
+                    )
             )
 
             Text(
-
                 text =
                     title,
 
                 fontSize =
-                    16.sp,
+                    17.sp,
 
                 fontWeight =
                     FontWeight.Bold,
@@ -1053,11 +1842,12 @@ private fun ApprovalEmptyState(
 
             Spacer(
                 modifier =
-                    Modifier.size(5.dp)
+                    Modifier.height(
+                        6.dp
+                    )
             )
 
             Text(
-
                 text =
                     message,
 
@@ -1067,6 +1857,49 @@ private fun ApprovalEmptyState(
                 color =
                     TextGray
             )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        14.dp
+                    )
+            )
+
+            OutlinedButton(
+                onClick =
+                    onRefresh,
+
+                shape =
+                    RoundedCornerShape(
+                        12.dp
+                    )
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Refresh,
+
+                    contentDescription =
+                        null,
+
+                    modifier =
+                        Modifier.size(
+                            16.dp
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            6.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        "Muat Ulang"
+                )
+            }
         }
     }
 }

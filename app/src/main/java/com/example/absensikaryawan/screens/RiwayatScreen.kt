@@ -966,7 +966,7 @@ fun RiwayatScreen(
                 ) {
 
                     // ----------------------------------------------
-                    // SUMBER
+                    // SUMBER PENGAJUAN
                     // ----------------------------------------------
 
                     Row(
@@ -1045,7 +1045,43 @@ fun RiwayatScreen(
                     )
 
                     // ----------------------------------------------
-                    // STATUS
+                    // LABEL STATUS SESUAI SUMBER
+                    // ----------------------------------------------
+
+                    Text(
+                        text =
+                            when (filterSumberPengajuan) {
+
+                                FilterSumberPengajuan.SAYA ->
+                                    "Status Pengajuan Saya"
+
+                                FilterSumberPengajuan.MENUNGGU_APPROVAL ->
+                                    "Status Menunggu Approval"
+
+                                FilterSumberPengajuan.TEAM ->
+                                    "Status Team"
+
+                                FilterSumberPengajuan.SEMUA ->
+                                    "Status Pengajuan"
+                            },
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 16.dp
+                            ),
+                        fontSize = 12.sp,
+                        fontWeight =
+                            FontWeight.SemiBold,
+                        color =
+                            RiwayatScreenColors.Gray
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(6.dp)
+                    )
+
+                    // ----------------------------------------------
+                    // FILTER STATUS
                     // ----------------------------------------------
 
                     Row(

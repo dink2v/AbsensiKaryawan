@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import com.example.absensikaryawan.data.PengajuanData
 
 import com.example.absensikaryawan.screens.AbsenLuarKantorScreen
+import com.example.absensikaryawan.screens.ApprovalScreen
 import com.example.absensikaryawan.screens.BantuanScreen
 import com.example.absensikaryawan.screens.BottomNavigationBar
 import com.example.absensikaryawan.screens.ChatAdminScreen
@@ -72,6 +74,73 @@ fun StaffNavigation(
     }
 
     val coroutineScope = rememberCoroutineScope()
+
+
+    // ======================================================
+    // CEK APPROVER
+    // Supervisor / Manager / HRD / Owner
+    // ======================================================
+
+    var isApprover by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(auth.currentUser?.uid) {
+
+        val uid =
+            auth.currentUser?.uid
+
+        if (uid.isNullOrBlank()) {
+
+            isApprover = false
+
+            return@LaunchedEffect
+        }
+
+        try {
+
+            val snapshot =
+                db.collection("users")
+                    .whereEqualTo(
+                        "uid",
+                        uid
+                    )
+                    .limit(1)
+                    .get()
+                    .await()
+
+            val document =
+                snapshot.documents.firstOrNull()
+
+            val jabatan =
+                document
+                    ?.getString("jabatan")
+                    ?.trim()
+                    ?.uppercase()
+                    .orEmpty()
+
+            isApprover =
+                jabatan == "SUPERVISOR" ||
+                        jabatan == "MANAGER" ||
+                        jabatan == "HRD" ||
+                        jabatan == "OWNER"
+
+            Log.d(
+                "STAFF_NAV",
+                "CEK APPROVER → uid=$uid | jabatan=$jabatan | isApprover=$isApprover"
+            )
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "STAFF_NAV",
+                "GAGAL CEK JABATAN USER",
+                e
+            )
+
+            isApprover = false
+        }
+    }
 
 
     // ======================================================
@@ -157,6 +226,7 @@ fun StaffNavigation(
             if (
                 currentScreen == StaffScreen.Dashboard ||
                 currentScreen == StaffScreen.Pengajuan ||
+                currentScreen == StaffScreen.Approval ||
                 currentScreen == StaffScreen.Scan ||
                 currentScreen == StaffScreen.Riwayat ||
                 currentScreen == StaffScreen.Settings
@@ -182,8 +252,17 @@ fun StaffNavigation(
                                 0 ->
                                     StaffScreen.Dashboard
 
-                                1 ->
-                                    StaffScreen.Pengajuan
+                                1 -> {
+
+                                    if (isApprover) {
+
+                                        StaffScreen.Approval
+
+                                    } else {
+
+                                        StaffScreen.Pengajuan
+                                    }
+                                }
 
                                 2 ->
                                     StaffScreen.Scan
@@ -281,7 +360,14 @@ fun StaffNavigation(
                             selectedBottomItem = 1
 
                             currentScreen =
-                                StaffScreen.Pengajuan
+                                if (isApprover) {
+
+                                    StaffScreen.Approval
+
+                                } else {
+
+                                    StaffScreen.Pengajuan
+                                }
                         },
 
                         onLogout = {
@@ -293,6 +379,36 @@ fun StaffNavigation(
 
                             currentScreen =
                                 StaffScreen.Notifikasi
+                        }
+                    )
+                }
+
+
+                // ==================================================
+                // APPROVAL
+                // ==================================================
+
+                StaffScreen.Approval -> {
+
+                    ApprovalScreen(
+
+                        initialDocumentId = "",
+
+                        onDetailClick = { pengajuan ->
+
+                            Log.d(
+                                "STAFF_NAV",
+                                "DETAIL APPROVAL: ${pengajuan.id}"
+                            )
+
+                            selectedPengajuan =
+                                pengajuan
+
+                            detailReturnScreen =
+                                StaffScreen.Approval
+
+                            currentScreen =
+                                StaffScreen.DetailPengajuan
                         }
                     )
                 }
@@ -464,10 +580,6 @@ fun StaffNavigation(
                                         attendanceSnapshot.isEmpty
                                     ) {
 
-                                        // ==========================================
-                                        // SEBELUM 06.00
-                                        // ==========================================
-
                                         if (
                                             totalMenitSekarang <
                                             waktuMasukMulai
@@ -488,10 +600,6 @@ fun StaffNavigation(
                                         }
 
 
-                                        // ==========================================
-                                        // SUDAH 16.00 TAPI BELUM ABSEN MASUK
-                                        // ==========================================
-
                                         if (
                                             totalMenitSekarang >=
                                             waktuPulangMulai
@@ -509,11 +617,6 @@ fun StaffNavigation(
                                             return@launch
                                         }
 
-
-                                        // ==========================================
-                                        // ABSEN MASUK
-                                        // 06.00 - sebelum 16.00
-                                        // ==========================================
 
                                         val attendanceData =
                                             hashMapOf<String, Any>(
@@ -564,10 +667,6 @@ fun StaffNavigation(
 
                                     } else {
 
-                                        // ==================================================
-                                        // DATA ABSENSI SUDAH ADA
-                                        // ==================================================
-
                                         val document =
                                             attendanceSnapshot
                                                 .documents
@@ -584,18 +683,10 @@ fun StaffNavigation(
                                             ) ?: ""
 
 
-                                        // ==================================================
-                                        // SUDAH MASUK, BELUM PULANG
-                                        // ==================================================
-
                                         if (
                                             jamMasuk.isNotBlank() &&
                                             jamPulang.isBlank()
                                         ) {
-
-                                            // ==========================================
-                                            // SEBELUM 16.00
-                                            // ==========================================
 
                                             if (
                                                 totalMenitSekarang <
@@ -615,10 +706,6 @@ fun StaffNavigation(
                                             }
 
 
-                                            // ==========================================
-                                            // SETELAH 21.00
-                                            // ==========================================
-
                                             if (
                                                 totalMenitSekarang >
                                                 waktuPulangSelesai
@@ -637,11 +724,6 @@ fun StaffNavigation(
                                                 return@launch
                                             }
 
-
-                                            // ==========================================
-                                            // ABSEN PULANG
-                                            // 16.00 - 21.00
-                                            // ==========================================
 
                                             val updateData =
                                                 hashMapOf<String, Any>(
@@ -672,14 +754,8 @@ fun StaffNavigation(
                                                 "ABSEN PULANG BERHASIL → " +
                                                         "$kantor | $jamSekarang"
                                             )
-                                        }
 
-
-                                        // ==================================================
-                                        // SUDAH MASUK DAN SUDAH PULANG
-                                        // ==================================================
-
-                                        else if (
+                                        } else if (
                                             jamMasuk.isNotBlank() &&
                                             jamPulang.isNotBlank()
                                         ) {
@@ -693,20 +769,10 @@ fun StaffNavigation(
                                                 "Anda sudah melakukan absen masuk dan pulang hari ini."
 
                                             return@launch
-                                        }
 
-
-                                        // ==================================================
-                                        // DATA ADA TAPI JAM MASUK KOSONG
-                                        // ==================================================
-
-                                        else if (
+                                        } else if (
                                             jamMasuk.isBlank()
                                         ) {
-
-                                            // ==========================================
-                                            // SEBELUM 06.00
-                                            // ==========================================
 
                                             if (
                                                 totalMenitSekarang <
@@ -725,10 +791,6 @@ fun StaffNavigation(
                                                 return@launch
                                             }
 
-
-                                            // ==========================================
-                                            // SUDAH 16.00
-                                            // ==========================================
 
                                             if (
                                                 totalMenitSekarang >=
@@ -749,10 +811,6 @@ fun StaffNavigation(
                                                 return@launch
                                             }
 
-
-                                            // ==========================================
-                                            // UPDATE JAM MASUK
-                                            // ==========================================
 
                                             val updateData =
                                                 hashMapOf<String, Any>(
@@ -925,23 +983,42 @@ fun StaffNavigation(
                     if (data != null) {
 
                         DetailPengajuanScreen(
-                            jenis = data.jenis,
-                            tanggal = data.tanggal,
-                            status = data.status,
-                            jamPulang = data.jamPulang,
-                            jamKeluar = data.jamKeluar,
-                            jamKembali = data.jamKembali,
-                            tanggalMulai = data.tanggalMulai,
-                            tanggalSelesai = data.tanggalSelesai,
-                            alasan = data.alasan,
 
-                            // ==========================================
-                            // DATA JALUR APPROVAL
-                            // ==========================================
+                            documentId =
+                                data.id,
 
-                            approvalChain = data.approvalChain,
+                            jenis =
+                                data.jenis,
 
-                            approvalStatuses = data.approvalStatuses,
+                            tanggal =
+                                data.tanggal,
+
+                            status =
+                                data.status,
+
+                            jamPulang =
+                                data.jamPulang,
+
+                            jamKeluar =
+                                data.jamKeluar,
+
+                            jamKembali =
+                                data.jamKembali,
+
+                            tanggalMulai =
+                                data.tanggalMulai,
+
+                            tanggalSelesai =
+                                data.tanggalSelesai,
+
+                            alasan =
+                                data.alasan,
+
+                            approvalChain =
+                                data.approvalChain,
+
+                            approvalStatuses =
+                                data.approvalStatuses,
 
                             currentApproverUid =
                                 data.currentApproverUid,
@@ -956,11 +1033,11 @@ fun StaffNavigation(
                                 data.approvalLocked,
 
                             onBack = {
+
                                 currentScreen =
                                     detailReturnScreen
                             }
                         )
-
                     }
                 }
 
@@ -1009,19 +1086,42 @@ fun StaffNavigation(
 
                         onDetailClick = { pengajuan ->
 
-                            selectedPengajuan = PengajuanData(
-                                id = pengajuan.id,
-                                nama = pengajuan.namaPemohon,
-                                jenis = pengajuan.jenis,
-                                tanggal = pengajuan.tanggalMulai,
-                                jamPulang = "",
-                                jamKeluar = "",
-                                jamKembali = "",
-                                tanggalMulai = pengajuan.tanggalMulai,
-                                tanggalSelesai = pengajuan.tanggalSelesai,
-                                alasan = pengajuan.alasan,
-                                status = pengajuan.status
-                            )
+                            selectedPengajuan =
+                                PengajuanData(
+
+                                    id =
+                                        pengajuan.id,
+
+                                    nama =
+                                        pengajuan.namaPemohon,
+
+                                    jenis =
+                                        pengajuan.jenis,
+
+                                    tanggal =
+                                        pengajuan.tanggalMulai,
+
+                                    jamPulang =
+                                        "",
+
+                                    jamKeluar =
+                                        "",
+
+                                    jamKembali =
+                                        "",
+
+                                    tanggalMulai =
+                                        pengajuan.tanggalMulai,
+
+                                    tanggalSelesai =
+                                        pengajuan.tanggalSelesai,
+
+                                    alasan =
+                                        pengajuan.alasan,
+
+                                    status =
+                                        pengajuan.status
+                                )
 
                             detailReturnScreen =
                                 StaffScreen.Riwayat
@@ -1081,7 +1181,9 @@ fun StaffNavigation(
                                 StaffScreen.Dashboard
                         },
 
-                        onNotificationClick = { target, relatedId ->
+                        onNotificationClick = {
+                                target,
+                                relatedId ->
 
                             Log.d(
                                 "STAFF_NAV",
@@ -1349,6 +1451,8 @@ private enum class StaffScreen {
     Dashboard,
 
     Pengajuan,
+
+    Approval,
 
     Scan,
 

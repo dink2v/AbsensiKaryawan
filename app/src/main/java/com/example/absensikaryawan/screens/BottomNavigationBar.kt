@@ -40,15 +40,44 @@ data class BottomNavItem(
 @Composable
 fun BottomNavigationBar(
     selectedItem: Int,
-    onItemSelected: (Int) -> Unit
+    onItemSelected: (Int) -> Unit,
+    isApprover: Boolean = false
 ) {
 
     val items = listOf(
-        BottomNavItem(title = "Beranda", icon = Icons.Default.Home),
-        BottomNavItem(title = "Pengajuan", icon = Icons.Default.NoteAdd),
-        BottomNavItem(title = "Scan", icon = Icons.Default.QrCodeScanner),
-        BottomNavItem(title = "Riwayat", icon = Icons.Default.History),
-        BottomNavItem(title = "Setting", icon = Icons.Default.Settings)
+
+        BottomNavItem(
+            title = "Beranda",
+            icon = Icons.Default.Home
+        ),
+
+        BottomNavItem(
+            title = if (isApprover) {
+                "Persetujuan"
+            } else {
+                "Pengajuan"
+            },
+            icon = if (isApprover) {
+                Icons.Default.History
+            } else {
+                Icons.Default.NoteAdd
+            }
+        ),
+
+        BottomNavItem(
+            title = "Scan",
+            icon = Icons.Default.QrCodeScanner
+        ),
+
+        BottomNavItem(
+            title = "Riwayat",
+            icon = Icons.Default.History
+        ),
+
+        BottomNavItem(
+            title = "Setting",
+            icon = Icons.Default.Settings
+        )
     )
 
     Box(
@@ -57,8 +86,6 @@ fun BottomNavigationBar(
 
         // ==================================================
         // NAVIGATION BAR DASAR
-        // Item index 2 (Scan) dikosongkan supaya jadi
-        // "lubang" tempat FAB menumpuk di atasnya
         // ==================================================
 
         NavigationBar(
@@ -85,57 +112,104 @@ fun BottomNavigationBar(
                 } else {
 
                     NavigationBarItem(
-                        selected = selectedItem == index,
-                        onClick = { onItemSelected(index) },
+
+                        selected =
+                            selectedItem == index,
+
+                        onClick = {
+                            onItemSelected(index)
+                        },
+
                         icon = {
+
                             Icon(
                                 imageVector = item.icon,
                                 contentDescription = item.title
                             )
                         },
+
                         label = {
+
                             Text(
                                 text = item.title,
                                 fontSize = 11.sp,
-                                fontWeight = if (selectedItem == index) FontWeight.SemiBold else FontWeight.Normal
+                                fontWeight =
+                                    if (
+                                        selectedItem == index
+                                    ) {
+                                        FontWeight.SemiBold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
                             )
                         },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryGreen,
-                            selectedTextColor = PrimaryGreen,
-                            unselectedIconColor = TextGray,
-                            unselectedTextColor = TextGray,
-                            indicatorColor = SoftGreen
-                        )
+
+                        colors =
+                            NavigationBarItemDefaults.colors(
+
+                                selectedIconColor =
+                                    PrimaryGreen,
+
+                                selectedTextColor =
+                                    PrimaryGreen,
+
+                                unselectedIconColor =
+                                    TextGray,
+
+                                unselectedTextColor =
+                                    TextGray,
+
+                                indicatorColor =
+                                    SoftGreen
+                            )
                     )
                 }
             }
         }
 
         // ==================================================
-        // FAB SCAN — mengambang di tengah, menembus ke atas
-        // NavigationBar supaya jadi pusat perhatian
+        // FAB SCAN
         // ==================================================
 
         FloatingActionButton(
-            onClick = { onItemSelected(2) },
-            containerColor = PrimaryGreen,
-            contentColor = Color.White,
-            shape = CircleShape,
-            elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
-                defaultElevation = 6.dp,
-                pressedElevation = 8.dp
-            ),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = (-26).dp)
-                .size(60.dp)
+
+            onClick = {
+                onItemSelected(2)
+            },
+
+            containerColor =
+                PrimaryGreen,
+
+            contentColor =
+                Color.White,
+
+            shape =
+                CircleShape,
+
+            elevation =
+                androidx.compose.material3
+                    .FloatingActionButtonDefaults
+                    .elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 8.dp
+                    ),
+
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-26).dp)
+                    .size(60.dp)
         ) {
 
             Icon(
-                imageVector = Icons.Default.QrCodeScanner,
-                contentDescription = "Scan",
-                modifier = Modifier.size(28.dp)
+                imageVector =
+                    Icons.Default.QrCodeScanner,
+
+                contentDescription =
+                    "Scan",
+
+                modifier =
+                    Modifier.size(28.dp)
             )
         }
     }
