@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

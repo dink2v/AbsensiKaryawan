@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -52,8 +52,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.DarkGreen
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
+import com.example.absensikaryawan.ui.theme.SoftGreen
 import com.example.absensikaryawan.data.FirestoreRepository
 import com.example.absensikaryawan.data.PengajuanData
+import com.example.absensikaryawan.ui.theme.Background
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -67,7 +74,6 @@ private object PengajuanScreenColors {
     val GreenSoft = SoftGreen
     val Dark = TextDark
     val Gray = TextGray
-    val Background = com.example.absensikaryawan.screens.Background
     val Card = Color.White
 
     val OrangeSoft = Color(0xFFFFF4E5)
@@ -308,7 +314,7 @@ fun PengajuanScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                PengajuanScreenColors.Background
+                Background
             )
     ) {
 

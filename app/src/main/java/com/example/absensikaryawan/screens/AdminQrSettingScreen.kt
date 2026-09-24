@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -46,9 +47,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.zxing.BarcodeFormat
@@ -76,13 +81,11 @@ fun AdminQrSettingScreen(
         FirebaseFirestore.getInstance()
     }
 
-
     // ======================================================
     // COROUTINE
     // ======================================================
 
     val scope = rememberCoroutineScope()
-
 
     // ======================================================
     // QR MALANG
@@ -102,7 +105,6 @@ fun AdminQrSettingScreen(
         mutableStateOf<Bitmap?>(null)
     }
 
-
     // ======================================================
     // QR BLITAR
     // ======================================================
@@ -120,7 +122,6 @@ fun AdminQrSettingScreen(
     var qrBitmapBlitar by remember {
         mutableStateOf<Bitmap?>(null)
     }
-
 
     // ======================================================
     // QR KEDIRI
@@ -140,7 +141,6 @@ fun AdminQrSettingScreen(
         mutableStateOf<Bitmap?>(null)
     }
 
-
     // ======================================================
     // STATUS
     // ======================================================
@@ -157,7 +157,6 @@ fun AdminQrSettingScreen(
         mutableStateOf("")
     }
 
-
     // ======================================================
     // LOAD DATA QR
     // ======================================================
@@ -171,7 +170,6 @@ fun AdminQrSettingScreen(
                     .get()
                     .await()
 
-
             snapshot.documents.forEach { document ->
 
                 val qrData =
@@ -179,12 +177,10 @@ fun AdminQrSettingScreen(
                         "qrData"
                     ) ?: ""
 
-
                 val aktif =
                     document.getBoolean(
                         "aktif"
                     ) ?: true
-
 
                 when (
                     document.id.lowercase()
@@ -199,7 +195,6 @@ fun AdminQrSettingScreen(
                         aktifMalang = aktif
                     }
 
-
                     "blitar" -> {
 
                         if (qrData.isNotBlank()) {
@@ -208,7 +203,6 @@ fun AdminQrSettingScreen(
 
                         aktifBlitar = aktif
                     }
-
 
                     "kediri" -> {
 
@@ -232,7 +226,6 @@ fun AdminQrSettingScreen(
         }
     }
 
-
     // ======================================================
     // SIMPAN QR
     // ======================================================
@@ -242,7 +235,6 @@ fun AdminQrSettingScreen(
         scope.launch {
 
             saving = true
-
             message = ""
 
             try {
@@ -262,7 +254,6 @@ fun AdminQrSettingScreen(
                     )
                     .await()
 
-
                 // ==========================================
                 // BLITAR
                 // ==========================================
@@ -278,7 +269,6 @@ fun AdminQrSettingScreen(
                     )
                     .await()
 
-
                 // ==========================================
                 // KEDIRI
                 // ==========================================
@@ -293,7 +283,6 @@ fun AdminQrSettingScreen(
                         )
                     )
                     .await()
-
 
                 message =
                     "Pengaturan QR berhasil disimpan."
@@ -311,7 +300,6 @@ fun AdminQrSettingScreen(
             }
         }
     }
-
 
     // ======================================================
     // GENERATE QR
@@ -332,7 +320,6 @@ fun AdminQrSettingScreen(
             }
     }
 
-
     fun generateQrBlitar() {
 
         qrBitmapBlitar =
@@ -348,7 +335,6 @@ fun AdminQrSettingScreen(
             }
     }
 
-
     fun generateQrKediri() {
 
         qrBitmapKediri =
@@ -363,7 +349,6 @@ fun AdminQrSettingScreen(
                 "Data QR Kediri masih kosong."
             }
     }
-
 
     // ======================================================
     // ROOT
@@ -417,12 +402,10 @@ fun AdminQrSettingScreen(
                 )
             }
 
-
             Spacer(
                 modifier =
                     Modifier.width(6.dp)
             )
-
 
             Column(
                 modifier =
@@ -443,7 +426,6 @@ fun AdminQrSettingScreen(
                         TextDark
                 )
 
-
                 Text(
                     text =
                         "Generate dan atur QR yang digunakan Staff",
@@ -455,7 +437,6 @@ fun AdminQrSettingScreen(
                         TextGray
                 )
             }
-
 
             Icon(
                 imageVector =
@@ -472,12 +453,10 @@ fun AdminQrSettingScreen(
             )
         }
 
-
         Spacer(
             modifier =
                 Modifier.height(20.dp)
         )
-
 
         // ==================================================
         // INFO
@@ -534,12 +513,10 @@ fun AdminQrSettingScreen(
                         Modifier.size(22.dp)
                 )
 
-
                 Spacer(
                     modifier =
                         Modifier.width(10.dp)
                 )
-
 
                 Text(
                     text =
@@ -557,12 +534,10 @@ fun AdminQrSettingScreen(
             }
         }
 
-
         Spacer(
             modifier =
                 Modifier.height(20.dp)
         )
-
 
         // ==================================================
         // LOADING
@@ -622,12 +597,10 @@ fun AdminQrSettingScreen(
                 }
             )
 
-
             Spacer(
                 modifier =
                     Modifier.height(12.dp)
             )
-
 
             // ==================================================
             // QR BLITAR
@@ -668,12 +641,10 @@ fun AdminQrSettingScreen(
                 }
             )
 
-
             Spacer(
                 modifier =
                     Modifier.height(12.dp)
             )
-
 
             // ==================================================
             // QR KEDIRI
@@ -715,12 +686,10 @@ fun AdminQrSettingScreen(
             )
         }
 
-
         Spacer(
             modifier =
                 Modifier.height(18.dp)
         )
-
 
         // ==================================================
         // MESSAGE
@@ -758,13 +727,11 @@ fun AdminQrSettingScreen(
                     )
             )
 
-
             Spacer(
                 modifier =
                     Modifier.height(10.dp)
             )
         }
-
 
         // ==================================================
         // SAVE
@@ -812,12 +779,10 @@ fun AdminQrSettingScreen(
                     Modifier.size(20.dp)
             )
 
-
             Spacer(
                 modifier =
                     Modifier.width(8.dp)
             )
-
 
             Text(
 
@@ -838,7 +803,6 @@ fun AdminQrSettingScreen(
                     FontWeight.Bold
             )
         }
-
 
         Spacer(
             modifier =
@@ -933,12 +897,10 @@ private fun QrOfficeCard(
                         Modifier.size(23.dp)
                 )
 
-
                 Spacer(
                     modifier =
                         Modifier.width(10.dp)
                 )
-
 
                 Text(
 
@@ -957,7 +919,6 @@ private fun QrOfficeCard(
                     color =
                         TextDark
                 )
-
 
                 Row(
 
@@ -1010,12 +971,10 @@ private fun QrOfficeCard(
                 }
             }
 
-
             Spacer(
                 modifier =
                     Modifier.height(12.dp)
             )
-
 
             // ==================================================
             // QR PREVIEW
@@ -1078,12 +1037,10 @@ private fun QrOfficeCard(
                                 TextDark
                         )
 
-
                         Spacer(
                             modifier =
                                 Modifier.height(12.dp)
                         )
-
 
                         Image(
 
@@ -1097,12 +1054,10 @@ private fun QrOfficeCard(
                                 Modifier.size(230.dp)
                         )
 
-
                         Spacer(
                             modifier =
                                 Modifier.height(10.dp)
                         )
-
 
                         Text(
 
@@ -1118,7 +1073,6 @@ private fun QrOfficeCard(
                     }
                 }
             }
-
 
             // ==================================================
             // QR DATA
@@ -1164,12 +1118,10 @@ private fun QrOfficeCard(
                     )
             )
 
-
             Spacer(
                 modifier =
                     Modifier.height(10.dp)
             )
-
 
             // ==================================================
             // GENERATE BUTTON
@@ -1214,12 +1166,10 @@ private fun QrOfficeCard(
                         Modifier.size(19.dp)
                 )
 
-
                 Spacer(
                     modifier =
                         Modifier.width(8.dp)
                 )
-
 
                 Text(
 
@@ -1241,12 +1191,10 @@ private fun QrOfficeCard(
                 )
             }
 
-
             Spacer(
                 modifier =
                     Modifier.height(8.dp)
             )
-
 
             // ==================================================
             // STATUS

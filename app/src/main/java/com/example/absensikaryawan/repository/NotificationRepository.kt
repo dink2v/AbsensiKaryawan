@@ -13,21 +13,28 @@ class NotificationRepository {
         db.collection("notifications")
 
     // ==========================================================
-    // CREATE NOTIFICATION
+    // BUAT NOTIFIKASI
     // ==========================================================
 
     fun createNotification(
         notification: Notification,
         onSuccess: () -> Unit = {},
         onError: (Exception) -> Unit = { exception ->
-            Log.e("NotificationRepository", "Gagal menyimpan notifikasi", exception)
+            Log.e(
+                "NotificationRepository",
+                "Gagal menyimpan notifikasi",
+                exception
+            )
         }
     ) {
-        val document = notificationsCollection.document()
 
-        val notificationWithId = notification.copy(
-            id = document.id
-        )
+        val document =
+            notificationsCollection.document()
+
+        val notificationWithId =
+            notification.copy(
+                id = document.id
+            )
 
         document
             .set(
@@ -43,16 +50,25 @@ class NotificationRepository {
                 )
             )
             .addOnSuccessListener {
-                Log.i("NotificationRepository", "Notifikasi tersimpan: userId=${notificationWithId.userId}, type=${notificationWithId.type}, id=${document.id}")
+
+                Log.i(
+                    "NotificationRepository",
+                    "Notifikasi tersimpan: " +
+                            "userId=${notificationWithId.userId}, " +
+                            "type=${notificationWithId.type}, " +
+                            "id=${document.id}"
+                )
+
                 onSuccess()
             }
             .addOnFailureListener { exception ->
+
                 onError(exception)
             }
     }
 
     // ==========================================================
-    // LISTEN REALTIME NOTIFICATIONS
+    // LISTEN NOTIFIKASI REAL-TIME
     // ==========================================================
 
     fun listenNotifications(
@@ -69,99 +85,101 @@ class NotificationRepository {
             .addSnapshotListener { snapshot, exception ->
 
                 if (exception != null) {
+
                     onError(exception)
+
                     return@addSnapshotListener
                 }
 
                 if (snapshot == null) {
-                    onNotificationsChanged(emptyList())
+
+                    onNotificationsChanged(
+                        emptyList()
+                    )
+
                     return@addSnapshotListener
                 }
 
                 val notifications =
-                    snapshot.documents.mapNotNull { document ->
+                    snapshot.documents
+                        .mapNotNull { document ->
 
-                        try {
+                            try {
 
-                            // ==================================
-                            // TIMESTAMP
-                            // ==================================
+                                val timestampMillis =
+                                    when (
+                                        val timestamp =
+                                            document.get("timestamp")
+                                    ) {
 
-                            val timestampMillis =
-                                when (
-                                    val timestamp =
-                                        document.get("timestamp")
-                                ) {
+                                        is Number ->
+                                            timestamp.toLong()
 
-                                    is Number ->
-                                        timestamp.toLong()
+                                        else ->
+                                            document
+                                                .getTimestamp(
+                                                    "timestamp"
+                                                )
+                                                ?.toDate()
+                                                ?.time
+                                                ?: 0L
+                                    }
 
-                                    else ->
+                                val isRead =
+                                    document.getBoolean("read")
+                                        ?: document.getBoolean("isRead")
+                                        ?: false
+
+                                Notification(
+
+                                    id =
+                                        document.id,
+
+                                    userId =
                                         document
-                                            .getTimestamp("timestamp")
-                                            ?.toDate()
-                                            ?.time
-                                            ?: 0L
-                                }
+                                            .getString("userId")
+                                            .orEmpty(),
 
-                            // ==================================
-                            // READ STATUS
-                            // Mendukung:
-                            // read
-                            // isRead
-                            // ==================================
+                                    type =
+                                        document
+                                            .getString("type")
+                                            .orEmpty(),
 
-                            val isRead =
-                                document.getBoolean("read")
-                                    ?: document.getBoolean("isRead")
-                                    ?: false
+                                    title =
+                                        document
+                                            .getString("title")
+                                            .orEmpty(),
 
-                            // ==================================
-                            // MODEL
-                            // ==================================
+                                    message =
+                                        document
+                                            .getString("message")
+                                            .orEmpty(),
 
-                            Notification(
-                                id = document.id,
+                                    timestamp =
+                                        timestampMillis,
 
-                                userId =
-                                    document
-                                        .getString("userId")
-                                        .orEmpty(),
+                                    isRead =
+                                        isRead,
 
-                                type =
-                                    document
-                                        .getString("type")
-                                        .orEmpty(),
+                                    relatedId =
+                                        document
+                                            .getString("relatedId")
+                                            .orEmpty()
+                                )
 
-                                title =
-                                    document
-                                        .getString("title")
-                                        .orEmpty(),
+                            } catch (
+                                exception: Exception
+                            ) {
 
-                                message =
-                                    document
-                                        .getString("message")
-                                        .orEmpty(),
+                                Log.e(
+                                    "NotificationRepository",
+                                    "Gagal membaca notifikasi",
+                                    exception
+                                )
 
-                                timestamp =
-                                    timestampMillis,
-
-                                isRead =
-                                    isRead,
-
-                                relatedId =
-                                    document
-                                        .getString("relatedId")
-                                        .orEmpty()
-                            )
-
-                        } catch (
-                            exception: Exception
-                        ) {
-
-                            null
+                                null
+                            }
                         }
-                    }
                         .sortedByDescending {
                             it.timestamp
                         }
@@ -173,7 +191,7 @@ class NotificationRepository {
     }
 
     // ==========================================================
-    // MARK AS READ
+    // TANDAI SATU NOTIFIKASI SUDAH DIBACA
     // ==========================================================
 
     fun markAsRead(
@@ -189,15 +207,17 @@ class NotificationRepository {
                 true
             )
             .addOnSuccessListener {
+
                 onSuccess()
             }
             .addOnFailureListener { exception ->
+
                 onError(exception)
             }
     }
 
     // ==========================================================
-    // MARK ALL AS READ
+    // TANDAI SEMUA NOTIFIKASI SUDAH DIBACA
     // ==========================================================
 
     fun markAllAsRead(
@@ -228,19 +248,22 @@ class NotificationRepository {
 
                 batch.commit()
                     .addOnSuccessListener {
+
                         onSuccess()
                     }
                     .addOnFailureListener { exception ->
+
                         onError(exception)
                     }
             }
             .addOnFailureListener { exception ->
+
                 onError(exception)
             }
     }
 
     // ==========================================================
-    // DELETE NOTIFICATION
+    // HAPUS NOTIFIKASI
     // ==========================================================
 
     fun deleteNotification(
@@ -253,9 +276,11 @@ class NotificationRepository {
             .document(notificationId)
             .delete()
             .addOnSuccessListener {
+
                 onSuccess()
             }
             .addOnFailureListener { exception ->
+
                 onError(exception)
             }
     }

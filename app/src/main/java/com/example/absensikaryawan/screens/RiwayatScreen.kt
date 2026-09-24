@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import android.util.Log
 
@@ -57,6 +57,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.FirestoreRepository
 import com.example.absensikaryawan.data.PengajuanData
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.SoftGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -75,7 +80,6 @@ private object RiwayatScreenColors {
     val GreenSoft = SoftGreen
     val Dark = TextDark
     val Gray = TextGray
-    val Background = com.example.absensikaryawan.screens.Background
     val Card = Color.White
 
     val OrangeSoft = Color(0xFFFFF4E5)
@@ -476,10 +480,6 @@ fun RiwayatScreen(
             val hasil: List<PengajuanData> =
                 when (filterSumberPengajuan) {
 
-                    // --------------------------------------
-                    // PENGAJUAN SAYA
-                    // --------------------------------------
-
                     FilterSumberPengajuan.SAYA -> {
 
                         repository
@@ -490,10 +490,6 @@ fun RiwayatScreen(
                                 emptyList()
                             }
                     }
-
-                    // --------------------------------------
-                    // MENUNGGU APPROVAL
-                    // --------------------------------------
 
                     FilterSumberPengajuan.MENUNGGU_APPROVAL -> {
 
@@ -506,33 +502,13 @@ fun RiwayatScreen(
                             }
                     }
 
-                    // --------------------------------------
-                    // TEAM
-                    // --------------------------------------
-
                     FilterSumberPengajuan.TEAM -> {
 
-                        /*
-                         * Struktur Team belum tersedia di users.
-                         *
-                         * Jangan mengambil seluruh pengajuan,
-                         * karena itu akan membuat data Team salah.
-                         */
                         emptyList()
                     }
 
-                    // --------------------------------------
-                    // SEMUA
-                    // --------------------------------------
-
                     FilterSumberPengajuan.SEMUA -> {
 
-                        /*
-                         * Belum ada repository getSemuaPengajuan().
-                         *
-                         * Untuk sementara kosong agar tidak
-                         * menampilkan data yang salah.
-                         */
                         emptyList()
                     }
                 }
@@ -676,7 +652,7 @@ fun RiwayatScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                RiwayatScreenColors.Background
+                Background
             )
             .statusBarsPadding()
     ) {
@@ -965,10 +941,6 @@ fun RiwayatScreen(
                         Modifier.fillMaxSize()
                 ) {
 
-                    // ----------------------------------------------
-                    // SUMBER PENGAJUAN
-                    // ----------------------------------------------
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1044,10 +1016,6 @@ fun RiwayatScreen(
                             Modifier.height(10.dp)
                     )
 
-                    // ----------------------------------------------
-                    // LABEL STATUS SESUAI SUMBER
-                    // ----------------------------------------------
-
                     Text(
                         text =
                             when (filterSumberPengajuan) {
@@ -1079,10 +1047,6 @@ fun RiwayatScreen(
                         modifier =
                             Modifier.height(6.dp)
                     )
-
-                    // ----------------------------------------------
-                    // FILTER STATUS
-                    // ----------------------------------------------
 
                     Row(
                         modifier = Modifier
@@ -1150,10 +1114,6 @@ fun RiwayatScreen(
                         modifier =
                             Modifier.height(12.dp)
                     )
-
-                    // ----------------------------------------------
-                    // TEAM EMPTY
-                    // ----------------------------------------------
 
                     if (
                         filterSumberPengajuan ==
@@ -1799,7 +1759,7 @@ private fun TimeInfo(
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    RiwayatScreenColors.Background
+                    RiwayatScreenColors.GreenSoft
             )
     ) {
 
@@ -1923,10 +1883,6 @@ private fun RiwayatPengajuanCard(
                 Modifier.padding(16.dp)
         ) {
 
-            // ==================================================
-            // HEADER
-            // ==================================================
-
             Row(
                 modifier =
                     Modifier.fillMaxWidth(),
@@ -1985,10 +1941,6 @@ private fun RiwayatPengajuanCard(
                     status = status
                 )
             }
-
-            // ==================================================
-            // PEMOHON
-            // ==================================================
 
             if (
                 tampilkanPemohon &&
@@ -2060,10 +2012,6 @@ private fun RiwayatPengajuanCard(
                     Modifier.height(10.dp)
             )
 
-            // ==================================================
-            // STATUS INFO
-            // ==================================================
-
             Row(
                 modifier =
                     Modifier
@@ -2117,10 +2065,6 @@ private fun RiwayatPengajuanCard(
                         )
                 )
             }
-
-            // ==================================================
-            // ALASAN
-            // ==================================================
 
             if (
                 item.alasan.isNotBlank()

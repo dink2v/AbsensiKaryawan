@@ -11,8 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
-import com.example.absensikaryawan.screens.ForgotPasswordScreen
-import com.example.absensikaryawan.screens.LoginScreen
+import com.example.absensikaryawan.repository.screens.ForgotPasswordScreen
+import com.example.absensikaryawan.repository.screens.LoginScreen
 
 // ==========================================================
 // ROLE APLIKASI
@@ -57,7 +57,7 @@ fun AppNavigation() {
             modifier = Modifier.fillMaxSize()
         ) {
 
-            ForgotPasswordScreen(
+            _root_ide_package_.com.example.absensikaryawan.repository.screens.ForgotPasswordScreen(
                 onBack = {
 
                     Log.d(
@@ -139,7 +139,7 @@ fun AppNavigation() {
     // LOGIN SCREEN
     // ======================================================
 
-    LoginScreen(
+    _root_ide_package_.com.example.absensikaryawan.repository.screens.LoginScreen(
 
         // ==================================================
         // STAFF LOGIN

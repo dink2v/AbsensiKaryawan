@@ -1,10 +1,11 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +52,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.PengajuanData
 import com.example.absensikaryawan.repository.PengajuanRepository
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.SoftGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -87,9 +93,21 @@ fun ApprovalScreen(
         mutableStateOf(0)
     }
 
+    // Dialog Setujui
     var dialogPengajuan by remember {
         mutableStateOf<PengajuanData?>(null)
     }
+
+    // Dialog Tolak
+    var dialogTolakPengajuan by remember {
+        mutableStateOf<PengajuanData?>(null)
+    }
+
+    // ID pengajuan yang sedang diproses
+    var processingDocumentId by remember {
+        mutableStateOf("")
+    }
+
 
     // ======================================================
     // LOAD DATA
@@ -195,9 +213,7 @@ fun ApprovalScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(
-                    Background
-                )
+                .background(Background)
     ) {
 
         // ==================================================
@@ -226,28 +242,46 @@ fun ApprovalScreen(
             ) {
 
                 Text(
-                    text = "Persetujuan",
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
+                    text =
+                        "Persetujuan",
+
+                    fontSize =
+                        25.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        TextDark
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.height(4.dp)
+                        Modifier.height(
+                            4.dp
+                        )
                 )
 
                 Text(
                     text =
                         "Kelola pengajuan yang menunggu persetujuan",
-                    fontSize = 13.sp,
-                    color = TextGray
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        TextGray
                 )
             }
 
             IconButton(
                 onClick = {
-                    refreshKey++
+
+                    if (
+                        processingDocumentId.isBlank()
+                    ) {
+                        refreshKey++
+                    }
                 }
             ) {
 
@@ -309,7 +343,12 @@ fun ApprovalScreen(
                         errorMessage,
 
                     onRefresh = {
-                        refreshKey++
+
+                        if (
+                            processingDocumentId.isBlank()
+                        ) {
+                            refreshKey++
+                        }
                     }
                 )
             }
@@ -330,7 +369,12 @@ fun ApprovalScreen(
                         "Belum ada pengajuan yang perlu diproses.",
 
                     onRefresh = {
-                        refreshKey++
+
+                        if (
+                            processingDocumentId.isBlank()
+                        ) {
+                            refreshKey++
+                        }
                     }
                 )
             }
@@ -348,7 +392,7 @@ fun ApprovalScreen(
                         Modifier.fillMaxSize(),
 
                     contentPadding =
-                        androidx.compose.foundation.layout.PaddingValues(
+                        PaddingValues(
                             start = 20.dp,
                             end = 20.dp,
                             top = 8.dp,
@@ -368,11 +412,13 @@ fun ApprovalScreen(
                     item {
 
                         ApprovalSummaryCard(
+
                             total =
                                 daftarTerurut.size,
 
                             menunggu =
                                 daftarTerurut.count {
+
                                     it.status
                                         .trim()
                                         .lowercase() == "menunggu"
@@ -386,12 +432,14 @@ fun ApprovalScreen(
                     // ==========================================
 
                     items(
+
                         items =
                             daftarTerurut,
 
                         key = {
                             it.id
                         }
+
                     ) { pengajuan ->
 
                         ApprovalRequestCard(
@@ -401,55 +449,41 @@ fun ApprovalScreen(
 
                             onDetailClick = {
 
-                                onDetailClick(
-                                    pengajuan
-                                )
+                                if (
+                                    processingDocumentId.isBlank()
+                                ) {
+
+                                    onDetailClick(
+                                        pengajuan
+                                    )
+                                }
                             },
 
                             onSetujui = {
 
-                                dialogPengajuan =
-                                    pengajuan
+                                if (
+                                    processingDocumentId.isBlank()
+                                ) {
+
+                                    dialogPengajuan =
+                                        pengajuan
+                                }
                             },
 
                             onTolak = {
 
-                                val documentId =
-                                    pengajuan.id
-
                                 if (
-                                    documentId.isNotBlank()
+                                    processingDocumentId.isBlank()
                                 ) {
 
-                                    coroutineScope.launch {
-
-                                        try {
-
-                                            repository
-                                                .updateStatusPengajuan(
-                                                    documentId =
-                                                        documentId,
-
-                                                    status =
-                                                        "ditolak"
-                                                )
-                                                .getOrThrow()
-
-                                            delay(300)
-
-                                            refreshKey++
-
-                                        } catch (
-                                            exception: Exception
-                                        ) {
-
-                                            errorMessage =
-                                                exception.message
-                                                    ?: "Gagal menolak pengajuan."
-                                        }
-                                    }
+                                    dialogTolakPengajuan =
+                                        pengajuan
                                 }
-                            }
+                            },
+
+                            isProcessing =
+                                processingDocumentId ==
+                                        pengajuan.id
                         )
                     }
                 }
@@ -468,8 +502,13 @@ fun ApprovalScreen(
 
             onDismissRequest = {
 
-                dialogPengajuan =
-                    null
+                if (
+                    processingDocumentId.isBlank()
+                ) {
+
+                    dialogPengajuan =
+                        null
+                }
             },
 
             title = {
@@ -501,8 +540,12 @@ fun ApprovalScreen(
                             null
 
                         if (
-                            documentId.isNotBlank()
+                            documentId.isNotBlank() &&
+                            processingDocumentId.isBlank()
                         ) {
+
+                            processingDocumentId =
+                                documentId
 
                             coroutineScope.launch {
 
@@ -529,6 +572,11 @@ fun ApprovalScreen(
                                     errorMessage =
                                         exception.message
                                             ?: "Gagal menyetujui pengajuan."
+
+                                } finally {
+
+                                    processingDocumentId =
+                                        ""
                                 }
                             }
                         }
@@ -555,6 +603,131 @@ fun ApprovalScreen(
                     onClick = {
 
                         dialogPengajuan =
+                            null
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "Batal"
+                    )
+                }
+            }
+        )
+    }
+
+
+    // ======================================================
+    // REJECT DIALOG
+    // ======================================================
+
+    dialogTolakPengajuan?.let { pengajuan ->
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                if (
+                    processingDocumentId.isBlank()
+                ) {
+
+                    dialogTolakPengajuan =
+                        null
+                }
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "Tolak Pengajuan?"
+                )
+            },
+
+            text = {
+
+                Text(
+                    text =
+                        "Pengajuan dari ${pengajuan.nama.ifBlank { "Karyawan" }} akan ditolak dan tidak dapat diteruskan ke tahap berikutnya."
+                )
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        val documentId =
+                            pengajuan.id
+
+                        dialogTolakPengajuan =
+                            null
+
+                        if (
+                            documentId.isNotBlank() &&
+                            processingDocumentId.isBlank()
+                        ) {
+
+                            processingDocumentId =
+                                documentId
+
+                            coroutineScope.launch {
+
+                                try {
+
+                                    repository
+                                        .updateStatusPengajuan(
+                                            documentId =
+                                                documentId,
+
+                                            status =
+                                                "ditolak"
+                                        )
+                                        .getOrThrow()
+
+                                    delay(300)
+
+                                    refreshKey++
+
+                                } catch (
+                                    exception: Exception
+                                ) {
+
+                                    errorMessage =
+                                        exception.message
+                                            ?: "Gagal menolak pengajuan."
+
+                                } finally {
+
+                                    processingDocumentId =
+                                        ""
+                                }
+                            }
+                        }
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "Tolak",
+
+                        color =
+                            Color(0xFFC62828),
+
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        dialogTolakPengajuan =
                             null
                     }
                 ) {
@@ -753,7 +926,10 @@ private fun ApprovalRequestCard(
         () -> Unit,
 
     onTolak:
-        () -> Unit
+        () -> Unit,
+
+    isProcessing:
+    Boolean = false
 
 ) {
 
@@ -792,7 +968,10 @@ private fun ApprovalRequestCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable {
+                .clickable(
+                    enabled =
+                        !isProcessing
+                ) {
                     onDetailClick()
                 },
 
@@ -1086,6 +1265,9 @@ private fun ApprovalRequestCard(
                         onClick =
                             onDetailClick,
 
+                        enabled =
+                            !isProcessing,
+
                         modifier =
                             Modifier.weight(1f),
 
@@ -1150,6 +1332,9 @@ private fun ApprovalRequestCard(
                         onClick =
                             onTolak,
 
+                        enabled =
+                            !isProcessing,
+
                         modifier =
                             Modifier.weight(1f),
 
@@ -1165,30 +1350,48 @@ private fun ApprovalRequestCard(
                             )
                     ) {
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.Close,
+                        if (isProcessing) {
 
-                            contentDescription =
-                                null,
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(
+                                        17.dp
+                                    ),
 
-                            modifier =
-                                Modifier.size(
-                                    17.dp
-                                )
-                        )
+                                strokeWidth =
+                                    2.dp,
 
-                        Spacer(
-                            modifier =
-                                Modifier.width(
-                                    5.dp
-                                )
-                        )
+                                color =
+                                    Color.White
+                            )
 
-                        Text(
-                            text =
-                                "Tolak"
-                        )
+                        } else {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Close,
+
+                                contentDescription =
+                                    null,
+
+                                modifier =
+                                    Modifier.size(
+                                        17.dp
+                                    )
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.width(
+                                        5.dp
+                                    )
+                            )
+
+                            Text(
+                                text =
+                                    "Tolak"
+                            )
+                        }
                     }
 
 
@@ -1196,6 +1399,9 @@ private fun ApprovalRequestCard(
 
                         onClick =
                             onSetujui,
+
+                        enabled =
+                            !isProcessing,
 
                         modifier =
                             Modifier.weight(1f),
@@ -1212,30 +1418,48 @@ private fun ApprovalRequestCard(
                             )
                     ) {
 
-                        Icon(
-                            imageVector =
-                                Icons.Default.Check,
+                        if (isProcessing) {
 
-                            contentDescription =
-                                null,
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(
+                                        17.dp
+                                    ),
 
-                            modifier =
-                                Modifier.size(
-                                    17.dp
-                                )
-                        )
+                                strokeWidth =
+                                    2.dp,
 
-                        Spacer(
-                            modifier =
-                                Modifier.width(
-                                    5.dp
-                                )
-                        )
+                                color =
+                                    Color.White
+                            )
 
-                        Text(
-                            text =
-                                "Setujui"
-                        )
+                        } else {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Check,
+
+                                contentDescription =
+                                    null,
+
+                                modifier =
+                                    Modifier.size(
+                                        17.dp
+                                    )
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.width(
+                                        5.dp
+                                    )
+                            )
+
+                            Text(
+                                text =
+                                    "Setujui"
+                            )
+                        }
                     }
                 }
 
@@ -1245,6 +1469,9 @@ private fun ApprovalRequestCard(
 
                     onClick =
                         onDetailClick,
+
+                    enabled =
+                        !isProcessing,
 
                     modifier =
                         Modifier.fillMaxWidth(),
@@ -1292,7 +1519,8 @@ private fun ApprovalRequestCard(
 
 @Composable
 private fun ApprovalProgress(
-    pengajuan: PengajuanData
+    pengajuan:
+    PengajuanData
 ) {
 
     val chain =
@@ -1324,7 +1552,9 @@ private fun ApprovalProgress(
         }
 
     val total =
-        chain.size.coerceAtLeast(1)
+        chain.size.coerceAtLeast(
+            1
+        )
 
     val progress =
         approvedCount.toFloat() /
@@ -1356,7 +1586,9 @@ private fun ApprovalProgress(
                     TextDark,
 
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
 
             Text(
@@ -1374,12 +1606,14 @@ private fun ApprovalProgress(
             )
         }
 
+
         Spacer(
             modifier =
                 Modifier.height(
                     8.dp
                 )
         )
+
 
         Box(
 
@@ -1402,11 +1636,10 @@ private fun ApprovalProgress(
                 modifier =
                     Modifier
                         .fillMaxWidth(
-                            progress
-                                .coerceIn(
-                                    0f,
-                                    1f
-                                )
+                            progress.coerceIn(
+                                0f,
+                                1f
+                            )
                         )
                         .height(6.dp)
                         .clip(
@@ -1420,6 +1653,7 @@ private fun ApprovalProgress(
             )
         }
 
+
         Spacer(
             modifier =
                 Modifier.height(
@@ -1427,9 +1661,12 @@ private fun ApprovalProgress(
                 )
         )
 
+
         Row(
+
             modifier =
                 Modifier.fillMaxWidth(),
+
             horizontalArrangement =
                 Arrangement.spacedBy(
                     6.dp
@@ -1437,66 +1674,98 @@ private fun ApprovalProgress(
         ) {
 
             ApprovalStep(
-                label = "Supervisor",
+                label =
+                    "Supervisor",
+
                 status =
                     approvalStepStatus(
                         chain,
                         statuses,
                         0
                     ),
+
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
 
             ApprovalStep(
-                label = "Manager",
+                label =
+                    "Manager",
+
                 status =
                     approvalStepStatus(
                         chain,
                         statuses,
                         1
                     ),
+
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
 
             ApprovalStep(
-                label = "HRD",
+                label =
+                    "HRD",
+
                 status =
                     approvalStepStatus(
                         chain,
                         statuses,
                         2
                     ),
+
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
 
             ApprovalStep(
-                label = "Owner",
+                label =
+                    "Owner",
+
                 status =
                     approvalStepStatus(
                         chain,
                         statuses,
                         3
                     ),
+
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
         }
     }
 }
 
 
+// ==========================================================
+// APPROVAL STEP STATUS
+// ==========================================================
+
 private fun approvalStepStatus(
-    chain: List<String>,
-    statuses: Map<String, String>,
-    index: Int
+
+    chain:
+    List<String>,
+
+    statuses:
+    Map<String, String>,
+
+    index:
+    Int
+
 ): String {
 
     if (
         index >= chain.size
     ) {
+
         return "belum"
     }
 
@@ -1590,6 +1859,7 @@ private fun ApprovalStep(
                             14.dp
                         )
                 )
+
             } else {
 
                 Box(
@@ -1597,7 +1867,9 @@ private fun ApprovalStep(
                     modifier =
                         Modifier
                             .size(
-                                if (isWaiting) {
+                                if (
+                                    isWaiting
+                                ) {
                                     8.dp
                                 } else {
                                     6.dp
@@ -1607,9 +1879,15 @@ private fun ApprovalStep(
                                 CircleShape
                             )
                             .background(
-                                if (isWaiting) {
+
+                                if (
+                                    isWaiting
+                                ) {
+
                                     PrimaryGreen
+
                                 } else {
+
                                     Color(0xFF9CA3AF)
                                 }
                             )
@@ -1617,12 +1895,14 @@ private fun ApprovalStep(
             }
         }
 
+
         Spacer(
             modifier =
                 Modifier.height(
                     4.dp
                 )
         )
+
 
         Text(
             text =
@@ -1636,8 +1916,11 @@ private fun ApprovalStep(
                     isApproved ||
                     isWaiting
                 ) {
+
                     FontWeight.SemiBold
+
                 } else {
+
                     FontWeight.Normal
                 },
 
@@ -1646,8 +1929,11 @@ private fun ApprovalStep(
                     isApproved ||
                     isWaiting
                 ) {
+
                     TextDark
+
                 } else {
+
                     TextGray
                 }
         )
@@ -1661,7 +1947,8 @@ private fun ApprovalStep(
 
 @Composable
 private fun ApprovalStatusBadge(
-    status: String
+    status:
+    String
 ) {
 
     val (
@@ -1686,7 +1973,8 @@ private fun ApprovalStatusBadge(
 
                 SoftGreen,
 
-                PrimaryGreen            )
+                PrimaryGreen
+            )
 
             "ditolak" -> Triple(
 
@@ -1819,12 +2107,14 @@ private fun ApprovalEmptyState(
                 )
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(
                         16.dp
                     )
             )
+
 
             Text(
                 text =
@@ -1840,12 +2130,14 @@ private fun ApprovalEmptyState(
                     TextDark
             )
 
+
             Spacer(
                 modifier =
                     Modifier.height(
                         6.dp
                     )
             )
+
 
             Text(
                 text =
@@ -1858,6 +2150,7 @@ private fun ApprovalEmptyState(
                     TextGray
             )
 
+
             Spacer(
                 modifier =
                     Modifier.height(
@@ -1865,7 +2158,9 @@ private fun ApprovalEmptyState(
                     )
             )
 
+
             OutlinedButton(
+
                 onClick =
                     onRefresh,
 

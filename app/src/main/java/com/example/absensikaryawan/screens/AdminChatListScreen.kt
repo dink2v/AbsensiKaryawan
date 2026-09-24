@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -372,7 +372,7 @@ fun AdminChatListScreen(
                         }
                     ) { room ->
 
-                        AdminChatRoomItem(
+                        _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminChatRoomItem(
                             room = room,
 
                             onClick = {
@@ -499,7 +499,7 @@ private fun AdminChatRoomItem(
 
                 Text(
                     text =
-                        formatChatTime(
+                        _root_ide_package_.com.example.absensikaryawan.repository.screens.formatChatTime(
                             room.updatedAt
                         ),
 

@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.QrCode
 
 import androidx.compose.material3.Card
@@ -37,8 +36,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.SoftGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 
 
 // ==========================================================
@@ -155,6 +161,7 @@ fun AdminSettingsScreen(
                     Modifier.height(10.dp)
             )
 
+
             SettingMenuCard(
 
                 icon =
@@ -227,7 +234,7 @@ fun AdminSettingsScreen(
 
             // ==================================================
             // TENTANG APLIKASI
-            // ==========================================================
+            // ==================================================
 
             SettingMenuCard(
 
@@ -427,7 +434,7 @@ fun AdminSettingsScreen(
                     FontWeight.Normal,
 
                 textAlign =
-                    androidx.compose.ui.text.style.TextAlign.Center
+                    TextAlign.Center
             )
         }
     }
@@ -511,7 +518,7 @@ private fun SettingMenuCard(
                         .background(
 
                             color =
-                                Color(0xFFE6EEE9),
+                                SoftGreen,
 
                             shape =
                                 RoundedCornerShape(

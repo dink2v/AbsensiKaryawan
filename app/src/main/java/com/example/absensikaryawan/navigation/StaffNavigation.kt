@@ -21,26 +21,25 @@ import androidx.compose.ui.Modifier
 
 import com.example.absensikaryawan.data.PengajuanData
 
-import com.example.absensikaryawan.screens.AbsenLuarKantorScreen
-import com.example.absensikaryawan.screens.ApprovalScreen
-import com.example.absensikaryawan.screens.BantuanScreen
-import com.example.absensikaryawan.screens.BottomNavigationBar
-import com.example.absensikaryawan.screens.ChatAdminScreen
-import com.example.absensikaryawan.screens.DetailPengajuanScreen
-import com.example.absensikaryawan.screens.FilterStatusPengajuan
-import com.example.absensikaryawan.screens.NotifikasiScreen
-import com.example.absensikaryawan.screens.PengajuanBaruScreen
-import com.example.absensikaryawan.screens.PengajuanScreen
-import com.example.absensikaryawan.screens.ProfileScreen
-import com.example.absensikaryawan.screens.RiwayatJamPulangScreen
-import com.example.absensikaryawan.screens.RiwayatScreen
-import com.example.absensikaryawan.screens.ScanAbsenScreen
-import com.example.absensikaryawan.screens.SettingsScreen
-import com.example.absensikaryawan.screens.StaffDashboardScreen
+import com.example.absensikaryawan.repository.screens.AbsenLuarKantorScreen
+import com.example.absensikaryawan.repository.screens.ApprovalScreen
+import com.example.absensikaryawan.repository.screens.BantuanScreen
+import com.example.absensikaryawan.repository.screens.BottomNavigationBar
+import com.example.absensikaryawan.repository.screens.ChatAdminScreen
+import com.example.absensikaryawan.repository.screens.DetailPengajuanScreen
+import com.example.absensikaryawan.repository.screens.FilterStatusPengajuan
+import com.example.absensikaryawan.repository.screens.NotifikasiScreen
+import com.example.absensikaryawan.repository.screens.PengajuanBaruScreen
+import com.example.absensikaryawan.repository.screens.PengajuanScreen
+import com.example.absensikaryawan.repository.screens.ProfileScreen
+import com.example.absensikaryawan.repository.screens.RiwayatJamPulangScreen
+import com.example.absensikaryawan.repository.screens.RiwayatScreen
+import com.example.absensikaryawan.repository.screens.ScanAbsenScreen
+import com.example.absensikaryawan.repository.screens.SettingsScreen
+import com.example.absensikaryawan.repository.screens.StaffDashboardScreen
 import com.example.absensikaryawan.screens.TampilanScreen
-import com.example.absensikaryawan.screens.TentangAplikasiScreen
+import com.example.absensikaryawan.repository.screens.TentangAplikasiScreen
 import com.example.absensikaryawan.screens.ThemeMode
-
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -198,6 +197,15 @@ fun StaffNavigation(
 
 
     // ======================================================
+    // ID PENGAJUAN DARI NOTIFIKASI
+    // ======================================================
+
+    var notificationRelatedId by remember {
+        mutableStateOf("")
+    }
+
+
+    // ======================================================
     // PESAN ABSENSI
     // ======================================================
 
@@ -232,7 +240,7 @@ fun StaffNavigation(
                 currentScreen == StaffScreen.Settings
             ) {
 
-                BottomNavigationBar(
+                _root_ide_package_.com.example.absensikaryawan.repository.screens.BottomNavigationBar(
 
                     selectedItem =
                         selectedBottomItem,
@@ -305,7 +313,7 @@ fun StaffNavigation(
 
                 StaffScreen.Dashboard -> {
 
-                    StaffDashboardScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.StaffDashboardScreen(
 
                         refreshKey =
                             refreshKey,
@@ -390,9 +398,10 @@ fun StaffNavigation(
 
                 StaffScreen.Approval -> {
 
-                    ApprovalScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.ApprovalScreen(
 
-                        initialDocumentId = "",
+                        initialDocumentId =
+                            notificationRelatedId,
 
                         onDetailClick = { pengajuan ->
 
@@ -403,6 +412,12 @@ fun StaffNavigation(
 
                             selectedPengajuan =
                                 pengajuan
+
+                            // Setelah pengajuan dari notifikasi
+                            // berhasil ditemukan dan dibuka,
+                            // kosongkan ID agar tidak terbuka
+                            // kembali secara otomatis.
+                            notificationRelatedId = ""
 
                             detailReturnScreen =
                                 StaffScreen.Approval
@@ -420,7 +435,7 @@ fun StaffNavigation(
 
                 StaffScreen.Scan -> {
 
-                    ScanAbsenScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.ScanAbsenScreen(
 
                         externalResetKey =
                             scanResetKey,
@@ -433,10 +448,9 @@ fun StaffNavigation(
                             selectedBottomItem = 0
                         },
 
-                        onQrScanned = {
-                                qrData,
-                                catatan,
-                                kantor ->
+                        onQrScanned = { qrData,
+                                        catatan,
+                                        kantor ->
 
                             coroutineScope.launch {
 
@@ -885,7 +899,7 @@ fun StaffNavigation(
 
                 StaffScreen.AbsenLuarKantor -> {
 
-                    AbsenLuarKantorScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.AbsenLuarKantorScreen(
 
                         onBack = {
 
@@ -908,7 +922,7 @@ fun StaffNavigation(
 
                 StaffScreen.Pengajuan -> {
 
-                    PengajuanScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.PengajuanScreen(
 
                         onBack = {
 
@@ -945,7 +959,7 @@ fun StaffNavigation(
 
                 StaffScreen.PengajuanBaru -> {
 
-                    PengajuanBaruScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.PengajuanBaruScreen(
 
                         onBack = {
 
@@ -953,14 +967,13 @@ fun StaffNavigation(
                                 StaffScreen.Pengajuan
                         },
 
-                        onSubmit = {
-                                _,
-                                _,
-                                _,
-                                _,
-                                _,
-                                _,
-                                _ ->
+                        onSubmit = { _,
+                                     _,
+                                     _,
+                                     _,
+                                     _,
+                                     _,
+                                     _ ->
 
                             refreshKey++
 
@@ -982,7 +995,7 @@ fun StaffNavigation(
 
                     if (data != null) {
 
-                        DetailPengajuanScreen(
+                        _root_ide_package_.com.example.absensikaryawan.repository.screens.DetailPengajuanScreen(
 
                             documentId =
                                 data.id,
@@ -1052,20 +1065,20 @@ fun StaffNavigation(
                         when (notificationTarget) {
 
                             NotificationTarget.PENGAJUAN_DISETUJUI ->
-                                FilterStatusPengajuan.DISETUJUI
+                                _root_ide_package_.com.example.absensikaryawan.repository.screens.FilterStatusPengajuan.DISETUJUI
 
                             NotificationTarget.PENGAJUAN_DITOLAK ->
-                                FilterStatusPengajuan.DITOLAK
+                                _root_ide_package_.com.example.absensikaryawan.repository.screens.FilterStatusPengajuan.DITOLAK
 
                             NotificationTarget.PENGAJUAN_MENUNGGU ->
-                                FilterStatusPengajuan.MENUNGGU
+                                _root_ide_package_.com.example.absensikaryawan.repository.screens.FilterStatusPengajuan.MENUNGGU
 
                             else ->
-                                FilterStatusPengajuan.SEMUA
+                                _root_ide_package_.com.example.absensikaryawan.repository.screens.FilterStatusPengajuan.SEMUA
                         }
 
 
-                    RiwayatScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.RiwayatScreen(
 
                         refreshKey =
                             refreshKey,
@@ -1139,7 +1152,7 @@ fun StaffNavigation(
 
                 StaffScreen.RiwayatJamPulang -> {
 
-                    RiwayatJamPulangScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.RiwayatJamPulangScreen(
 
                         onBack = {
 
@@ -1156,7 +1169,7 @@ fun StaffNavigation(
 
                 StaffScreen.Profile -> {
 
-                    ProfileScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.ProfileScreen(
 
                         onBack = {
 
@@ -1173,7 +1186,7 @@ fun StaffNavigation(
 
                 StaffScreen.Notifikasi -> {
 
-                    NotifikasiScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.NotifikasiScreen(
 
                         onBack = {
 
@@ -1181,9 +1194,8 @@ fun StaffNavigation(
                                 StaffScreen.Dashboard
                         },
 
-                        onNotificationClick = {
-                                target,
-                                relatedId ->
+                        onNotificationClick = { target,
+                                                relatedId ->
 
                             Log.d(
                                 "STAFF_NAV",
@@ -1230,10 +1242,17 @@ fun StaffNavigation(
 
                                 NotificationTarget.PENGAJUAN_MENUNGGU -> {
 
-                                    selectedBottomItem = 3
+                                    // ==========================================
+                                    // APPROVAL DARI NOTIFIKASI
+                                    // ==========================================
+
+                                    selectedBottomItem = 1
+
+                                    notificationRelatedId =
+                                        relatedId
 
                                     currentScreen =
-                                        StaffScreen.Riwayat
+                                        StaffScreen.Approval
                                 }
 
                                 NotificationTarget.CHAT_ADMIN -> {
@@ -1258,7 +1277,7 @@ fun StaffNavigation(
 
                 StaffScreen.Settings -> {
 
-                    SettingsScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.SettingsScreen(
 
                         onBack = {
 
@@ -1307,15 +1326,15 @@ fun StaffNavigation(
 
 
                 // ==================================================
-                // TAMPILAN
-                // ==================================================
+// TAMPILAN
+// ==================================================
 
                 StaffScreen.Tampilan -> {
 
-                    TampilanScreen(
+                    _root_ide_package_.com.example.absensikaryawan.screens.TampilanScreen(
 
                         selectedMode =
-                            ThemeMode.TERANG,
+                            _root_ide_package_.com.example.absensikaryawan.screens.ThemeMode.TERANG,
 
                         onModeSelected = {
 
@@ -1338,7 +1357,7 @@ fun StaffNavigation(
 
                 StaffScreen.ChatAdmin -> {
 
-                    ChatAdminScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.ChatAdminScreen(
 
                         onBack = {
 
@@ -1355,7 +1374,7 @@ fun StaffNavigation(
 
                 StaffScreen.Bantuan -> {
 
-                    BantuanScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.BantuanScreen(
 
                         onBack = {
 
@@ -1378,7 +1397,7 @@ fun StaffNavigation(
 
                 StaffScreen.TentangAplikasi -> {
 
-                    TentangAplikasiScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.TentangAplikasiScreen(
 
                         onBack = {
 

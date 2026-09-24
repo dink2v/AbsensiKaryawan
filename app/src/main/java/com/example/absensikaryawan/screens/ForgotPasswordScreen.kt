@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,6 +38,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.DarkGreen
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -69,7 +74,6 @@ fun ForgotPasswordScreen(
 
     val scope = rememberCoroutineScope()
 
-
     // =========================================================
     // UI
     // =========================================================
@@ -89,7 +93,6 @@ fun ForgotPasswordScreen(
             Spacer(
                 modifier = Modifier.height(55.dp)
             )
-
 
             // =====================================================
             // LOGO
@@ -115,11 +118,9 @@ fun ForgotPasswordScreen(
                 )
             }
 
-
             Spacer(
                 modifier = Modifier.height(18.dp)
             )
-
 
             // =====================================================
             // TITLE
@@ -132,11 +133,9 @@ fun ForgotPasswordScreen(
                 color = TextDark
             )
 
-
             Spacer(
                 modifier = Modifier.height(6.dp)
             )
-
 
             Text(
                 text = "Reset password akun Anda",
@@ -144,11 +143,9 @@ fun ForgotPasswordScreen(
                 color = TextGray
             )
 
-
             Spacer(
                 modifier = Modifier.height(30.dp)
             )
-
 
             // =====================================================
             // RESET PASSWORD CARD
@@ -171,7 +168,6 @@ fun ForgotPasswordScreen(
                         .padding(20.dp)
                 ) {
 
-
                     // =================================================
                     // CARD TITLE
                     // =================================================
@@ -183,11 +179,9 @@ fun ForgotPasswordScreen(
                         color = TextDark
                     )
 
-
                     Spacer(
                         modifier = Modifier.height(5.dp)
                     )
-
 
                     Text(
                         text =
@@ -196,11 +190,9 @@ fun ForgotPasswordScreen(
                         color = TextGray
                     )
 
-
                     Spacer(
                         modifier = Modifier.height(20.dp)
                     )
-
 
                     // =================================================
                     // EMAIL
@@ -235,11 +227,9 @@ fun ForgotPasswordScreen(
                         shape = RoundedCornerShape(13.dp)
                     )
 
-
                     Spacer(
                         modifier = Modifier.height(18.dp)
                     )
-
 
                     // =================================================
                     // KIRIM LINK
@@ -270,7 +260,6 @@ fun ForgotPasswordScreen(
                                     return@clickable
                                 }
 
-
                                 // =====================================
                                 // VALIDASI FORMAT EMAIL
                                 // =====================================
@@ -289,7 +278,6 @@ fun ForgotPasswordScreen(
                                     return@clickable
                                 }
 
-
                                 // =====================================
                                 // FIREBASE RESET PASSWORD
                                 // =====================================
@@ -302,7 +290,6 @@ fun ForgotPasswordScreen(
 
                                     successMessage = ""
 
-
                                     try {
 
                                         FirebaseAuth
@@ -312,14 +299,12 @@ fun ForgotPasswordScreen(
                                             )
                                             .await()
 
-
                                         // =================================
                                         // BERHASIL
                                         // =================================
 
                                         successMessage =
                                             "Link reset password berhasil dikirim ke ${email.trim()}. Silakan periksa email Anda."
-
 
                                     } catch (
                                         e: Exception
@@ -340,7 +325,6 @@ fun ForgotPasswordScreen(
 
                                                     "Email belum terdaftar di Firebase Authentication."
 
-
                                                 e.message
                                                     ?.contains(
                                                         "user-not-found",
@@ -348,7 +332,6 @@ fun ForgotPasswordScreen(
                                                     ) == true ->
 
                                                     "Email belum terdaftar di Firebase Authentication."
-
 
                                                 e.message
                                                     ?.contains(
@@ -358,7 +341,6 @@ fun ForgotPasswordScreen(
 
                                                     "Format email tidak valid."
 
-
                                                 e.message
                                                     ?.contains(
                                                         "network",
@@ -366,7 +348,6 @@ fun ForgotPasswordScreen(
                                                     ) == true ->
 
                                                     "Tidak dapat terhubung ke internet."
-
 
                                                 else ->
 
@@ -398,11 +379,9 @@ fun ForgotPasswordScreen(
                             modifier = Modifier.size(20.dp)
                         )
 
-
                         Spacer(
                             modifier = Modifier.width(8.dp)
                         )
-
 
                         Text(
                             text =
@@ -417,11 +396,9 @@ fun ForgotPasswordScreen(
                         )
                     }
 
-
                     Spacer(
                         modifier = Modifier.height(18.dp)
                     )
-
 
                     // =================================================
                     // INFO
@@ -445,7 +422,6 @@ fun ForgotPasswordScreen(
                 }
             }
 
-
             // =====================================================
             // ERROR MESSAGE
             // =====================================================
@@ -457,7 +433,6 @@ fun ForgotPasswordScreen(
                 Spacer(
                     modifier = Modifier.height(14.dp)
                 )
-
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -483,7 +458,6 @@ fun ForgotPasswordScreen(
                 }
             }
 
-
             // =====================================================
             // SUCCESS MESSAGE
             // =====================================================
@@ -495,7 +469,6 @@ fun ForgotPasswordScreen(
                 Spacer(
                     modifier = Modifier.height(14.dp)
                 )
-
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -521,11 +494,9 @@ fun ForgotPasswordScreen(
                 }
             }
 
-
             Spacer(
                 modifier = Modifier.weight(1f)
             )
-
 
             // =====================================================
             // KEMBALI KE LOGIN
@@ -558,11 +529,9 @@ fun ForgotPasswordScreen(
                         Modifier.size(18.dp)
                 )
 
-
                 Spacer(
                     modifier = Modifier.width(6.dp)
                 )
-
 
                 Text(
                     text = "Kembali ke Login",
@@ -573,11 +542,9 @@ fun ForgotPasswordScreen(
                 )
             }
 
-
             Spacer(
                 modifier = Modifier.height(12.dp)
             )
-
 
             // =====================================================
             // FOOTER
@@ -588,7 +555,6 @@ fun ForgotPasswordScreen(
                 fontSize = 11.sp,
                 color = TextGray
             )
-
 
             Spacer(
                 modifier = Modifier.height(8.dp)

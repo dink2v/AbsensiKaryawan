@@ -1,5 +1,4 @@
-
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -89,6 +88,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.window.DialogProperties
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.DarkGreen
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -148,7 +152,7 @@ fun KaryawanScreen(
     }
 
     var daftarKaryawan by remember {
-        mutableStateOf(emptyList<DataKaryawan>())
+        mutableStateOf(emptyList<com.example.absensikaryawan.repository.screens.DataKaryawan>())
     }
 
     var loading by remember {
@@ -168,7 +172,7 @@ fun KaryawanScreen(
     }
 
     var selectedKaryawan by remember {
-        mutableStateOf<DataKaryawan?>(null)
+        mutableStateOf<com.example.absensikaryawan.repository.screens.DataKaryawan?>(null)
     }
 
     var showTambahData by remember {
@@ -176,7 +180,7 @@ fun KaryawanScreen(
     }
 
     var selectedFilter by remember {
-        mutableStateOf(FilterKaryawan.TOTAL)
+        mutableStateOf(_root_ide_package_.com.example.absensikaryawan.repository.screens.FilterKaryawan.TOTAL)
     }
 
 
@@ -199,7 +203,7 @@ fun KaryawanScreen(
             daftarKaryawan = snapshot.documents
                 .map { document ->
 
-                    DataKaryawan(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.DataKaryawan(
                         id = document.id,
 
                         nama = document.getString("nama")
@@ -252,7 +256,7 @@ fun KaryawanScreen(
 
     if (selectedKaryawan != null) {
 
-        KaryawanDetailScreen(
+        _root_ide_package_.com.example.absensikaryawan.repository.screens.KaryawanDetailScreen(
             karyawan = selectedKaryawan!!,
 
             onBack = {
@@ -275,7 +279,7 @@ fun KaryawanScreen(
 
     if (showTambahData) {
 
-        TambahKaryawanDialog(
+        _root_ide_package_.com.example.absensikaryawan.repository.screens.TambahKaryawanDialog(
 
             daftarKaryawan = daftarKaryawan,
 

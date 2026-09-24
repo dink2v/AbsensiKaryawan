@@ -40,20 +40,20 @@ import com.example.absensikaryawan.data.PengajuanData
 import com.example.absensikaryawan.screens.ThemeMode
 import com.example.absensikaryawan.repository.ChatRoom
 
-import com.example.absensikaryawan.screens.AdminChatDetailScreen
-import com.example.absensikaryawan.screens.AdminChatListScreen
-import com.example.absensikaryawan.screens.AdminDashboardScreen
-import com.example.absensikaryawan.screens.AdminNotifikasiScreen
-import com.example.absensikaryawan.screens.AdminSettingsScreen
-import com.example.absensikaryawan.screens.ApprovalScreen
-import com.example.absensikaryawan.screens.BantuanScreen
-import com.example.absensikaryawan.screens.DetailPengajuanScreen
-import com.example.absensikaryawan.screens.KaryawanScreen
-import com.example.absensikaryawan.screens.ProfileScreen
-import com.example.absensikaryawan.screens.RekapAdminScreen
+import com.example.absensikaryawan.repository.screens.AdminChatDetailScreen
+import com.example.absensikaryawan.repository.screens.AdminChatListScreen
+import com.example.absensikaryawan.repository.screens.AdminDashboardScreen
+import com.example.absensikaryawan.repository.screens.AdminNotifikasiScreen
+import com.example.absensikaryawan.repository.screens.AdminSettingsScreen
+import com.example.absensikaryawan.repository.screens.ApprovalScreen
+import com.example.absensikaryawan.repository.screens.BantuanScreen
+import com.example.absensikaryawan.repository.screens.DetailPengajuanScreen
+import com.example.absensikaryawan.repository.screens.KaryawanScreen
+import com.example.absensikaryawan.repository.screens.ProfileScreen
+import com.example.absensikaryawan.repository.screens.RekapAdminScreen
 import com.example.absensikaryawan.screens.TampilanScreen
-import com.example.absensikaryawan.screens.TentangAplikasiScreen
-import com.example.absensikaryawan.screens.AdminQrSettingScreen
+import com.example.absensikaryawan.repository.screens.TentangAplikasiScreen
+import com.example.absensikaryawan.repository.screens.AdminQrSettingScreen
 
 import kotlinx.coroutines.launch
 
@@ -139,7 +139,7 @@ fun AdminNavigation(
     val themeDataStore =
         remember {
 
-            ThemeDataStore(
+            _root_ide_package_.com.example.absensikaryawan.ThemeDataStore(
                 context
             )
         }
@@ -472,7 +472,7 @@ fun AdminNavigation(
 
                 AdminScreen.Dashboard -> {
 
-                    AdminDashboardScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminDashboardScreen(
 
                         onApproval = {
 
@@ -555,7 +555,7 @@ fun AdminNavigation(
 
                 AdminScreen.Notifikasi -> {
 
-                    AdminNotifikasiScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminNotifikasiScreen(
 
                         onBack = {
 
@@ -618,7 +618,7 @@ fun AdminNavigation(
                         room == null
                     ) {
 
-                        AdminChatListScreen(
+                        _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminChatListScreen(
 
                             onBack = {
 
@@ -626,8 +626,7 @@ fun AdminNavigation(
                                     AdminScreen.Dashboard
                             },
 
-                            onStaffClick = {
-                                    selectedRoom ->
+                            onStaffClick = { selectedRoom ->
 
                                 chatRoomTerpilih =
                                     selectedRoom
@@ -636,7 +635,7 @@ fun AdminNavigation(
 
                     } else {
 
-                        AdminChatDetailScreen(
+                        _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminChatDetailScreen(
 
                             room =
                                 room,
@@ -657,7 +656,7 @@ fun AdminNavigation(
 
                 AdminScreen.Approval -> {
 
-                    ApprovalScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.ApprovalScreen(
 
                         initialDocumentId =
                             selectedApprovalId,
@@ -695,20 +694,19 @@ fun AdminNavigation(
                         pengajuan != null
                     ) {
 
-                            DetailPengajuanScreen(
+                        _root_ide_package_.com.example.absensikaryawan.repository.screens.DetailPengajuanScreen(
 
-                                documentId =
-                                    pengajuan.id,
+                            documentId =
+                                pengajuan.id,
 
-                                jenis =
-                                    pengajuan.jenis,
+                            jenis =
+                                pengajuan.jenis,
 
                             tanggal =
                                 pengajuan.tanggal,
 
-
                             status =
-                                pengajuan   .status,
+                                pengajuan.status,
 
                             jamPulang =
                                 pengajuan.jamPulang,
@@ -774,7 +772,7 @@ fun AdminNavigation(
 
                 AdminScreen.Karyawan -> {
 
-                    KaryawanScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.KaryawanScreen(
 
                         onBack = {
 
@@ -791,7 +789,7 @@ fun AdminNavigation(
 
                 AdminScreen.Rekap -> {
 
-                    RekapAdminScreen()
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.RekapAdminScreen()
                 }
 
 
@@ -801,7 +799,7 @@ fun AdminNavigation(
 
                 AdminScreen.Settings -> {
 
-                    AdminSettingsScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminSettingsScreen(
 
                         onTampilan = {
 
@@ -846,7 +844,7 @@ fun AdminNavigation(
 
                 AdminScreen.QrKantor -> {
 
-                    AdminQrSettingScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminQrSettingScreen(
 
                         onBack = {
 
@@ -863,7 +861,7 @@ fun AdminNavigation(
 
                 AdminScreen.Profile -> {
 
-                    ProfileScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.ProfileScreen(
 
                         onBack = {
 
@@ -880,7 +878,7 @@ fun AdminNavigation(
 
                 AdminScreen.Tampilan -> {
 
-                    TampilanScreen(
+                    _root_ide_package_.com.example.absensikaryawan.screens.TampilanScreen(
 
                         selectedMode =
                             selectedThemeMode,
@@ -911,7 +909,7 @@ fun AdminNavigation(
 
                 AdminScreen.Bantuan -> {
 
-                    BantuanScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.BantuanScreen(
 
                         onBack = {
 
@@ -934,7 +932,7 @@ fun AdminNavigation(
 
                 AdminScreen.TentangAplikasi -> {
 
-                    TentangAplikasiScreen(
+                    _root_ide_package_.com.example.absensikaryawan.repository.screens.TentangAplikasiScreen(
 
                         onBack = {
 

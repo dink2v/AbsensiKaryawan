@@ -1,15 +1,10 @@
 package com.example.absensikaryawan.ui.theme
 
-// ==========================================================
-// APP COLORS
-// Sumber nilai warna resmi ada di screens/PrimaryGreen.kt
-// (dipakai langsung oleh semua screen tanpa import karena
-// satu package). File ini hanya menyalurkan nilai yang SAMA
-// supaya MaterialTheme tidak punya palet yang berbeda sendiri.
-// ==========================================================
+import androidx.compose.ui.graphics.Color
 
-val Background = com.example.absensikaryawan.screens.Background
-val PrimaryGreen = com.example.absensikaryawan.screens.PrimaryGreen
-val SoftGreen = com.example.absensikaryawan.screens.SoftGreen
-val TextDark = com.example.absensikaryawan.screens.TextDark
-val TextGray = com.example.absensikaryawan.screens.TextGray
+val PrimaryGreen: Color = Color(0xFF1F3A2D)
+val DarkGreen: Color = Color(0xFF093628)
+val Background: Color = Color(0xFFF6F8F7)
+val TextDark: Color = Color(0xFF17221C)
+val TextGray: Color = Color(0xFF6B7280)
+val SoftGreen: Color = Color(0xFFE6EEE9)

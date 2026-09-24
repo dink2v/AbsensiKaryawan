@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -52,6 +52,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.absensikaryawan.data.UserRepository
+import com.example.absensikaryawan.ui.theme.Background
+import com.example.absensikaryawan.ui.theme.DarkGreen
+import com.example.absensikaryawan.ui.theme.PrimaryGreen
+import com.example.absensikaryawan.ui.theme.TextDark
+import com.example.absensikaryawan.ui.theme.TextGray
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.firestore.FirebaseFirestore
@@ -448,9 +453,10 @@ fun LoginScreen(
                                             "FCM_TOKEN",
                                             "MASUK KE BLOK SIMPAN FCM TOKEN - UID: ${currentUser.uid}"
                                         )
+
                                         // ==========================================================
-// SIMPAN FCM TOKEN
-// ==========================================================
+                                        // SIMPAN FCM TOKEN
+                                        // ==========================================================
 
                                         try {
 
@@ -469,13 +475,20 @@ fun LoginScreen(
                                                 FirebaseFirestore
                                                     .getInstance()
                                                     .collection("users")
-                                                    .whereEqualTo("email", currentUser.email)
+                                                    .whereEqualTo(
+                                                        "email",
+                                                        currentUser.email
+                                                    )
                                                     .limit(1)
                                                     .get()
                                                     .await()
 
                                             if (!userQuery.isEmpty) {
-                                                val userDocument = userQuery.documents.first()
+
+                                                val userDocument =
+                                                    userQuery
+                                                        .documents
+                                                        .first()
 
                                                 userDocument.reference
                                                     .update(
@@ -488,7 +501,9 @@ fun LoginScreen(
                                                     "FCM_TOKEN",
                                                     "TOKEN BERHASIL DISIMPAN KE DOCUMENT: ${userDocument.id}"
                                                 )
+
                                             } else {
+
                                                 Log.e(
                                                     "FCM_TOKEN",
                                                     "DOKUMEN USER TIDAK DITEMUKAN UNTUK EMAIL: ${currentUser.email}"
@@ -658,7 +673,7 @@ fun LoginScreen(
 
             // ==================================================
             // ERROR
-            // ==========================================================
+            // ==================================================
 
             if (errorMessage.isNotBlank()) {
 

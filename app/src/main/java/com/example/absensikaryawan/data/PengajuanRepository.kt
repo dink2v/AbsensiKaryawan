@@ -42,11 +42,6 @@ object PengajuanRepository {
         val firebaseUid =
             firebaseUser.uid
 
-        // ------------------------------------------------------
-        // PRIORITAS 1
-        // Cari berdasarkan field uid
-        // ------------------------------------------------------
-
         val byUid =
             usersCollection
                 .whereEqualTo("uid", firebaseUid)
@@ -57,11 +52,6 @@ object PengajuanRepository {
         if (!byUid.isEmpty) {
             return byUid.documents.first()
         }
-
-        // ------------------------------------------------------
-        // PRIORITAS 2
-        // Cari berdasarkan email
-        // ------------------------------------------------------
 
         val email =
             firebaseUser.email
@@ -79,11 +69,6 @@ object PengajuanRepository {
                 return byEmail.documents.first()
             }
         }
-
-        // ------------------------------------------------------
-        // PRIORITAS 3
-        // Document ID = Firebase UID
-        // ------------------------------------------------------
 
         val byDocumentId =
             usersCollection
@@ -111,10 +96,6 @@ object PengajuanRepository {
             return null
         }
 
-        // ------------------------------------------------------
-        // Cari berdasarkan field uid
-        // ------------------------------------------------------
-
         val byUid =
             usersCollection
                 .whereEqualTo("uid", uid)
@@ -125,10 +106,6 @@ object PengajuanRepository {
         if (!byUid.isEmpty) {
             return byUid.documents.first()
         }
-
-        // ------------------------------------------------------
-        // Fallback document ID
-        // ------------------------------------------------------
 
         val byDocumentId =
             usersCollection
@@ -193,10 +170,6 @@ object PengajuanRepository {
             return null
         }
 
-        // ------------------------------------------------------
-        // 1. Coba berdasarkan field uid
-        // ------------------------------------------------------
-
         val byUid =
             usersCollection
                 .whereEqualTo("uid", value)
@@ -208,10 +181,6 @@ object PengajuanRepository {
             return byUid.documents.first()
         }
 
-        // ------------------------------------------------------
-        // 2. Coba berdasarkan document ID
-        // ------------------------------------------------------
-
         val byDocumentId =
             usersCollection
                 .document(value)
@@ -221,10 +190,6 @@ object PengajuanRepository {
         if (byDocumentId.exists()) {
             return byDocumentId
         }
-
-        // ------------------------------------------------------
-        // 3. Coba berdasarkan email
-        // ------------------------------------------------------
 
         val byEmail =
             usersCollection
@@ -236,10 +201,6 @@ object PengajuanRepository {
         if (!byEmail.isEmpty) {
             return byEmail.documents.first()
         }
-
-        // ------------------------------------------------------
-        // 4. Coba berdasarkan nama
-        // ------------------------------------------------------
 
         return findUserByName(value)
     }
@@ -259,10 +220,6 @@ object PengajuanRepository {
         if (targetName.isBlank()) {
             return null
         }
-
-        // ------------------------------------------------------
-        // Prioritas 1: exact match Firestore
-        // ------------------------------------------------------
 
         val snapshot =
             usersCollection
@@ -289,11 +246,6 @@ object PengajuanRepository {
 
             return snapshot.documents.first()
         }
-
-        // ------------------------------------------------------
-        // Fallback:
-        // pencarian case-insensitive di client
-        // ------------------------------------------------------
 
         val allUsers =
             usersCollection
@@ -654,7 +606,6 @@ object PengajuanRepository {
             val data =
                 hashMapOf<String, Any>(
 
-                    // Data utama
                     "uid" to uid,
                     "nama" to nama,
                     "jenis" to jenis,
@@ -666,14 +617,11 @@ object PengajuanRepository {
                     "tanggalSelesai" to tanggalSelesai,
                     "alasan" to alasan,
 
-                    // Status
                     "status" to "menunggu",
 
-                    // Informasi user
                     "jabatanPengaju" to jabatan,
                     "divisiPengaju" to divisi,
 
-                    // Approval
                     "currentApproverUid" to currentApproverUid,
                     "currentApproverName" to currentApproverName,
                     "currentApproverJabatan" to currentApproverJabatan,
@@ -681,11 +629,9 @@ object PengajuanRepository {
                     "approvalStatuses" to approvalStatuses,
                     "approvalLocked" to false,
 
-                    // Informasi hirarki
                     "atasan" to atasan,
                     "owner" to owner,
 
-                    // Waktu
                     "waktuPengajuan" to
                             com.google.firebase.Timestamp.now()
                 )
@@ -705,10 +651,10 @@ object PengajuanRepository {
             )
 
             // ==================================================
-            // NOTIFIKASI SEMUA APPROVER
+            // NOTIFIKASI APPROVER PERTAMA SAJA
             // ==================================================
 
-            approvalDocuments.forEach { approverDocument ->
+            firstApprover?.let { approverDocument ->
 
                 val approverUid =
                     getFirebaseUid(
@@ -730,7 +676,7 @@ object PengajuanRepository {
 
                 Log.i(
                     "PengajuanRepository",
-                    "Notifikasi approval → UID=$approverUid, Nama=$approverName, Jabatan=$approverJabatan"
+                    "Notifikasi approval pertama → UID=$approverUid, Nama=$approverName, Jabatan=$approverJabatan"
                 )
 
                 if (

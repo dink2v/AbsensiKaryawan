@@ -1,4 +1,4 @@
-package com.example.absensikaryawan.screens
+package com.example.absensikaryawan.repository.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -152,7 +152,7 @@ fun AdminChatDetailScreen(
         // HEADER
         // =================================================
 
-        AdminChatDetailHeader(
+        _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminChatDetailHeader(
             staffName = room.staffName,
             onBack = onBack
         )
@@ -335,7 +335,7 @@ fun AdminChatDetailScreen(
                             }
                         ) { message ->
 
-                            AdminChatMessageBubble(
+                            _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminChatMessageBubble(
                                 message = message
                             )
                         }
@@ -348,7 +348,7 @@ fun AdminChatDetailScreen(
         // INPUT MESSAGE
         // =================================================
 
-        AdminChatInput(
+        _root_ide_package_.com.example.absensikaryawan.repository.screens.AdminChatInput(
             message = messageText,
 
             onMessageChange = {
@@ -623,7 +623,7 @@ private fun AdminChatMessageBubble(
 
                     Text(
                         text =
-                            formatMessageTime(
+                            _root_ide_package_.com.example.absensikaryawan.repository.screens.formatMessageTime(
                                 message.timestamp
                             ),
 
