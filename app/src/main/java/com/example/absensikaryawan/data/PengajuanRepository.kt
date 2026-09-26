@@ -152,6 +152,7 @@ object PengajuanRepository {
 
     // ==========================================================
     // CARI USER BERDASARKAN IDENTITAS
+    //
     // Bisa berupa:
     // - Firebase UID
     // - Document ID
@@ -223,7 +224,10 @@ object PengajuanRepository {
 
         val snapshot =
             usersCollection
-                .whereEqualTo("nama", targetName)
+                .whereEqualTo(
+                    "nama",
+                    targetName
+                )
                 .limit(10)
                 .get()
                 .await()
@@ -292,6 +296,43 @@ object PengajuanRepository {
                 ?.trim()
                 ?.uppercase() == normalizedJabatan
         }
+    }
+
+
+    // ==========================================================
+    // CARI USER ATASAN
+    //
+    // Field "atasan" bisa berisi:
+    // - UID
+    // - Document ID
+    // - Email
+    // - Nama
+    // - Jabatan
+    // ==========================================================
+
+    private suspend fun findUserByAtasan(
+        identity: String
+    ): DocumentSnapshot? {
+
+        val value =
+            identity.trim()
+
+        if (value.isBlank()) {
+            return null
+        }
+
+        val byIdentity =
+            findUserByIdentity(
+                value
+            )
+
+        if (byIdentity != null) {
+            return byIdentity
+        }
+
+        return findUserByJabatan(
+            value
+        )
     }
 
 
@@ -461,100 +502,169 @@ object PengajuanRepository {
                     ?.trim()
                     ?: ""
 
-            // ==================================================
-            // CARI SUPERVISOR
-            // ==================================================
-
-            val supervisorDocument =
-                if (
-                    jabatan == "STAFF" ||
-                    jabatan == "KARYAWAN"
-                ) {
-
-                    if (atasan.isNotBlank()) {
-
-                        Log.d(
-                            "PengajuanRepository",
-                            "Mencari atasan berdasarkan identity: $atasan"
-                        )
-
-                        findUserByIdentity(
-                            atasan
-                        )
-
-                    } else {
-
-                        findUserByJabatan(
-                            "SUPERVISOR"
-                        )
-                    }
-
-                } else {
-                    null
-                }
 
             // ==================================================
-            // SUSUN JALUR APPROVAL
-            // Supervisor → Manager → HRD → Owner
+            // SUSUN JALUR APPROVAL BERDASARKAN ATASAN
+            //
+            // Tidak dipaksa sampai Owner.
+            // Mengikuti struktur atasan sebenarnya.
             // ==================================================
 
             val approvalDocuments =
                 mutableListOf<DocumentSnapshot>()
 
-            supervisorDocument?.let {
+            var currentAtasan =
+                atasan
 
-                approvalDocuments.add(
-                    it
-                )
-            }
+            val visitedUids =
+                mutableSetOf<String>()
 
-            listOf(
-                "MANAGER",
-                "HRD",
-                "OWNER"
-            ).forEach { role ->
+            while (
+                currentAtasan.isNotBlank() &&
+                approvalDocuments.size < 10
+            ) {
 
-                val candidate =
-                    findUserByJabatan(
-                        role
+                val approverDocument =
+                    findUserByAtasan(
+                        currentAtasan
                     )
 
-                if (candidate != null) {
+                if (approverDocument == null) {
 
-                    val candidateUid =
-                        getFirebaseUid(
-                            candidate
-                        )
+                    Log.w(
+                        "PengajuanRepository",
+                        "Atasan tidak ditemukan: $currentAtasan"
+                    )
 
-                    if (
-                        candidateUid.isNotBlank() &&
-                        approvalDocuments.none {
-                            getFirebaseUid(it) == candidateUid
-                        }
-                    ) {
+                    break
+                }
 
-                        approvalDocuments.add(
-                            candidate
-                        )
-                    }
+                val approverUid =
+                    getFirebaseUid(
+                        approverDocument
+                    )
+
+                if (
+                    approverUid.isBlank() ||
+                    approverUid == uid
+                ) {
+
+                    Log.w(
+                        "PengajuanRepository",
+                        "Approval dihentikan karena approver sama dengan pengaju."
+                    )
+
+                    break
+                }
+
+                if (
+                    !visitedUids.add(
+                        approverUid
+                    )
+                ) {
+
+                    Log.w(
+                        "PengajuanRepository",
+                        "Loop approval terdeteksi pada UID=$approverUid"
+                    )
+
+                    break
+                }
+
+                approvalDocuments.add(
+                    approverDocument
+                )
+
+                val approverNama =
+                    approverDocument
+                        .getString("nama")
+                        ?.trim()
+                        ?: ""
+
+                val approverJabatan =
+                    approverDocument
+                        .getString("jabatan")
+                        ?.trim()
+                        ?.uppercase()
+                        ?: ""
+
+                Log.i(
+                    "PengajuanRepository",
+                    "Approval chain → Nama=$approverNama, Jabatan=$approverJabatan, UID=$approverUid"
+                )
+
+                currentAtasan =
+                    approverDocument
+                        .getString("atasan")
+                        ?.trim()
+                        ?: ""
+
+                if (
+                    currentAtasan.isBlank()
+                ) {
+                    break
                 }
             }
+
 
             // ==================================================
             // APPROVAL CHAIN
             // ==================================================
 
             val approvalChain =
-                approvalDocuments.map {
-                    getFirebaseUid(it)
-                }.filter {
-                    it.isNotBlank()
-                }
+                approvalDocuments
+                    .map {
+                        getFirebaseUid(it)
+                    }
+                    .filter {
+                        it.isNotBlank()
+                    }
 
             Log.i(
                 "PengajuanRepository",
-                "Jalur approval UID: $approvalChain"
+                "Jalur approval final UID: $approvalChain"
             )
+
+
+            // ==================================================
+            // SEMUA ATASAN DALAM CHAIN BOLEH MELIHAT
+            // ==================================================
+
+            val approvalViewers =
+                approvalChain
+                    .distinct()
+
+            Log.i(
+                "PengajuanRepository",
+                "Approval viewers: $approvalViewers"
+            )
+
+
+            // ==================================================
+            // VALIDASI
+            //
+            // Owner boleh membuat pengajuan walaupun tidak
+            // memiliki atasan.
+            //
+            // Pengguna lain wajib mempunyai atasan.
+            // ==================================================
+
+            if (
+                jabatan != "OWNER" &&
+                approvalChain.isEmpty()
+            ) {
+
+                return Result.failure(
+                    Exception(
+                        "Atasan untuk pengajuan tidak ditemukan."
+                    )
+                )
+            }
+
+
+            // ==================================================
+            // STATUS AWAL APPROVAL
+            // ==================================================
 
             val approvalStatuses =
                 approvalChain
@@ -570,6 +680,11 @@ object PengajuanRepository {
                                 }
                     }
                     .toMap()
+
+
+            // ==================================================
+            // APPROVER PERTAMA
+            // ==================================================
 
             val firstApprover =
                 approvalDocuments.firstOrNull()
@@ -594,10 +709,6 @@ object PengajuanRepository {
                     ?.uppercase()
                     ?: ""
 
-            Log.i(
-                "PengajuanRepository",
-                "Approver aktif: UID=$currentApproverUid, Nama=$currentApproverName, Jabatan=$currentApproverJabatan"
-            )
 
             // ==================================================
             // DATA FIRESTORE
@@ -607,37 +718,65 @@ object PengajuanRepository {
                 hashMapOf<String, Any>(
 
                     "uid" to uid,
+
                     "nama" to nama,
+
                     "jenis" to jenis,
+
                     "tanggal" to tanggal,
+
                     "jamPulang" to jamPulang,
+
                     "jamKeluar" to jamKeluar,
+
                     "jamKembali" to jamKembali,
+
                     "tanggalMulai" to tanggalMulai,
+
                     "tanggalSelesai" to tanggalSelesai,
+
                     "alasan" to alasan,
 
                     "status" to "menunggu",
 
                     "jabatanPengaju" to jabatan,
+
                     "divisiPengaju" to divisi,
 
-                    "currentApproverUid" to currentApproverUid,
-                    "currentApproverName" to currentApproverName,
-                    "currentApproverJabatan" to currentApproverJabatan,
-                    "approvalChain" to approvalChain,
-                    "approvalStatuses" to approvalStatuses,
-                    "approvalLocked" to false,
+                    "currentApproverUid" to
+                            currentApproverUid,
 
-                    "atasan" to atasan,
-                    "owner" to owner,
+                    "currentApproverName" to
+                            currentApproverName,
+
+                    "currentApproverJabatan" to
+                            currentApproverJabatan,
+
+                    "approvalChain" to
+                            approvalChain,
+
+                    "approvalViewers" to
+                            approvalViewers,
+
+                    "approvalStatuses" to
+                            approvalStatuses,
+
+                    "approvalLocked" to
+                            false,
+
+                    "atasan" to
+                            atasan,
+
+                    "owner" to
+                            owner,
 
                     "waktuPengajuan" to
                             com.google.firebase.Timestamp.now()
                 )
 
+
             // ==================================================
-            // SIMPAN PENGAJUAN
+            // SIMPAN
             // ==================================================
 
             val document =
@@ -650,8 +789,9 @@ object PengajuanRepository {
                 "Pengajuan tersimpan: ${document.id}"
             )
 
+
             // ==================================================
-            // NOTIFIKASI APPROVER PERTAMA SAJA
+            // NOTIFIKASI APPROVER PERTAMA
             // ==================================================
 
             firstApprover?.let { approverDocument ->
@@ -660,24 +800,6 @@ object PengajuanRepository {
                     getFirebaseUid(
                         approverDocument
                     )
-
-                val approverName =
-                    approverDocument
-                        .getString("nama")
-                        ?.trim()
-                        ?: ""
-
-                val approverJabatan =
-                    approverDocument
-                        .getString("jabatan")
-                        ?.trim()
-                        ?.uppercase()
-                        ?: ""
-
-                Log.i(
-                    "PengajuanRepository",
-                    "Notifikasi approval pertama → UID=$approverUid, Nama=$approverName, Jabatan=$approverJabatan"
-                )
 
                 if (
                     approverUid.isNotBlank()
@@ -712,6 +834,7 @@ object PengajuanRepository {
                         )
                 }
             }
+
 
             // ==================================================
             // NOTIFIKASI ADMIN
@@ -856,6 +979,12 @@ object PengajuanRepository {
 
         } catch (e: Exception) {
 
+            Log.e(
+                "PengajuanRepository",
+                "Gagal mengambil pengajuan saya",
+                e
+            )
+
             Result.failure(
                 e
             )
@@ -864,7 +993,10 @@ object PengajuanRepository {
 
 
     // ==========================================================
-    // AMBIL PENGAJUAN YANG MENUNGGU APPROVAL SAYA
+    // AMBIL PENGAJUAN YANG BERADA DALAM JALUR SAYA
+    //
+    // Semua atasan yang terdapat di approvalViewers dapat
+    // melihat pengajuan yang masih menunggu.
     // ==========================================================
 
     suspend fun ambilPengajuanUntukApproval():
@@ -885,13 +1017,9 @@ object PengajuanRepository {
 
             val snapshot =
                 pengajuanCollection
-                    .whereEqualTo(
-                        "currentApproverUid",
+                    .whereArrayContains(
+                        "approvalViewers",
                         uid
-                    )
-                    .whereEqualTo(
-                        "status",
-                        "menunggu"
                     )
                     .get()
                     .await()
@@ -900,6 +1028,15 @@ object PengajuanRepository {
                 snapshot.documents
                     .map {
                         documentToPengajuan(it)
+                    }
+                    .filter {
+
+                        it.status.equals(
+                            "menunggu",
+                            ignoreCase = true
+                        ) &&
+
+                                !it.approvalLocked
                     }
                     .sortedByDescending {
                         it.tanggal
@@ -910,6 +1047,12 @@ object PengajuanRepository {
             )
 
         } catch (e: Exception) {
+
+            Log.e(
+                "PengajuanRepository",
+                "Gagal mengambil pengajuan untuk approval",
+                e
+            )
 
             Result.failure(
                 e
@@ -974,6 +1117,12 @@ object PengajuanRepository {
 
         } catch (e: Exception) {
 
+            Log.e(
+                "PengajuanRepository",
+                "Gagal mengambil pengajuan bawahan",
+                e
+            )
+
             Result.failure(
                 e
             )
@@ -1009,6 +1158,12 @@ object PengajuanRepository {
             )
 
         } catch (e: Exception) {
+
+            Log.e(
+                "PengajuanRepository",
+                "Gagal mengambil semua pengajuan",
+                e
+            )
 
             Result.failure(
                 e
@@ -1050,6 +1205,12 @@ object PengajuanRepository {
 
         } catch (e: Exception) {
 
+            Log.e(
+                "PengajuanRepository",
+                "Gagal mengambil detail pengajuan",
+                e
+            )
+
             Result.failure(
                 e
             )
@@ -1059,6 +1220,24 @@ object PengajuanRepository {
 
     // ==========================================================
     // APPROVAL PENGAJUAN
+    //
+    // ATURAN:
+    //
+    // 1. Approver aktif dapat Approve/Tolak.
+    //
+    // 2. Atasan yang lebih tinggi dalam approvalChain
+    //    dapat mengambil alih.
+    //
+    // 3. Tidak menggunakan timer.
+    //
+    // 4. Saat atasan lebih tinggi melakukan Approve/Tolak,
+    //    dia otomatis menjadi approver aktif.
+    //
+    // 5. Setelah Take Over + Approve:
+    //    proses dilanjutkan dari posisi approver tersebut.
+    //
+    // 6. Setelah Tolak:
+    //    pengajuan final dan terkunci.
     // ==========================================================
 
     suspend fun updateStatusPengajuan(
@@ -1096,195 +1275,44 @@ object PengajuanRepository {
                 )
             }
 
-            val currentApproverUid =
+            val currentStatus =
                 document
-                    .getString(
-                        "currentApproverUid"
-                    )
-                    ?: ""
+                    .getString("status")
+                    ?: "menunggu"
 
             val approvalLocked =
                 document
-                    .getBoolean(
-                        "approvalLocked"
-                    )
+                    .getBoolean("approvalLocked")
                     ?: false
 
-            val currentStatus =
+            val currentApproverUid =
                 document
-                    .getString(
-                        "status"
-                    )
-                    ?: "menunggu"
+                    .getString("currentApproverUid")
+                    ?: ""
+
 
             // ==================================================
-            // VALIDASI APPROVER
+            // VALIDASI STATUS
             // ==================================================
 
             if (
                 approvalLocked ||
-                currentStatus != "menunggu" ||
-                currentApproverUid.isBlank()
-            ) {
-
-                return Result.failure(
-                    Exception(
-                        "Pengajuan sudah terkunci atau tidak menunggu approval."
-                    )
-                )
-            }
-
-            if (
-                currentApproverUid != approverUid
-            ) {
-
-                return Result.failure(
-                    Exception(
-                        "Anda bukan approver pengajuan ini."
-                    )
-                )
-            }
-
-            val namaPengaju =
-                document
-                    .getString("nama")
-                    ?: ""
-
-            val jenis =
-                document
-                    .getString("jenis")
-                    ?: ""
-
-            val requesterUid =
-                document
-                    .getString("uid")
-                    ?: ""
-
-            // ==================================================
-            // JIKA DITOLAK
-            // ==================================================
-
-            if (
-                status.equals(
-                    "ditolak",
-                    ignoreCase = true
-                )
-            ) {
-
-                val updatedStatuses =
-                    getApprovalStatuses(
-                        document
-                    ) +
-                            (
-                                    approverUid to
-                                            "ditolak"
-                                    )
-
-                pengajuanCollection
-                    .document(
-                        documentId
-                    )
-                    .update(
-
-                        mapOf(
-
-                            "status" to
-                                    "ditolak",
-
-                            "approvalLocked" to
-                                    true,
-
-                            "approvalStatuses" to
-                                    updatedStatuses,
-
-                            "approvedByUid" to
-                                    approverUid,
-
-                            "approvedByName" to
-                                    (
-                                            firebaseUser.displayName
-                                                ?: ""
-                                            ),
-
-                            "approvedAt" to
-                                    com.google.firebase.Timestamp.now(),
-
-                            "currentApproverUid" to
-                                    "",
-
-                            "currentApproverName" to
-                                    "",
-
-                            "currentApproverJabatan" to
-                                    ""
-                        )
-                    )
-                    .await()
-
-                // ==================================================
-                // NOTIFIKASI KE PENGAJU
-                // ==================================================
-
-                if (
-                    requesterUid.isNotBlank()
-                ) {
-
-                    notificationRepository
-                        .createNotification(
-
-                            Notification(
-
-                                userId =
-                                    requesterUid,
-
-                                type =
-                                    "PENGAJUAN_DITOLAK",
-
-                                title =
-                                    "Pengajuan Ditolak",
-
-                                message =
-                                    "Pengajuan $jenis Anda ditolak.",
-
-                                timestamp =
-                                    System.currentTimeMillis(),
-
-                                isRead =
-                                    false,
-
-                                relatedId =
-                                    documentId
-                            )
-                        )
-                }
-
-                return Result.success(
-                    Unit
-                )
-            }
-
-
-            // ==================================================
-            // VALIDASI STATUS APPROVE
-            // ==================================================
-
-            if (
-                !status.equals(
-                    "disetujui",
+                !currentStatus.equals(
+                    "menunggu",
                     ignoreCase = true
                 )
             ) {
 
                 return Result.failure(
                     Exception(
-                        "Status approval tidak valid."
+                        "Pengajuan sudah selesai atau tidak menunggu approval."
                     )
                 )
             }
 
 
             // ==================================================
-            // CARI USER YANG MENYETUJUI
+            // AMBIL USER YANG MENEKAN APPROVE/TOLAK
             // ==================================================
 
             val approverDocument =
@@ -1316,87 +1344,89 @@ object PengajuanRepository {
                     ?.filterIsInstance<String>()
                     ?: emptyList()
 
+            if (
+                approvalChain.isEmpty()
+            ) {
+
+                return Result.failure(
+                    Exception(
+                        "Jalur approval tidak ditemukan."
+                    )
+                )
+            }
+
+
+            // ==================================================
+            // CARI POSISI APPROVER AKTUAL
+            // ==================================================
+
             val currentChainIndex =
+                approvalChain.indexOf(
+                    currentApproverUid
+                )
+
+            val actingChainIndex =
                 approvalChain.indexOf(
                     approverUid
                 )
 
-            val nextRole =
-                when (approverJabatan) {
-
-                    "STAFF",
-                    "KARYAWAN" ->
-                        "SUPERVISOR"
-
-                    "SUPERVISOR" ->
-                        "MANAGER"
-
-                    "MANAGER" ->
-                        "HRD"
-
-                    "HRD" ->
-                        "OWNER"
-
-                    else ->
-                        ""
-                }
 
             // ==================================================
-            // CARI APPROVER BERIKUTNYA
+            // VALIDASI HAK APPROVAL / TAKE OVER
+            //
+            // Jika:
+            //
+            // acting == current
+            // → approver aktif
+            //
+            // acting berada SETELAH current
+            // → atasan lebih tinggi, boleh Take Over
+            //
+            // acting tidak ditemukan
+            // → tidak berhak
             // ==================================================
 
-            val nextApproverUid =
+            if (
+                currentApproverUid.isBlank() ||
+                currentChainIndex < 0 ||
+                actingChainIndex < 0
+            ) {
 
-                if (
-                    currentChainIndex >= 0
-                ) {
-
-                    approvalChain
-                        .getOrNull(
-                            currentChainIndex + 1
-                        )
-                        .orEmpty()
-
-                } else {
-
-                    findUserByJabatan(
-                        nextRole
+                return Result.failure(
+                    Exception(
+                        "Anda tidak memiliki hak approval untuk pengajuan ini."
                     )
-                        ?.let {
-                            getFirebaseUid(it)
-                        }
-                        .orEmpty()
-                }
+                )
+            }
 
-            val nextApproverDocument =
-                if (
-                    nextApproverUid.isNotBlank()
-                ) {
+            val isCurrentApprover =
+                approverUid ==
+                        currentApproverUid
 
-                    getUserDocumentByUid(
-                        nextApproverUid
+            val isHigherApprover =
+                actingChainIndex >
+                        currentChainIndex
+
+
+            if (
+                !isCurrentApprover &&
+                !isHigherApprover
+            ) {
+
+                return Result.failure(
+                    Exception(
+                        "Anda bukan approver aktif atau atasan yang lebih tinggi."
                     )
-
-                } else {
-                    null
-                }
-
-            val nextApproverName =
-                nextApproverDocument
-                    ?.getString("nama")
-                    ?.trim()
-                    ?: ""
-
-            val nextApproverJabatan =
-                nextApproverDocument
-                    ?.getString("jabatan")
-                    ?.trim()
-                    ?.uppercase()
-                    ?: ""
+                )
+            }
 
 
             // ==================================================
-            // UPDATE STATUS APPROVAL SAAT INI
+            // TAKE OVER
+            // ==================================================
+            //
+            // Jika atasan lebih tinggi melakukan aksi,
+            // otomatis posisi approval berpindah kepadanya.
             // ==================================================
 
             val currentApprovalStatuses =
@@ -1404,20 +1434,283 @@ object PengajuanRepository {
                     document
                 )
 
-            val approvedStatuses =
-                currentApprovalStatuses +
-                        (
-                                approverUid to
-                                        "disetujui"
-                                )
+            var workingStatuses =
+                currentApprovalStatuses.toMutableMap()
+
+
+            if (
+                isHigherApprover
+            ) {
+
+                Log.i(
+                    "PengajuanRepository",
+                    "TAKE OVER → " +
+                            "current=$currentApproverUid " +
+                            "oleh=$approverUid " +
+                            "index=$actingChainIndex"
+                )
+
+                // ----------------------------------------------
+                // Approver sebelumnya ditandai diambil alih.
+                // ----------------------------------------------
+
+                workingStatuses[
+                    currentApproverUid
+                ] =
+                    "diambil_alih"
+
+                // ----------------------------------------------
+                // Approver yang mengambil alih menjadi menunggu.
+                // ----------------------------------------------
+
+                workingStatuses[
+                    approverUid
+                ] =
+                    "menunggu"
+
+                // ----------------------------------------------
+                // Simpan informasi Take Over.
+                // ----------------------------------------------
+
+                pengajuanCollection
+                    .document(
+                        documentId
+                    )
+                    .update(
+
+                        mapOf(
+
+                            "currentApproverUid" to
+                                    approverUid,
+
+                            "currentApproverName" to
+                                    approverName,
+
+                            "currentApproverJabatan" to
+                                    approverJabatan,
+
+                            "approvalStatuses" to
+                                    workingStatuses,
+
+                            "takenOverByUid" to
+                                    approverUid,
+
+                            "takenOverByName" to
+                                    approverName,
+
+                            "takenOverByJabatan" to
+                                    approverJabatan,
+
+                            "takenOverAt" to
+                                    com.google.firebase.Timestamp.now(),
+
+                            "approvalLocked" to
+                                    false
+                        )
+                    )
+                    .await()
+            }
 
 
             // ==================================================
-            // OWNER = FINAL APPROVAL
+            // SETELAH TAKE OVER
+            //
+            // Posisi yang digunakan untuk proses sekarang adalah
+            // posisi user yang melakukan aksi.
+            // ==================================================
+
+            val effectiveApproverIndex =
+                actingChainIndex
+
+            val effectiveApproverUid =
+                approverUid
+
+
+            val namaPengaju =
+                document
+                    .getString("nama")
+                    ?: ""
+
+            val jenis =
+                document
+                    .getString("jenis")
+                    ?: ""
+
+            val requesterUid =
+                document
+                    .getString("uid")
+                    ?: ""
+
+
+            // ==================================================
+            // VALIDASI STATUS AKSI
             // ==================================================
 
             if (
-                approverJabatan == "OWNER"
+                !status.equals(
+                    "disetujui",
+                    ignoreCase = true
+                ) &&
+                !status.equals(
+                    "ditolak",
+                    ignoreCase = true
+                )
+            ) {
+
+                return Result.failure(
+                    Exception(
+                        "Status approval tidak valid."
+                    )
+                )
+            }
+
+
+            // ==================================================
+            // JIKA DITOLAK
+            // ==================================================
+
+            if (
+                status.equals(
+                    "ditolak",
+                    ignoreCase = true
+                )
+            ) {
+
+                workingStatuses[
+                    effectiveApproverUid
+                ] =
+                    "ditolak"
+
+                pengajuanCollection
+                    .document(
+                        documentId
+                    )
+                    .update(
+
+                        mapOf(
+
+                            "status" to
+                                    "ditolak",
+
+                            "approvalLocked" to
+                                    true,
+
+                            "approvalStatuses" to
+                                    workingStatuses,
+
+                            "approvedByUid" to
+                                    effectiveApproverUid,
+
+                            "approvedByName" to
+                                    approverName,
+
+                            "approvedByJabatan" to
+                                    approverJabatan,
+
+                            "approvedAt" to
+                                    com.google.firebase.Timestamp.now(),
+
+                            "currentApproverUid" to
+                                    "",
+
+                            "currentApproverName" to
+                                    "",
+
+                            "currentApproverJabatan" to
+                                    ""
+                        )
+                    )
+                    .await()
+
+
+                // ==================================================
+                // NOTIFIKASI KE PENGAJU
+                // ==================================================
+
+                if (
+                    requesterUid.isNotBlank()
+                ) {
+
+                    notificationRepository
+                        .createNotification(
+
+                            Notification(
+
+                                userId =
+                                    requesterUid,
+
+                                type =
+                                    "PENGAJUAN_DITOLAK",
+
+                                title =
+                                    "Pengajuan Ditolak",
+
+                                message =
+                                    "Pengajuan $jenis Anda ditolak oleh $approverName.",
+
+                                timestamp =
+                                    System.currentTimeMillis(),
+
+                                isRead =
+                                    false,
+
+                                relatedId =
+                                    documentId
+                            )
+                        )
+                }
+
+                return Result.success(
+                    Unit
+                )
+            }
+
+
+            // ==================================================
+            // APPROVE
+            // ==================================================
+
+            workingStatuses[
+                effectiveApproverUid
+            ] =
+                "disetujui"
+
+
+            // ==================================================
+            // CARI APPROVER BERIKUTNYA
+            //
+            // Jika Manager mengambil alih Staff/Supervisor:
+            //
+            // chain:
+            // Supervisor
+            // Manager
+            // HRD
+            // Owner
+            //
+            // Manager approve
+            // → lanjut HRD.
+            //
+            // Jadi approver sebelumnya dilewati karena Take Over.
+            // ==================================================
+
+            val nextApproverUid =
+                approvalChain
+                    .getOrNull(
+                        effectiveApproverIndex + 1
+                    )
+                    .orEmpty()
+
+
+            // ==================================================
+            // TIDAK ADA APPROVER BERIKUTNYA
+            //
+            // Approver terakhir menjadi final approval.
+            //
+            // Tidak bergantung pada jabatan Owner.
+            // ==================================================
+
+            if (
+                nextApproverUid.isBlank()
             ) {
 
                 pengajuanCollection
@@ -1432,7 +1725,7 @@ object PengajuanRepository {
                                     "disetujui",
 
                             "approvedByUid" to
-                                    approverUid,
+                                    effectiveApproverUid,
 
                             "approvedByName" to
                                     approverName,
@@ -1456,13 +1749,14 @@ object PengajuanRepository {
                                     true,
 
                             "approvalStatuses" to
-                                    approvedStatuses
+                                    workingStatuses
                         )
                     )
                     .await()
 
+
                 // ==================================================
-                // NOTIFIKASI FINAL KE STAFF
+                // NOTIFIKASI FINAL KE PENGAJU
                 // ==================================================
 
                 if (
@@ -1484,7 +1778,7 @@ object PengajuanRepository {
                                     "Pengajuan Disetujui",
 
                                 message =
-                                    "Pengajuan $jenis Anda telah disetujui.",
+                                    "Pengajuan $jenis Anda telah disetujui oleh $approverName.",
 
                                 timestamp =
                                     System.currentTimeMillis(),
@@ -1505,68 +1799,95 @@ object PengajuanRepository {
 
 
             // ==================================================
-            // MASIH ADA APPROVER BERIKUTNYA
+            // CARI DATA APPROVER BERIKUTNYA
+            // ==================================================
+
+            val nextApproverDocument =
+                getUserDocumentByUid(
+                    nextApproverUid
+                )
+
+
+            val nextApproverName =
+                nextApproverDocument
+                    ?.getString("nama")
+                    ?.trim()
+                    ?: ""
+
+            val nextApproverJabatan =
+                nextApproverDocument
+                    ?.getString("jabatan")
+                    ?.trim()
+                    ?.uppercase()
+                    ?: ""
+
+
+            // ==================================================
+            // APPROVER BERIKUTNYA MENUNGGU
+            // ==================================================
+
+            workingStatuses[
+                nextApproverUid
+            ] =
+                "menunggu"
+
+
+            pengajuanCollection
+                .document(
+                    documentId
+                )
+                .update(
+
+                    mapOf(
+
+                        "status" to
+                                "menunggu",
+
+                        "approvedByUid" to
+                                effectiveApproverUid,
+
+                        "approvedByName" to
+                                approverName,
+
+                        "approvedByJabatan" to
+                                approverJabatan,
+
+                        "approvedAt" to
+                                com.google.firebase.Timestamp.now(),
+
+                        "currentApproverUid" to
+                                nextApproverUid,
+
+                        "currentApproverName" to
+                                nextApproverName,
+
+                        "currentApproverJabatan" to
+                                nextApproverJabatan,
+
+                        "approvalLocked" to
+                                false,
+
+                        "approvalStatuses" to
+                                workingStatuses
+                    )
+                )
+                .await()
+
+
+            // ==================================================
+            // NOTIFIKASI APPROVER BERIKUTNYA
             // ==================================================
 
             if (
                 nextApproverUid.isNotBlank()
             ) {
 
-                val nextStatuses =
-                    approvedStatuses +
-                            (
-                                    nextApproverUid to
-                                            "menunggu"
-                                    )
-
-                pengajuanCollection
-                    .document(
-                        documentId
-                    )
-                    .update(
-
-                        mapOf(
-
-                            "status" to
-                                    "menunggu",
-
-                            "approvedByUid" to
-                                    approverUid,
-
-                            "approvedByName" to
-                                    approverName,
-
-                            "approvedByJabatan" to
-                                    approverJabatan,
-
-                            "approvedAt" to
-                                    com.google.firebase.Timestamp.now(),
-
-                            "currentApproverUid" to
-                                    nextApproverUid,
-
-                            "currentApproverName" to
-                                    nextApproverName,
-
-                            "currentApproverJabatan" to
-                                    nextApproverJabatan,
-
-                            "approvalLocked" to
-                                    false,
-
-                            "approvalStatuses" to
-                                    nextStatuses
-                        )
-                    )
-                    .await()
-
-                // ==================================================
-                // NOTIFIKASI APPROVER BERIKUTNYA
-                // ==================================================
-
                 Log.i(
                     "PengajuanRepository",
-                    "Approval lanjut → UID=$nextApproverUid, Nama=$nextApproverName, Jabatan=$nextApproverJabatan"
+                    "Approval lanjut → " +
+                            "UID=$nextApproverUid, " +
+                            "Nama=$nextApproverName, " +
+                            "Jabatan=$nextApproverJabatan"
                 )
 
                 notificationRepository
@@ -1596,91 +1917,6 @@ object PengajuanRepository {
                                 documentId
                         )
                     )
-
-            } else {
-
-                // ==================================================
-                // FALLBACK
-                // JIKA APPROVER BERIKUTNYA TIDAK DITEMUKAN
-                // ==================================================
-
-                pengajuanCollection
-                    .document(
-                        documentId
-                    )
-                    .update(
-
-                        mapOf(
-
-                            "status" to
-                                    "disetujui",
-
-                            "approvedByUid" to
-                                    approverUid,
-
-                            "approvedByName" to
-                                    approverName,
-
-                            "approvedByJabatan" to
-                                    approverJabatan,
-
-                            "approvedAt" to
-                                    com.google.firebase.Timestamp.now(),
-
-                            "currentApproverUid" to
-                                    "",
-
-                            "currentApproverName" to
-                                    "",
-
-                            "currentApproverJabatan" to
-                                    "",
-
-                            "approvalLocked" to
-                                    true,
-
-                            "approvalStatuses" to
-                                    approvedStatuses
-                        )
-                    )
-                    .await()
-
-                // ==================================================
-                // NOTIFIKASI KE PENGAJU
-                // ==================================================
-
-                if (
-                    requesterUid.isNotBlank()
-                ) {
-
-                    notificationRepository
-                        .createNotification(
-
-                            Notification(
-
-                                userId =
-                                    requesterUid,
-
-                                type =
-                                    "PENGAJUAN_DISETUJUI",
-
-                                title =
-                                    "Pengajuan Disetujui",
-
-                                message =
-                                    "Pengajuan $jenis Anda telah disetujui.",
-
-                                timestamp =
-                                    System.currentTimeMillis(),
-
-                                isRead =
-                                    false,
-
-                                relatedId =
-                                    documentId
-                            )
-                        )
-                }
             }
 
             Result.success(

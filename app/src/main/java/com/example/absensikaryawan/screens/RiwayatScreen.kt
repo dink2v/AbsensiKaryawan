@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -620,26 +621,23 @@ fun RiwayatScreen(
 
                 FilterStatusPengajuan.MENUNGGU ->
                     semuaPengajuan.filter {
-                        it.status.equals(
-                            "menunggu",
-                            ignoreCase = true
-                        )
+                        normalizePengajuanStatus(
+                            it.status
+                        ) == "menunggu"
                     }
 
                 FilterStatusPengajuan.DISETUJUI ->
                     semuaPengajuan.filter {
-                        it.status.equals(
-                            "disetujui",
-                            ignoreCase = true
-                        )
+                        normalizePengajuanStatus(
+                            it.status
+                        ) == "disetujui"
                     }
 
                 FilterStatusPengajuan.DITOLAK ->
                     semuaPengajuan.filter {
-                        it.status.equals(
-                            "ditolak",
-                            ignoreCase = true
-                        )
+                        normalizePengajuanStatus(
+                            it.status
+                        ) == "ditolak"
                     }
             }
         }
@@ -1018,7 +1016,9 @@ fun RiwayatScreen(
 
                     Text(
                         text =
-                            when (filterSumberPengajuan) {
+                            when (
+                                filterSumberPengajuan
+                            ) {
 
                                 FilterSumberPengajuan.SAYA ->
                                     "Status Pengajuan Saya"
@@ -1209,10 +1209,26 @@ fun RiwayatScreen(
                                                 filterSumberPengajuan ==
                                                 FilterSumberPengajuan.TEAM,
                                     onClick = {
+                                        onDetailClick(item)
+                                    },
+                                    onStatusClick = { status ->
 
-                                        onDetailClick(
-                                            item
-                                        )
+                                        filterStatusPengajuan =
+                                            when (
+                                                normalizePengajuanStatus(
+                                                    status
+                                                )
+                                            ) {
+
+                                                "disetujui" ->
+                                                    FilterStatusPengajuan.DISETUJUI
+
+                                                "ditolak" ->
+                                                    FilterStatusPengajuan.DITOLAK
+
+                                                else ->
+                                                    FilterStatusPengajuan.MENUNGGU
+                                            }
                                     }
                                 )
                             }
@@ -1290,6 +1306,169 @@ private fun filterAbsensiByDays(
         ) {
 
             false
+        }
+    }
+}
+
+// ==========================================================
+// CARD ABSENSI
+// ==========================================================
+
+@Composable
+private fun RiwayatAbsensiCard(
+    item: RiwayatAbsensi
+) {
+
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(18.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    RiwayatScreenColors.Card
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(16.dp)
+        ) {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                SurfaceIcon(
+                    icon =
+                        Icons.Default.CalendarMonth,
+                    background =
+                        RiwayatScreenColors.GreenSoft,
+                    tint =
+                        RiwayatScreenColors.Green
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(12.dp)
+                )
+
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            item.tanggal.ifBlank {
+                                "-"
+                            },
+                        fontSize = 16.sp,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            RiwayatScreenColors.Dark
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(3.dp)
+                    )
+
+                    Text(
+                        text =
+                            item.kantor.ifBlank {
+                                "Lokasi tidak diketahui"
+                            },
+                        fontSize = 12.sp,
+                        color =
+                            RiwayatScreenColors.Gray
+                    )
+                }
+
+                AttendanceStatusBadge(
+                    status =
+                        item.status.ifBlank {
+                            "Hadir"
+                        }
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+
+                TimeInfo(
+                    label = "Jam Masuk",
+                    value =
+                        item.jamMasuk.ifBlank {
+                            "-"
+                        },
+                    modifier =
+                        Modifier.weight(1f)
+                )
+
+                TimeInfo(
+                    label = "Jam Pulang",
+                    value =
+                        item.jamPulang.ifBlank {
+                            "-"
+                        },
+                    modifier =
+                        Modifier.weight(1f)
+                )
+            }
+
+            if (
+                item.catatan.isNotBlank()
+            ) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(10.dp)
+                )
+
+                Text(
+                    text = "Catatan",
+                    fontSize = 11.sp,
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        RiwayatScreenColors.Gray
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(3.dp)
+                )
+
+                Text(
+                    text =
+                        item.catatan,
+                    fontSize = 13.sp,
+                    color =
+                        RiwayatScreenColors.Dark,
+                    maxLines = 3,
+                    overflow =
+                        TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -1579,169 +1758,6 @@ private fun EmptyRiwayatState(
 }
 
 // ==========================================================
-// CARD ABSENSI
-// ==========================================================
-
-@Composable
-private fun RiwayatAbsensiCard(
-    item: RiwayatAbsensi
-) {
-
-    Card(
-        modifier =
-            Modifier.fillMaxWidth(),
-        shape =
-            RoundedCornerShape(18.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    RiwayatScreenColors.Card
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 2.dp
-            )
-    ) {
-
-        Column(
-            modifier =
-                Modifier.padding(16.dp)
-        ) {
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                SurfaceIcon(
-                    icon =
-                        Icons.Default.CalendarMonth,
-                    background =
-                        RiwayatScreenColors.GreenSoft,
-                    tint =
-                        RiwayatScreenColors.Green
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(12.dp)
-                )
-
-                Column(
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text =
-                            item.tanggal.ifBlank {
-                                "-"
-                            },
-                        fontSize = 16.sp,
-                        fontWeight =
-                            FontWeight.Bold,
-                        color =
-                            RiwayatScreenColors.Dark
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
-                    Text(
-                        text =
-                            if (item.kantor.isNotBlank()) {
-                                item.kantor
-                            } else {
-                                "Kehadiran"
-                            },
-                        fontSize = 12.sp,
-                        color =
-                            RiwayatScreenColors.Gray
-                    )
-                }
-
-                if (item.status.isNotBlank()) {
-
-                    AttendanceStatusBadge(
-                        status =
-                            item.status
-                    )
-                }
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-
-                TimeInfo(
-                    label = "Masuk",
-                    value =
-                        item.jamMasuk.ifBlank {
-                            "-"
-                        },
-                    modifier =
-                        Modifier.weight(1f)
-                )
-
-                TimeInfo(
-                    label = "Pulang",
-                    value =
-                        item.jamPulang.ifBlank {
-                            "-"
-                        },
-                    modifier =
-                        Modifier.weight(1f)
-                )
-            }
-
-            if (item.catatan.isNotBlank()) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
-                )
-
-                Text(
-                    text = "Catatan",
-                    fontSize = 11.sp,
-                    fontWeight =
-                        FontWeight.SemiBold,
-                    color =
-                        RiwayatScreenColors.Gray
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-                Text(
-                    text = item.catatan,
-                    fontSize = 12.sp,
-                    color =
-                        RiwayatScreenColors.Dark,
-                    maxLines = 3,
-                    overflow =
-                        TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-// ==========================================================
 // TIME INFO
 // ==========================================================
 
@@ -1850,7 +1866,8 @@ private fun AttendanceStatusBadge(
 private fun RiwayatPengajuanCard(
     item: RiwayatPengajuan,
     tampilkanPemohon: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onStatusClick: (String) -> Unit
 ) {
 
     val status =
@@ -1937,8 +1954,15 @@ private fun RiwayatPengajuanCard(
                     )
                 }
 
+                // ==================================================
+                // STATUS BISA DIKLIK
+                // ==================================================
+
                 StatusBadgeRiwayat(
-                    status = status
+                    status = status,
+                    onClick = {
+                        onStatusClick(status)
+                    }
                 )
             }
 
@@ -2165,7 +2189,8 @@ private fun SurfaceIcon(
 
 @Composable
 private fun StatusBadgeRiwayat(
-    status: String
+    status: String,
+    onClick: () -> Unit
 ) {
 
     Box(
@@ -2179,6 +2204,9 @@ private fun StatusBadgeRiwayat(
                     shape =
                         RoundedCornerShape(20.dp)
                 )
+                .clickableNoRipple {
+                    onClick()
+                }
                 .padding(
                     horizontal = 10.dp,
                     vertical = 6.dp
