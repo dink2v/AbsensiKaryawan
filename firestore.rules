@@ -6,8 +6,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // ABSEN CONTROL admin membership is provisioned manually in Firebase Console.
-    // Client writes are deliberately forbidden.
+    // Provisioned manually by a trusted project owner in Firebase Console.
+    // Client-side writes are intentionally forbidden.
     function isControlAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/controlAdmins/$(request.auth.uid));
@@ -18,8 +18,8 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Existing application collections: retained as-is for compatibility.
-    // These broad permissions should be tightened separately before production.
+    // Existing application permissions are retained for compatibility only.
+    // These broad rules are not production-hardened and need a separate review.
     match /users/{userId} {
       allow read, write: if signedIn();
     }
@@ -40,8 +40,6 @@ service cloud.firestore {
       allow read, write: if signedIn();
     }
 
-    // A staff member can access only their own room. ABSEN CONTROL admins
-    // can list rooms and reply to any staff member.
     match /chatRooms/{staffUid} {
       allow read: if signedIn()
         && (request.auth.uid == staffUid || isControlAdmin());
@@ -65,13 +63,15 @@ service cloud.firestore {
         allow read: if signedIn()
           && (request.auth.uid == staffUid || isControlAdmin());
 
+        // Current Android repositories write System.currentTimeMillis() as a Long,
+        // which Firestore Rules exposes as an integer, not a timestamp.
         allow create: if signedIn()
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.senderType == (isControlAdmin() ? 'ADMIN' : 'STAFF')
           && request.resource.data.message is string
           && request.resource.data.message.size() > 0
           && request.resource.data.message.size() <= 4000
-          && request.resource.data.timestamp is timestamp
+          && request.resource.data.timestamp is int
           && (request.auth.uid == staffUid || isControlAdmin());
 
         allow update, delete: if false;
