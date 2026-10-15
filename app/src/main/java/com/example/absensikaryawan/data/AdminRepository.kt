@@ -17,43 +17,37 @@ class AdminRepository {
 
     suspend fun getCurrentAdmin(): Result<AdminProfile> {
         return try {
-
             val currentUser = auth.currentUser
-                ?: return Result.failure(
-                    Exception("User belum login")
-                )
+                ?: return Result.failure(Exception("User belum login"))
 
-            val document = firestore
+            // ABSEN CONTROL access is independent from users.isAdmin,
+            // which is used by the existing employee app login flow.
+            val adminDocument = firestore
+                .collection("controlAdmins")
+                .document(currentUser.uid)
+                .get()
+                .await()
+
+            if (!adminDocument.exists()) {
+                return Result.failure(Exception("Akun tidak terdaftar sebagai admin ABSEN CONTROL"))
+            }
+
+            val userDocument = firestore
                 .collection("users")
                 .document(currentUser.uid)
                 .get()
                 .await()
 
-            if (!document.exists()) {
-                return Result.failure(
-                    Exception("Data Admin belum ditemukan")
-                )
-            }
-
-            val isAdmin =
-                document.getBoolean("isAdmin") ?: false
-
-            if (!isAdmin) {
-                return Result.failure(
-                    Exception("Akun bukan Admin")
-                )
-            }
-
             val profile = AdminProfile(
-                nama = document.getString("nama") ?: "",
-                divisi = document.getString("divisi") ?: "",
-                jabatan = document.getString("jabatan") ?: ""
+                nama = userDocument.getString("nama")
+                    ?: currentUser.displayName
+                    ?: "",
+                divisi = userDocument.getString("divisi") ?: "",
+                jabatan = userDocument.getString("jabatan") ?: ""
             )
 
             Result.success(profile)
-
         } catch (e: Exception) {
-
             Result.failure(e)
         }
     }
