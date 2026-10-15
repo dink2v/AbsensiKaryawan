@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Provisioned manually by a trusted project owner in Firebase Console.
+    // Client-side writes are intentionally forbidden.
+    function isControlAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/controlAdmins/$(request.auth.uid));
+    }
+
+    match /controlAdmins/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isControlAdmin());
+      allow write: if false;
+    }
+
+    // Existing application permissions are retained for compatibility only.
+    // These broad rules are not production-hardened and need a separate review.
+    match /users/{userId} {
+      allow read, write: if signedIn();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if signedIn();
+    }
+
+    match /pengajuan/{pengajuanId} {
+      allow read, write: if signedIn();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if signedIn();
+    }
+
+    match /qr_settings/{qrId} {
+      allow read, write: if signedIn();
+    }
+
+    match /chatRooms/{staffUid} {
+      allow read: if signedIn()
+        && (request.auth.uid == staffUid || isControlAdmin());
+
+      allow create: if signedIn()
+        && request.auth.uid == staffUid
+        && request.resource.data.staffId == staffUid;
+
+      allow update: if signedIn() && (
+        isControlAdmin()
+        || (
+          request.auth.uid == staffUid
+          && resource.data.staffId == staffUid
+          && request.resource.data.staffId == staffUid
+        )
+      );
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn()
+          && (request.auth.uid == staffUid || isControlAdmin());
+
+        // Current Android repositories write System.currentTimeMillis() as a Long,
+        // which Firestore Rules exposes as an integer, not a timestamp.
+        allow create: if signedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.senderType == (isControlAdmin() ? 'ADMIN' : 'STAFF')
+          && request.resource.data.message is string
+          && request.resource.data.message.size() > 0
+          && request.resource.data.message.size() <= 4000
+          && request.resource.data.timestamp is int
+          && (request.auth.uid == staffUid || isControlAdmin());
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
