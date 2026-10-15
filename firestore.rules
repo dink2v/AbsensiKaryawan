@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ABSEN CONTROL admin membership is provisioned manually in Firebase Console.
+    // Client writes are deliberately forbidden.
+    function isControlAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/controlAdmins/$(request.auth.uid));
+    }
+
+    match /controlAdmins/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isControlAdmin());
+      allow write: if false;
+    }
+
+    // Existing application collections: retained as-is for compatibility.
+    // These broad permissions should be tightened separately before production.
+    match /users/{userId} {
+      allow read, write: if signedIn();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if signedIn();
+    }
+
+    match /pengajuan/{pengajuanId} {
+      allow read, write: if signedIn();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if signedIn();
+    }
+
+    match /qr_settings/{qrId} {
+      allow read, write: if signedIn();
+    }
+
+    // A staff member can access only their own room. ABSEN CONTROL admins
+    // can list rooms and reply to any staff member.
+    match /chatRooms/{staffUid} {
+      allow read: if signedIn()
+        && (request.auth.uid == staffUid || isControlAdmin());
+
+      allow create: if signedIn()
+        && request.auth.uid == staffUid
+        && request.resource.data.staffId == staffUid;
+
+      allow update: if signedIn() && (
+        isControlAdmin()
+        || (
+          request.auth.uid == staffUid
+          && resource.data.staffId == staffUid
+          && request.resource.data.staffId == staffUid
+        )
+      );
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn()
+          && (request.auth.uid == staffUid || isControlAdmin());
+
+        allow create: if signedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.senderType == (isControlAdmin() ? 'ADMIN' : 'STAFF')
+          && request.resource.data.message is string
+          && request.resource.data.message.size() > 0
+          && request.resource.data.message.size() <= 4000
+          && request.resource.data.timestamp is timestamp
+          && (request.auth.uid == staffUid || isControlAdmin());
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
