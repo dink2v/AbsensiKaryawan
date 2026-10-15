@@ -31,32 +31,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.absensikaryawan.testing.TestAccounts
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun AdminLoginScreen(
     onBack: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
-
     val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    val firestore = remember { FirebaseFirestore.getInstance() }
 
-    var username by remember {
-        mutableStateOf("")
-    }
-
-    var password by remember {
-        mutableStateOf("")
-    }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.White
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -65,15 +64,8 @@ fun AdminLoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-
-                IconButton(
-                    onClick = onBack
-                ) {
-
+            Column(modifier = Modifier.fillMaxWidth()) {
+                IconButton(onClick = onBack, enabled = !isLoading) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Kembali"
@@ -81,72 +73,50 @@ fun AdminLoginScreen(
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
-
+            Spacer(modifier = Modifier.height(20.dp))
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Admin",
                 tint = Color(0xFF2563EB)
             )
-
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
-
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Login Admin",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF111827)
             )
-
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
-
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "Masuk sebagai Admin / HRD",
+                text = "Masuk dengan akun admin terdaftar",
                 fontSize = 15.sp,
                 color = Color(0xFF6B7280)
             )
-
-            Spacer(
-                modifier = Modifier.height(28.dp)
-            )
+            Spacer(modifier = Modifier.height(28.dp))
 
             OutlinedTextField(
-                value = username,
-                onValueChange = {
-                    username = it
-                },
+                value = email,
+                onValueChange = { email = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text("Username")
-                },
+                label = { Text("Email Admin") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "Username"
+                        contentDescription = "Email"
                     )
                 },
-                singleLine = true
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true,
+                enabled = !isLoading
             )
 
-            Spacer(
-                modifier = Modifier.height(14.dp)
-            )
+            Spacer(modifier = Modifier.height(14.dp))
 
             OutlinedTextField(
                 value = password,
-                onValueChange = {
-                    password = it
-                },
+                onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text("Password")
-                },
+                label = { Text("Password") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Lock,
@@ -154,38 +124,81 @@ fun AdminLoginScreen(
                     )
                 },
                 visualTransformation = PasswordVisualTransformation(),
-                singleLine = true
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true,
+                enabled = !isLoading
             )
 
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
-
-                    if (
-                        username == TestAccounts.ADMIN_USERNAME &&
-                        password == TestAccounts.ADMIN_PASSWORD
-                    ) {
-
+                    val cleanEmail = email.trim()
+                    if (cleanEmail.isBlank() || password.isBlank()) {
                         Toast.makeText(
                             context,
-                            "Login Admin berhasil (Mode Testing)",
+                            "Email dan password wajib diisi.",
                             Toast.LENGTH_SHORT
                         ).show()
-
-                        onLoginSuccess()
-
-                    } else {
-
-                        Toast.makeText(
-                            context,
-                            "Username atau password salah",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        return@Button
                     }
+
+                    isLoading = true
+                    auth.signInWithEmailAndPassword(cleanEmail, password)
+                        .addOnSuccessListener { result ->
+                            val uid = result.user?.uid
+                            if (uid.isNullOrBlank()) {
+                                auth.signOut()
+                                isLoading = false
+                                Toast.makeText(
+                                    context,
+                                    "UID akun tidak ditemukan.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@addOnSuccessListener
+                            }
+
+                            firestore.collection("controlAdmins")
+                                .document(uid)
+                                .get()
+                                .addOnSuccessListener { adminDocument ->
+                                    isLoading = false
+                                    if (adminDocument.exists()) {
+                                        Toast.makeText(
+                                            context,
+                                            "Login admin berhasil.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        onLoginSuccess()
+                                    } else {
+                                        auth.signOut()
+                                        Toast.makeText(
+                                            context,
+                                            "Akun ini belum terdaftar sebagai admin ABSEN CONTROL.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    auth.signOut()
+                                    isLoading = false
+                                    Toast.makeText(
+                                        context,
+                                        "Gagal memeriksa hak admin. Coba lagi.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                        }
+                        .addOnFailureListener {
+                            isLoading = false
+                            Toast.makeText(
+                                context,
+                                "Login gagal. Periksa email dan password.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                 },
+                enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -194,14 +207,12 @@ fun AdminLoginScreen(
                     containerColor = Color(0xFF2563EB)
                 )
             ) {
-
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Masuk"
                 )
-
                 Text(
-                    text = "  Masuk",
+                    text = if (isLoading) "  Memeriksa..." else "  Masuk",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
