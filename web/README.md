@@ -1,10 +1,10 @@
 # Absensi Karyawan WebApp
 
-Fondasi awal WebApp karyawan yang terpisah dari proyek Android di folder `app/`. UI awal mengikuti screenshot APK yang diberikan: login, beranda, scan QR, pengajuan, riwayat, dan pengaturan.
+WebApp dibuat terpisah dari aplikasi Android yang berada di folder `app/`. UI awal mengikuti referensi APK: login, beranda, scan QR, pengajuan, riwayat, dan pengaturan.
 
 ## Menjalankan lokal
 
-Persyaratan: Node.js 20.9 atau lebih baru.
+Persyaratan: Node.js 20 atau lebih baru.
 
 ```bash
 cd web
@@ -14,21 +14,31 @@ npm run dev
 
 Buka http://localhost:3000.
 
-## Status saat ini
+## GitHub Pages
 
-- UI prototipe untuk halaman login dan halaman utama telah dibuat.
-- Login saat ini hanya simulasi UI; belum memakai Firebase Authentication.
+WebApp dikonfigurasi untuk static export dan deployment melalui GitHub Actions pada branch `feature/webapp-foundation`.
+
+- Workflow: `.github/workflows/deploy-pages.yml`
+- Hasil build Next.js: `web/out`
+- URL target setelah deployment berhasil: https://dink2v.github.io/AbsensiKaryawan/
+
+Jika deployment belum berjalan, buka **Settings → Pages** pada repository dan pilih **Build and deployment → Source: GitHub Actions**. Periksa tab **Actions** untuk melihat status build/deploy.
+
+## Status dan batasan saat ini
+
+- UI masih prototipe awal; perlu dicocokkan lebih rinci dengan layar Android yang sudah jadi.
+- Login masih simulasi UI, belum memakai Firebase Authentication.
 - Data absensi dan pengajuan belum dibaca atau ditulis ke Firestore.
 - Kamera QR belum diaktifkan.
 - Jangan gunakan untuk presensi operasional sebelum autentikasi, validasi, aturan Firestore, dan alur data selesai diuji.
 
-## Langkah integrasi berikutnya
+## Tahap integrasi selanjutnya
 
-1. Periksa konfigurasi Firebase Web untuk proyek yang sama dengan APK.
-2. Audit struktur dokumen Firestore dan Firebase Authentication yang dipakai APK.
-3. Implementasikan login dan pemulihan sandi dengan Firebase Authentication.
-4. Sambungkan pembacaan/penulisan presensi dan pengajuan sesuai skema yang sudah ada.
-5. Implementasikan pemindaian QR browser dan validasi sisi server/Firestore yang aman.
-6. Uji peran karyawan, atasan, dan admin tanpa melemahkan Firestore Security Rules.
+1. Cocokkan halaman dan alur WebApp dengan implementasi Android di folder `app/`.
+2. Verifikasi konfigurasi Firebase yang digunakan aplikasi Android sebelum menyambungkan WebApp.
+3. Audit skema dokumen Firestore dan aturan akses.
+4. Implementasikan Firebase Authentication dan pembacaan/penulisan data sesuai skema yang sudah ada.
+5. Implementasikan pemindaian QR browser serta validasi yang aman.
+6. Uji role Staff/Admin dan semua alur sebelum digunakan.
 
-Folder Android `app/` tidak diubah oleh fondasi WebApp ini.
+**Prinsip:** perubahan WebApp dilakukan di folder `web/` dan workflow GitHub Pages. Kode Android di folder `app/` tidak diubah.
