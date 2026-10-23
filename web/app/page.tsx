@@ -1,0 +1,143 @@
+"use client";
+
+import { useState } from "react";
+import {
+  ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
+  FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
+  ScanQrCode, Settings, UserRound, X, BriefcaseBusiness, Palette, CircleHelp,
+  Info, RefreshCw
+} from "lucide-react";
+
+type Page = "home" | "requests" | "history" | "settings" | "scan";
+type HistoryTab = "attendance" | "requests";
+
+const green = "#123f32";
+
+function Brand() {
+  return <div className="brand">
+    <div className="brand-mark"><FileText size={42} strokeWidth={2.8} /></div>
+    <h1>Absensi Karyawan</h1>
+    <p>Sistem Presensi Karyawan</p>
+  </div>;
+}
+
+function Login({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  return <main className="login-page">
+    <Brand />
+    <section className="login-card">
+      <h2>Selamat Datang <span aria-hidden="true">👋</span></h2>
+      <p className="muted intro">Masuk menggunakan akun yang telah didaftarkan Admin.</p>
+      <form onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
+        <label className="field">
+          <span>Email</span><UserRound size={23} />
+          <input aria-label="Email" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+        </label>
+        <label className="field">
+          <LockKeyhole size={23} />
+          <input aria-label="Password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+          <button className="icon-button" type="button" aria-label="Tampilkan password" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff /> : <Eye />}</button>
+        </label>
+        <button className="primary-button login-submit" type="submit"><ArrowRight size={23} /> Masuk</button>
+      </form>
+      <button className="text-button forgot" type="button" onClick={() => alert("Pemulihan sandi akan dihubungkan ke Firebase pada tahap integrasi.")}>Lupa Sandi?</button>
+      <p className="account-note">Akun dibuat dan dikelola oleh Admin / HRD.</p>
+    </section>
+    <footer className="login-footer"><p>Belum memiliki akun?</p><strong>Hubungi Admin / HRD untuk mendapatkan akses.</strong><span>© 2026 Absensi Karyawan · WebApp</span></footer>
+  </main>;
+}
+
+function AppShell() {
+  const [page, setPage] = useState<Page>("home");
+  const [historyTab, setHistoryTab] = useState<HistoryTab>("attendance");
+  const [requestType, setRequestType] = useState("Izin");
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [outsideOpen, setOutsideOpen] = useState(true);
+  const [location, setLocation] = useState("");
+  const [reason, setReason] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const navItems: { id: Page; label: string; icon: typeof House }[] = [
+    { id: "home", label: "Beranda", icon: House },
+    { id: "requests", label: "Pengajuan", icon: FilePlus2 },
+    { id: "scan", label: "Scan QR", icon: ScanQrCode },
+    { id: "history", label: "Riwayat", icon: History },
+    { id: "settings", label: "Setting", icon: Settings },
+  ];
+
+  return <div className="app-shell">
+    <header className="topbar">
+      <div><p className="greeting">Halo, Karyawan <span>👋</span></p><p className="muted">{new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}</p></div>
+      <button className="round-button" aria-label="Notifikasi" onClick={() => alert("Notifikasi akan dihubungkan ke Firebase.")}><Bell /></button>
+      <div className="avatar">K</div>
+    </header>
+
+    {page === "home" && <main className="page-content">
+      <section className="clock-card">
+        <div className="clock-head"><span><Clock3 size={18} /> Waktu Sekarang</span><b className="status-pill">BELUM ABSEN</b></div>
+        <div className="clock-time">{new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date())}</div>
+        <div className="clock-divider" /><div className="clock-foot"><span>Jam Masuk<strong>-</strong></span><span>Jam Pulang<strong>-</strong></span></div>
+      </section>
+      <h2 className="section-title">Absensi Hari Ini</h2>
+      <button className="attendance-action dark-action" onClick={() => setPage("scan")}><span className="action-icon"><ScanQrCode /></span><span className="action-copy"><strong>Scan QR Absen</strong><small>Scan untuk absen masuk di kantor</small></span><ChevronRight /></button>
+      <button className="attendance-action" onClick={() => { setPage("scan"); setOutsideOpen(true); }}><span className="action-icon pale"><MapPin /></span><span className="action-copy"><strong>Absen Luar Kantor</strong><small>Untuk tugas langsung ke klien</small></span><ChevronRight /></button>
+      <h2 className="section-title quick-title">Aksi Cepat</h2>
+      <div className="quick-grid">
+        <button className="quick-card" onClick={() => setPage("history")}><span><History /></span><strong>Riwayat</strong><small>Absensi</small></button>
+        <button className="quick-card" onClick={() => setPage("requests")}><span><FileText /></span><strong>Pengajuan</strong><small>Izin / Sakit</small></button>
+        <button className="quick-card" onClick={() => setPage("settings")}><span><UserRound /></span><strong>Profil</strong><small>Data Saya</small></button>
+      </div>
+    </main>}
+
+    {page === "scan" && <main className="page-content subpage">
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Scan Kehadiran</h1><p className="muted">Arahkan kamera ke QR Code</p></div></div>
+      <div className="info-banner"><Info size={20} /> Pastikan pencahayaan cukup dan QR terlihat jelas di dalam kotak.</div>
+      <div className="scanner-placeholder"><div className="scanner-label"><ScanQrCode size={20} /> PEMINDAI QR</div><div className="scan-frame"><i /><i /><i /><i /><span /></div><p>Fitur kamera akan diaktifkan pada tahap integrasi.</p></div>
+      <label className="input-block">Catatan (opsional)<input placeholder="Tambahkan catatan jika diperlukan" /></label>
+      <button className="primary-button wide" onClick={() => alert("Presensi belum dikirim. Kamera, validasi QR, dan Firebase perlu dihubungkan terlebih dahulu.")}><Check /> Konfirmasi Absen</button>
+      <button className="accordion" onClick={() => setOutsideOpen(!outsideOpen)}><BriefcaseBusiness /> Absen di Luar Kantor <ChevronRight className={outsideOpen ? "rotate" : ""} /></button>
+      {outsideOpen && <section className="form-card"><h2><BriefcaseBusiness /> Absen dari lokasi tugas</h2><p>Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.</p><label className="input-block">Lokasi<input value={location} onChange={e => setLocation(e.target.value)} placeholder="Contoh: SMK Negeri 1 Blitar" /></label><label className="input-block">Alasan / Keperluan<textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Contoh: Bertemu klien untuk keperluan pekerjaan" rows={3} /></label><button className="primary-button wide" disabled={!location.trim() || !reason.trim()} onClick={() => alert("Form siap. Pengiriman akan dihubungkan ke Firebase.")}>➤ Kirim Absen</button></section>}
+    </main>}
+
+    {page === "requests" && <main className="page-content subpage">
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengajuan</h1><p className="muted">Pengajuan yang kamu buat</p></div><button className="icon-button" onClick={() => setSent(false)} aria-label="Muat ulang"><RefreshCw /></button></div>
+      <button className="new-request" onClick={() => setShowRequestForm(!showRequestForm)}><FilePlus2 size={30} /><span><strong>{showRequestForm ? "Tutup Form Pengajuan" : "Buat Pengajuan Baru"}</strong><small>Ajukan izin, cuti, atau keperluan lainnya</small></span></button>
+      {showRequestForm && <section className="form-card"><h2>Pengajuan Baru</h2><label className="input-block">Jenis Pengajuan<select value={requestType} onChange={e => setRequestType(e.target.value)}><option>Izin</option><option>Sakit</option><option>Cuti</option><option>Lainnya</option></select></label><label className="input-block">Tanggal Mulai<input type="date" /></label><label className="input-block">Tanggal Selesai<input type="date" /></label><label className="input-block">Keterangan<textarea rows={3} placeholder="Jelaskan keperluan pengajuan" /></label><button className="primary-button wide" onClick={() => { setSent(true); setShowRequestForm(false); }}>Kirim Pengajuan</button></section>}
+      <div className="segmented"><button className="selected">Pengajuan Saya</button><button onClick={() => alert("Daftar approval mengikuti hak akses akun.")}>Menunggu Approval</button></div>
+      <div className="stats-grid"><div className="stat stat-wait"><span>•••</span><strong>{sent ? "1" : "0"}</strong><small>Menunggu</small></div><div className="stat stat-approved"><Check /><strong>0</strong><small>Disetujui</small></div><div className="stat stat-rejected"><X /><strong>0</strong><small>Ditolak</small></div></div>
+      <div className="filter-pills"><button className="selected">Semua</button><button>Menunggu</button><button>Disetujui</button><button>Ditolak</button></div>
+      <div className="empty-state"><FileText size={42} /><strong>{sent ? "Pengajuan tersimpan sebagai contoh" : "Belum ada pengajuan"}</strong><p>Pengajuan yang kamu buat akan muncul di sini.</p></div>
+    </main>}
+
+    {page === "history" && <main className="page-content subpage">
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Riwayat</h1><p className="muted">Riwayat dan status pengajuan</p></div><button className="icon-button" aria-label="Muat ulang"><RefreshCw /></button></div>
+      <div className="segmented large"><button className={historyTab === "attendance" ? "selected" : ""} onClick={() => setHistoryTab("attendance")}>Absensi</button><button className={historyTab === "requests" ? "selected" : ""} onClick={() => setHistoryTab("requests")}>Pengajuan</button></div>
+      <div className="filter-pills">{(historyTab === "attendance" ? ["7 Hari", "1 Bulan", "Semua"] : ["Semua", "Menunggu", "Disetujui", "Ditolak"]).map((x, i) => <button className={i === 0 ? "selected" : ""} key={x}>{x}</button>)}</div>
+      <div className="empty-state history-empty">{historyTab === "attendance" ? <CalendarDays size={42} /> : <FileText size={42} />}<strong>{historyTab === "attendance" ? "Belum ada riwayat absensi" : "Belum ada pengajuan"}</strong><p>{historyTab === "attendance" ? "Data kehadiran akan muncul di sini." : "Pengajuan yang kamu buat akan muncul di sini."}</p></div>
+    </main>}
+
+    {page === "settings" && <main className="page-content subpage">
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengaturan</h1><p className="muted">Atur preferensi dan informasi aplikasi</p></div></div>
+      <h2 className="section-title">Pengaturan Aplikasi</h2>
+      <section className="settings-card">
+        <button className="setting-row"><span><Bell /></span><div><strong>Notifikasi</strong><small>Kelola pemberitahuan aplikasi</small></div><ChevronRight /></button>
+        <button className="setting-row"><span><Palette /></span><div><strong>Tampilan</strong><small>Atur tema dan tampilan aplikasi</small></div><ChevronRight /></button>
+        <button className="setting-row"><span><CircleHelp /></span><div><strong>Bantuan</strong><small>Panduan penggunaan aplikasi</small></div><ChevronRight /></button>
+        <button className="setting-row"><span><Info /></span><div><strong>Tentang Aplikasi</strong><small>Informasi aplikasi dan versi</small></div><ChevronRight /></button>
+      </section>
+      <h2 className="section-title account-title">Akun</h2>
+      <button className="setting-row logout" onClick={() => window.location.reload()}><span><LogOut /></span><div><strong>Keluar</strong><small>Keluar dari akun aplikasi</small></div><ChevronRight /></button>
+    </main>}
+
+    <nav className="bottom-nav" aria-label="Navigasi utama">
+      {navItems.map(({ id, label, icon: Icon }) => <button key={id} className={page === id || (id === "scan" && page === "scan") ? "nav-item active" : "nav-item"} onClick={() => setPage(id)}><span className={id === "scan" ? "nav-scan-icon" : "nav-icon"}><Icon /></span><span>{label}</span></button>)}
+    </nav>
+  </div>;
+}
+
+export default function Home() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  return loggedIn ? <AppShell /> : <Login onLogin={() => setLoggedIn(true)} />;
+}
