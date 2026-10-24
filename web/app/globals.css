@@ -380,3 +380,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .app-shell { margin-left: 264px; }
   .bottom-nav { width: 264px; padding-inline: 22px; }
 }
+
+.error-message { color: #a52828; font-size: 14px; margin: 12px 0 0; }
+.success-message { color: #176b42; font-size: 14px; margin: 12px 0 0; }
+.web-logout { position: fixed; top: 24px; right: 24px; z-index: 30; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px 14px; color: var(--green); cursor: pointer; }
+.primary-button:disabled { opacity: .65; cursor: wait; }
