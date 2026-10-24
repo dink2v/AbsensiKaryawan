@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { getFirebaseClient } from "@/lib/firebase";
 import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
   FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
@@ -21,16 +24,34 @@ function Brand() {
   </div>;
 }
 
-function Login({ onLogin }: { onLogin: () => void }) {
+function Login({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit() {
+    setError("");
+    setBusy(true);
+    try {
+      await onLogin(email.trim(), password);
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      setError(code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found"
+        ? "Email atau password salah."
+        : code === "auth/too-many-requests"
+          ? "Terlalu banyak percobaan. Coba lagi nanti."
+          : "Login gagal. Periksa koneksi dan konfigurasi Firebase.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return <main className="login-page">
     <Brand />
     <section className="login-card">
       <h2>Selamat Datang <span aria-hidden="true">👋</span></h2>
       <p className="muted intro">Masuk menggunakan akun yang telah didaftarkan Admin.</p>
-      <form onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
+      <form onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <label className="field">
           <span>Email</span><UserRound size={23} />
           <input aria-label="Email" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
@@ -40,16 +61,16 @@ function Login({ onLogin }: { onLogin: () => void }) {
           <input aria-label="Password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           <button className="icon-button" type="button" aria-label="Tampilkan password" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff /> : <Eye />}</button>
         </label>
-        <button className="primary-button login-submit" type="submit"><ArrowRight size={23} /> Masuk</button>
+        <button className="primary-button login-submit" type="submit" disabled={busy}>{busy ? "Memeriksa akun..." : <><ArrowRight size={23} /> Masuk</>}</button>{error && <p role="alert" className="error-message">{error}</p>}
       </form>
-      <button className="text-button forgot" type="button" onClick={() => alert("Pemulihan sandi akan dihubungkan ke Firebase pada tahap integrasi.")}>Lupa Sandi?</button>
+      <button className="text-button forgot" type="button" onClick={() => setError("Fitur lupa sandi belum diaktifkan. Hubungi Admin / HRD untuk sementara.")}>Lupa Sandi?</button>
       <p className="account-note">Akun dibuat dan dikelola oleh Admin / HRD.</p>
     </section>
     <footer className="login-footer"><p>Belum memiliki akun?</p><strong>Hubungi Admin / HRD untuk mendapatkan akses.</strong><span>© 2026 Absensi Karyawan · WebApp</span></footer>
   </main>;
 }
 
-function AppShell() {
+function AppShell({ user }: { user: User }) {
   const [page, setPage] = useState<Page>("home");
   const [historyTab, setHistoryTab] = useState<HistoryTab>("attendance");
   const [requestType, setRequestType] = useState("Izin");
@@ -58,6 +79,8 @@ function AppShell() {
   const [location, setLocation] = useState("");
   const [reason, setReason] = useState("");
   const [sent, setSent] = useState(false);
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
+  const [attendanceMessage, setAttendanceMessage] = useState("");
 
   const navItems: { id: Page; label: string; icon: typeof House }[] = [
     { id: "home", label: "Beranda", icon: House },
@@ -98,7 +121,32 @@ function AppShell() {
       <label className="input-block">Catatan (opsional)<input placeholder="Tambahkan catatan jika diperlukan" /></label>
       <button className="primary-button wide" onClick={() => alert("Presensi belum dikirim. Kamera, validasi QR, dan Firebase perlu dihubungkan terlebih dahulu.")}><Check /> Konfirmasi Absen</button>
       <button className="accordion" onClick={() => setOutsideOpen(!outsideOpen)}><BriefcaseBusiness /> Absen di Luar Kantor <ChevronRight className={outsideOpen ? "rotate" : ""} /></button>
-      {outsideOpen && <section className="form-card"><h2><BriefcaseBusiness /> Absen dari lokasi tugas</h2><p>Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.</p><label className="input-block">Lokasi<input value={location} onChange={e => setLocation(e.target.value)} placeholder="Contoh: SMK Negeri 1 Blitar" /></label><label className="input-block">Alasan / Keperluan<textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Contoh: Bertemu klien untuk keperluan pekerjaan" rows={3} /></label><button className="primary-button wide" disabled={!location.trim() || !reason.trim()} onClick={() => alert("Form siap. Pengiriman akan dihubungkan ke Firebase.")}>➤ Kirim Absen</button></section>}
+      {outsideOpen && <section className="form-card"><h2><BriefcaseBusiness /> Absen dari lokasi tugas</h2><p>Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.</p><label className="input-block">Lokasi<input value={location} onChange={e => setLocation(e.target.value)} placeholder="Contoh: SMK Negeri 1 Blitar" /></label><label className="input-block">Alasan / Keperluan<textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Contoh: Bertemu klien untuk keperluan pekerjaan" rows={3} /></label><button className="primary-button wide" disabled={!location.trim() || !reason.trim() || attendanceBusy} onClick={async () => {
+        setAttendanceMessage("");
+        setAttendanceBusy(true);
+        try {
+          const { db } = getFirebaseClient();
+          await addDoc(collection(db, "absensi"), {
+            uid: user.uid,
+            email: user.email ?? null,
+            jenis: "lokasi_tugas",
+            lokasi: location.trim(),
+            alasan: reason.trim(),
+            createdAt: serverTimestamp(),
+          });
+          setAttendanceMessage("Presensi lokasi tugas berhasil disimpan.");
+          setLocation("");
+          setReason("");
+        } catch (e) {
+          console.error("Gagal menyimpan presensi lokasi tugas", e);
+          const code = (e as { code?: string })?.code;
+          setAttendanceMessage(code === "permission-denied"
+            ? "Presensi belum tersimpan. Aturan keamanan Firestore belum mengizinkan akses ini."
+            : "Presensi belum tersimpan. Periksa konfigurasi Firebase dan aturan keamanan, lalu coba lagi.");
+        } finally {
+          setAttendanceBusy(false);
+        }
+      }}>{attendanceBusy ? "Menyimpan..." : "➤ Kirim Absen"}</button>{attendanceMessage && <p role="status" aria-live="polite" className={attendanceMessage.includes("berhasil disimpan") ? "success-message" : "error-message"}>{attendanceMessage}</p>}</section>}
     </main>}
 
     {page === "requests" && <main className="page-content subpage">
@@ -138,6 +186,30 @@ function AppShell() {
 }
 
 export default function Home() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  return loggedIn ? <AppShell /> : <Login onLogin={() => setLoggedIn(true)} />;
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState("");
+  useEffect(() => {
+    try {
+      const { auth } = getFirebaseClient();
+      return onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+        setAuthReady(true);
+        setAuthError("");
+      }, (error) => {
+        setAuthError(error.message || "Tidak dapat memeriksa sesi Firebase.");
+        setAuthReady(true);
+      });
+    } catch (e) {
+      setAuthError((e as Error).message || "Konfigurasi Firebase belum tersedia.");
+      setAuthReady(true);
+    }
+  }, []);
+  async function login(email: string, password: string) {
+    const { auth } = getFirebaseClient();
+    await signInWithEmailAndPassword(auth, email, password);
+  }
+  if (!authReady) return <main className="login-page"><Brand /><p className="muted">Memeriksa sesi akun...</p></main>;
+  if (authError && !user) return <main className="login-page"><Brand /><section className="login-card"><p role="alert" className="error-message">{authError}</p><p className="muted">Pastikan variabel Firebase Web sudah diatur pada GitHub Actions Variables.</p></section></main>;
+  return user ? <><AppShell user={user} /><button className="web-logout" onClick={async () => { const { auth } = getFirebaseClient(); await signOut(auth); }}>Keluar</button></> : <Login onLogin={login} />;
 }
