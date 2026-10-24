@@ -385,3 +385,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .success-message { color: #176b42; font-size: 14px; margin: 12px 0 0; }
 .web-logout { position: fixed; top: 24px; right: 24px; z-index: 30; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px 14px; color: var(--green); cursor: pointer; }
 .primary-button:disabled { opacity: .65; cursor: wait; }
+
+
+/* Dashboard attendance status badges */
+.status-pill { display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; }
+.status-pill.status-absent { background: #fff0d8; color: #8a4b08; border-color: #f4d4a5; }
+.status-pill.status-present { background: #d8f5e3; color: #14532d; border-color: #a7e5bd; }
+.status-pill.status-error { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
