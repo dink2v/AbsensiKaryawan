@@ -167,3 +167,216 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .quick-grid { gap: 8px; }
   .quick-card { border-radius: 22px; }
 }
+
+/* Desktop-first workspace: activate only at 1280px and above. */
+@media (min-width: 1280px) {
+  .login-page {
+    max-width: 100%;
+    min-height: 100dvh;
+    padding: 56px 32px 28px;
+    justify-content: center;
+  }
+
+  .brand {
+    max-width: 620px;
+    margin-bottom: 30px;
+  }
+
+  .brand-mark {
+    width: 82px;
+    height: 82px;
+    border-radius: 24px;
+    margin-bottom: 18px;
+  }
+
+  .brand-mark svg { width: 34px; height: 34px; }
+
+  .brand h1 { font-size: 34px; }
+  .brand p { font-size: 15px; }
+
+  .login-card {
+    max-width: 560px;
+    padding: 38px 42px;
+    border-radius: 24px;
+  }
+
+  .login-card h2 { font-size: 26px; }
+  .field { min-height: 60px; border-radius: 14px; margin-bottom: 18px; }
+  .field input { font-size: 15px; }
+  .primary-button { min-height: 58px; border-radius: 14px; font-size: 16px; }
+  .forgot { margin: 20px auto 24px; }
+  .login-footer { padding-top: 30px; gap: 8px; }
+
+  .app-shell {
+    width: auto;
+    max-width: none;
+    min-height: 100dvh;
+    margin: 0 0 0 248px;
+    padding: 28px clamp(32px, 3vw, 64px) 48px;
+  }
+
+  .topbar {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 8px 0 30px;
+    gap: 16px;
+  }
+
+  .greeting { font-size: 28px; margin-bottom: 7px; }
+  .topbar .muted { font-size: 14px; }
+
+  .round-button, .avatar { width: 46px; height: 46px; }
+  .avatar { font-size: 17px; }
+
+  .page-content {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .page-content:not(.subpage) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    align-items: start;
+    gap: 18px 24px;
+  }
+
+  .page-content:not(.subpage) .clock-card,
+  .page-content:not(.subpage) > .section-title,
+  .page-content:not(.subpage) .quick-grid {
+    grid-column: 1 / -1;
+  }
+
+  .clock-card {
+    border-radius: 22px;
+    padding: 30px 34px;
+  }
+
+  .clock-time { font-size: 52px; margin: 18px 0 24px; }
+  .status-pill { padding: 10px 13px; font-size: 11px; }
+  .clock-foot { padding-top: 16px; }
+  .clock-foot strong { font-size: 17px; }
+
+  .section-title {
+    font-size: 20px;
+    margin: 10px 0 0;
+  }
+
+  .attendance-action {
+    min-height: 96px;
+    margin: 0;
+    padding: 18px 22px;
+    border-radius: 18px;
+    gap: 16px;
+  }
+
+  .action-icon { width: 48px; height: 48px; flex-basis: 48px; }
+  .action-icon svg { width: 23px; height: 23px; }
+  .action-copy { gap: 7px; }
+  .action-copy strong { font-size: 15px; }
+  .action-copy small { font-size: 12px; }
+
+  .quick-title { margin-top: 12px; }
+  .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .quick-card {
+    min-height: 150px;
+    align-items: flex-start;
+    padding: 22px;
+    border-radius: 18px;
+    gap: 10px;
+  }
+  .quick-card > span { width: 44px; height: 44px; }
+  .quick-card strong { font-size: 14px; }
+  .quick-card small { font-size: 12px; }
+
+  .bottom-nav {
+    inset: 0 auto 0 0;
+    transform: none;
+    width: 248px;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 30px 18px;
+    overflow-y: auto;
+    background: #fff;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+  }
+
+  .bottom-nav::before {
+    content: "ABSENSI KARYAWAN";
+    display: block;
+    color: var(--green);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    padding: 8px 12px 28px;
+  }
+
+  .nav-item {
+    width: 100%;
+    min-height: 48px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 13px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .nav-icon, .nav-scan-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    margin: 0;
+    border-radius: 9px;
+    box-shadow: none;
+    background: transparent;
+    color: inherit;
+  }
+
+  .nav-icon svg, .nav-scan-icon svg { width: 21px; height: 21px; }
+  .nav-item.active { background: var(--green-soft); }
+  .nav-item.active .nav-icon, .nav-item.active .nav-scan-icon { background: transparent; }
+  .nav-scan-icon { color: var(--green); }
+
+  .subpage { padding-top: 0; }
+  .page-heading { margin-bottom: 24px; }
+  .page-heading h1 { font-size: 28px; }
+  .page-heading p { font-size: 14px; }
+
+  .scanner-placeholder {
+    max-width: 760px;
+    aspect-ratio: 1.7;
+    max-height: 420px;
+    border-radius: 22px;
+  }
+
+  .scan-frame { max-width: 300px; }
+  .info-banner, .form-card, .settings-card, .logout { border-radius: 18px; }
+  .form-card { padding: 28px; }
+  .input-block { max-width: 100%; }
+  .input-block input, .input-block textarea, .input-block select { border-radius: 12px; min-height: 50px; }
+  .new-request { max-width: 760px; border-radius: 18px; }
+  .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .stat { border-radius: 16px; padding: 22px; }
+  .filter-pills, .segmented { flex-wrap: wrap; }
+  .segmented button, .filter-pills button { padding: 11px 16px; }
+  .empty-state { max-width: 900px; min-height: 300px; margin: 0 auto; }
+  .history-empty { min-height: 42vh; }
+  .settings-card { padding: 6px 26px; }
+  .setting-row { padding: 18px 0; }
+  .setting-row > span { width: 44px; height: 44px; flex-basis: 44px; border-radius: 13px; }
+}
+
+@media (min-width: 1600px) {
+  .app-shell { margin-left: 264px; }
+  .bottom-nav { width: 264px; padding-inline: 22px; }
+}
