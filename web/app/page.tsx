@@ -129,7 +129,7 @@ function AppShell({ user }: { user: User }) {
 
     {page === "home" && <main className="page-content">
       <section className="clock-card">
-        <div className="clock-head"><span><Clock3 size={18} /> Waktu Sekarang</span><b className="status-pill">{attendanceLoadError ? "GAGAL MEMUAT" : todayAttendance ? "SUDAH ABSEN" : "BELUM ABSEN"}</b></div>
+        <div className="clock-head"><span><Clock3 size={18} /> Waktu Sekarang</span><b className={`status-pill ${attendanceLoadError ? "status-error" : todayAttendance ? "status-present" : "status-absent"}`}>{attendanceLoadError ? "GAGAL MEMUAT" : todayAttendance ? "SUDAH ABSEN" : "BELUM ABSEN"}</b></div>
         <div className="clock-time">{new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date())}</div>
         <div className="clock-divider" /><div className="clock-foot"><span>Jam Masuk<strong>{todayAttendance?.jamMasuk || "-"}</strong></span><span>Jam Pulang<strong>{todayAttendance?.jamPulang || "-"}</strong></span></div>{attendanceLoadError && <p className="error-message">Status absensi gagal dimuat. Periksa aturan akses Firestore.</p>}
       </section>
