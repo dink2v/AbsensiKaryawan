@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
 import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
@@ -81,6 +81,36 @@ function AppShell({ user }: { user: User }) {
   const [sent, setSent] = useState(false);
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState("");
+  const [todayAttendance, setTodayAttendance] = useState<{ jamMasuk: string; jamPulang: string } | null>(null);
+  const [attendanceLoadError, setAttendanceLoadError] = useState(false);
+
+  useEffect(() => {
+    try {
+      const { db } = getFirebaseClient();
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const attendanceQuery = query(
+        collection(db, "attendance"),
+        where("uid", "==", user.uid),
+        where("tanggal", "==", today)
+      );
+      return onSnapshot(attendanceQuery, (snapshot) => {
+        const records = snapshot.docs.map((item) => item.data());
+        const record = records.find((item) => Boolean(item.jamMasuk)) ?? records[0];
+        setTodayAttendance(record ? {
+          jamMasuk: typeof record.jamMasuk === "string" ? record.jamMasuk : "",
+          jamPulang: typeof record.jamPulang === "string" ? record.jamPulang : "",
+        } : null);
+        setAttendanceLoadError(false);
+      }, (error) => {
+        console.error("Gagal membaca absensi hari ini", error);
+        setAttendanceLoadError(true);
+      });
+    } catch (error) {
+      console.error("Firebase belum siap untuk membaca absensi", error);
+      setAttendanceLoadError(true);
+    }
+  }, [user.uid]);
 
   const navItems: { id: Page; label: string; icon: typeof House }[] = [
     { id: "home", label: "Beranda", icon: House },
@@ -99,9 +129,9 @@ function AppShell({ user }: { user: User }) {
 
     {page === "home" && <main className="page-content">
       <section className="clock-card">
-        <div className="clock-head"><span><Clock3 size={18} /> Waktu Sekarang</span><b className="status-pill">BELUM ABSEN</b></div>
+        <div className="clock-head"><span><Clock3 size={18} /> Waktu Sekarang</span><b className="status-pill">{attendanceLoadError ? "GAGAL MEMUAT" : todayAttendance ? "SUDAH ABSEN" : "BELUM ABSEN"}</b></div>
         <div className="clock-time">{new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date())}</div>
-        <div className="clock-divider" /><div className="clock-foot"><span>Jam Masuk<strong>-</strong></span><span>Jam Pulang<strong>-</strong></span></div>
+        <div className="clock-divider" /><div className="clock-foot"><span>Jam Masuk<strong>{todayAttendance?.jamMasuk || "-"}</strong></span><span>Jam Pulang<strong>{todayAttendance?.jamPulang || "-"}</strong></span></div>{attendanceLoadError && <p className="error-message">Status absensi gagal dimuat. Periksa aturan akses Firestore.</p>}
       </section>
       <h2 className="section-title">Absensi Hari Ini</h2>
       <button className="attendance-action dark-action" onClick={() => setPage("scan")}><span className="action-icon"><ScanQrCode /></span><span className="action-copy"><strong>Scan QR Absen</strong><small>Scan untuk absen masuk di kantor</small></span><ChevronRight /></button>
