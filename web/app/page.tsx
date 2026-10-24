@@ -126,12 +126,20 @@ function AppShell({ user }: { user: User }) {
         setAttendanceBusy(true);
         try {
           const { db } = getFirebaseClient();
-          await addDoc(collection(db, "absensi"), {
+          const now = new Date();
+          const tanggal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          const jamMasuk = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+          await addDoc(collection(db, "attendance"), {
             uid: user.uid,
-            email: user.email ?? null,
+            nama: user.displayName || user.email || "Karyawan",
+            tanggal,
+            jamMasuk,
+            jamPulang: "",
+            kantor: location.trim(),
+            status: "Hadir",
+            qrData: "",
+            catatan: reason.trim(),
             jenis: "lokasi_tugas",
-            lokasi: location.trim(),
-            alasan: reason.trim(),
             createdAt: serverTimestamp(),
           });
           setAttendanceMessage("Presensi lokasi tugas berhasil disimpan.");
