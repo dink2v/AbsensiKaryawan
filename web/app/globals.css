@@ -442,3 +442,70 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   margin: 12px 0 0;
   font-size: 12px;
 }
+
+
+/* Pemindai QR kantor */
+.scanner-card {
+  margin: 16px 0;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e5ebe7;
+  border-radius: 18px;
+}
+.scanner-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: #123f32;
+}
+.qr-reader {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.qr-reader video {
+  border-radius: 14px;
+  object-fit: cover;
+}
+.qr-reader button {
+  margin: 8px;
+  padding: 8px 12px;
+  border: 1px solid #d9e4dd;
+  border-radius: 8px;
+  background: #f5faf6;
+  color: #123f32;
+}
+.qr-reader select {
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid #d9e4dd;
+  border-radius: 8px;
+}
+.scanner-help {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+.verified-qr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #b9e4c7;
+  border-radius: 12px;
+  background: #f0fbf3;
+  color: #176534;
+}
+.verified-qr span {
+  display: grid;
+  gap: 3px;
+}
+.verified-qr small {
+  color: #4b6e55;
+}
