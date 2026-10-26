@@ -350,7 +350,6 @@ function AppShell({ user }: { user: User }) {
     { id: "requests", label: "Pengajuan", icon: FilePlus2 },
     { id: "scan", label: "Scan QR", icon: ScanQrCode },
     { id: "history", label: "Riwayat", icon: History },
-    { id: "chat", label: "Chat Admin", icon: MessageCircle },
     { id: "settings", label: "Setting", icon: Settings },
   ];
 
@@ -543,6 +542,7 @@ function AppShell({ user }: { user: User }) {
         <h2 className="section-title">Pengaturan Aplikasi</h2>
         <section className="settings-card">
           <button className="setting-row" onClick={() => setSettingsSection("notifications")}><span><Bell /></span><div><strong>Notifikasi</strong><small>Lihat pemberitahuan dan status terbaru</small></div><ChevronRight /></button>
+          <button className="setting-row" onClick={() => setPage("chat")}><span><MessageCircle /></span><div><strong>Chat Admin</strong><small>Kirim pesan atau hubungi Admin / HRD</small></div><ChevronRight /></button>
           <button className="setting-row" onClick={() => setSettingsSection("appearance")}><span><Palette /></span><div><strong>Tampilan</strong><small>Atur mode terang atau gelap</small></div><ChevronRight /></button>
           <button className="setting-row" onClick={() => setSettingsSection("help")}><span><CircleHelp /></span><div><strong>Bantuan</strong><small>Panduan penggunaan aplikasi</small></div><ChevronRight /></button>
           <button className="setting-row" onClick={() => setSettingsSection("about")}><span><Info /></span><div><strong>Tentang Aplikasi</strong><small>Informasi aplikasi dan versi</small></div><ChevronRight /></button>
