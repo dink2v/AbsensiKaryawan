@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { addDoc, collection, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
 import QrScanner from "./qr-scanner";
@@ -297,7 +298,7 @@ function AppShell({ user }: { user: User }) {
         <button className="setting-row"><span><Info /></span><div><strong>Tentang Aplikasi</strong><small>Informasi aplikasi dan versi</small></div><ChevronRight /></button>
       </section>
       <h2 className="section-title account-title">Akun</h2>
-      <button className="setting-row logout" onClick={() => window.location.reload()}><span><LogOut /></span><div><strong>Keluar</strong><small>Keluar dari akun aplikasi</small></div><ChevronRight /></button>
+      <button className="setting-row logout" onClick={() => { const { auth } = getFirebaseClient(); void signOut(auth); }}><span><LogOut /></span><div><strong>Keluar</strong><small>Keluar dari akun aplikasi</small></div><ChevronRight /></button>
     </main>}
 
     <nav className="bottom-nav" aria-label="Navigasi utama">
@@ -313,10 +314,40 @@ export default function Home() {
   useEffect(() => {
     try {
       const { auth } = getFirebaseClient();
-      return onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-        setAuthReady(true);
-        setAuthError("");
+      const { db } = getFirebaseClient();
+      return onAuthStateChanged(auth, async (currentUser) => {
+        if (!currentUser) {
+          setUser(null);
+          setAuthReady(true);
+          setAuthError("");
+          return;
+        }
+
+        try {
+          // Employee portal accepts employee accounts only. Admin/control roles must
+          // use ABSEN CONTROL, even if their Firebase session is valid.
+          const profileSnapshot = await getDoc(doc(db, "users", currentUser.uid));
+          const profile = profileSnapshot.data() ?? {};
+          const role = String(profile.role ?? profile.peran ?? "").trim().toLowerCase();
+          const isAdmin = profile.isAdmin === true ||
+            ["admin", "owner", "manager", "hrd", "superadmin"].includes(role);
+
+          if (!profileSnapshot.exists() || isAdmin || profile.active === false ||
+              String(profile.status ?? "").trim().toLowerCase() === "nonaktif") {
+            await signOut(auth);
+            setUser(null);
+            setAuthError("Akun ini tidak memiliki akses ke portal Karyawan. Gunakan akun karyawan yang terdaftar.");
+          } else {
+            setUser(currentUser);
+            setAuthError("");
+          }
+        } catch (error) {
+          await signOut(auth).catch(() => undefined);
+          setUser(null);
+          setAuthError("Hak akses akun tidak dapat diverifikasi. Silakan coba lagi atau hubungi Admin.");
+        } finally {
+          setAuthReady(true);
+        }
       }, (error) => {
         setAuthError(error.message || "Tidak dapat memeriksa sesi Firebase.");
         setAuthReady(true);
