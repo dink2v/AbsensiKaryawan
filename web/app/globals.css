@@ -392,3 +392,53 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .status-pill.status-absent { background: #fff0d8; color: #8a4b08; border-color: #f4d4a5; }
 .status-pill.status-present { background: #d8f5e3; color: #14532d; border-color: #a7e5bd; }
 .status-pill.status-error { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
+
+/* Riwayat absensi WebApp */
+.history-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.history-record {
+  background: #fff;
+  border: 1px solid #e7ece9;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 3px 12px rgb(18 63 50 / 4%);
+}
+.history-record-date,
+.history-record-times,
+.history-location {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.history-record-date {
+  color: #123f32;
+  flex-wrap: wrap;
+}
+.history-record-date strong {
+  margin-right: auto;
+}
+.history-record-times {
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid #edf0ee;
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.history-record-times span {
+  display: grid;
+  gap: 4px;
+  color: #737d78;
+  font-size: 12px;
+}
+.history-record-times strong {
+  color: #1f2b25;
+  font-size: 15px;
+}
+.history-location {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
