@@ -2,21 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { addDoc, collection, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc, orderBy } from "firebase/firestore";
+import { addDoc, collection, getDocs, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
 import QrScanner from "./qr-scanner";
 import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
   FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
   ScanQrCode, Settings, UserRound, X, BriefcaseBusiness, Palette, CircleHelp,
-  Info, RefreshCw
+  Info, RefreshCw, MessageCircle, Send
 } from "lucide-react";
 
-type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile";
+type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile" | "chat";
 type HistoryTab = "attendance" | "requests";
 type SettingsSection = "main" | "notifications" | "appearance" | "help" | "about";
 type ThemeMode = "terang" | "gelap" | "sistem";
+type ChatMessageData = { id: string; senderId: string; senderName: string; senderType: string; message: string; timestamp: number };
 type EmployeeNotification = {
   id: string;
   userId: string;
@@ -110,6 +111,11 @@ function AppShell({ user }: { user: User }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationLoadError, setNotificationLoadError] = useState(false);
   const [notificationBusy, setNotificationBusy] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessageData[]>([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatSending, setChatSending] = useState(false);
+  const [chatError, setChatError] = useState("");
   const unreadNotifications = notifications.filter((item) => !item.read).length;
 
   useEffect(() => {
@@ -175,6 +181,90 @@ function AppShell({ user }: { user: User }) {
       setNotificationLoadError(true);
     }
   }, [user.uid]);
+
+  useEffect(() => {
+    if (page !== "chat") return;
+    setChatLoading(true);
+    setChatError("");
+    try {
+      const { db } = getFirebaseClient();
+      return onSnapshot(
+        query(collection(db, "chatRooms", user.uid, "messages"), orderBy("timestamp", "asc")),
+        (snapshot) => {
+          setChatMessages(snapshot.docs.map((item) => {
+            const data = item.data();
+            return {
+              id: item.id,
+              senderId: typeof data.senderId === "string" ? data.senderId : "",
+              senderName: typeof data.senderName === "string" ? data.senderName : "",
+              senderType: typeof data.senderType === "string" ? data.senderType : "",
+              message: typeof data.message === "string" ? data.message : "",
+              timestamp: typeof data.timestamp === "number" ? data.timestamp : 0,
+            };
+          }));
+          setChatLoading(false);
+          setChatError("");
+        },
+        (error) => {
+          console.error("Gagal memuat Chat Admin", error);
+          setChatLoading(false);
+          setChatError("Chat belum bisa dimuat. Periksa aturan akses Firestore.");
+        }
+      );
+    } catch (error) {
+      console.error("Firebase belum siap untuk Chat Admin", error);
+      setChatLoading(false);
+      setChatError("Konfigurasi Firebase belum siap.");
+    }
+  }, [page, user.uid]);
+
+  async function sendChatMessage() {
+    const message = chatDraft.trim();
+    if (!message || chatSending) return;
+    setChatSending(true);
+    setChatError("");
+    try {
+      const { db } = getFirebaseClient();
+      const timestamp = Date.now();
+      const staffName = String(employeeProfile?.nama ?? employeeProfile?.name ?? user.displayName ?? "Staff");
+      const roomRef = doc(db, "chatRooms", user.uid);
+      const messageRef = doc(collection(roomRef, "messages"));
+      await setDoc(roomRef, {
+        staffId: user.uid,
+        staffName,
+        lastMessage: message,
+        updatedAt: timestamp,
+      }, { merge: true });
+      await setDoc(messageRef, {
+        senderId: user.uid,
+        senderName: staffName,
+        senderType: "STAFF",
+        message,
+        timestamp,
+      });
+      setChatDraft("");
+      // Notifikasi admin dicoba terpisah supaya kegagalannya tidak membatalkan pesan chat.
+      try {
+        const admins = await getDocs(query(collection(db, "users"), where("isAdmin", "==", true)));
+        await Promise.all(admins.docs.map((admin) => addDoc(collection(db, "notifications"), {
+          userId: admin.id,
+          type: "CHAT",
+          title: "Pesan Baru dari Staff",
+          message: `${staffName}: ${message}`,
+          timestamp: Date.now(),
+          read: false,
+          relatedId: user.uid,
+        })));
+      } catch (notificationError) {
+        console.warn("Pesan terkirim, tetapi notifikasi admin tidak berhasil dibuat.", notificationError);
+      }
+    } catch (error) {
+      console.error("Gagal mengirim pesan Chat Admin", error);
+      setChatError("Pesan gagal dikirim. Periksa koneksi dan aturan akses Firestore.");
+    } finally {
+      setChatSending(false);
+    }
+  }
 
   async function markNotificationRead(notificationId: string) {
     setNotificationBusy(notificationId);
@@ -260,6 +350,7 @@ function AppShell({ user }: { user: User }) {
     { id: "requests", label: "Pengajuan", icon: FilePlus2 },
     { id: "scan", label: "Scan QR", icon: ScanQrCode },
     { id: "history", label: "Riwayat", icon: History },
+    { id: "chat", label: "Chat Admin", icon: MessageCircle },
     { id: "settings", label: "Setting", icon: Settings },
   ];
 
@@ -420,6 +511,30 @@ function AppShell({ user }: { user: User }) {
           <div className="profile-row"><span><LockKeyhole /></span><div><small>Email Login</small><strong>{user.email || "-"}</strong></div></div>
         </section>
       </>}
+    </main>}
+
+    {page === "chat" && <main className="page-content subpage chat-page">
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")} aria-label="Kembali ke beranda"><ArrowRight className="back-arrow" /></button><div><h1>Chat Admin</h1><p className="muted">Kirim pesan ke Admin / HRD</p></div></div>
+      <section className="chat-card">
+        <div className="chat-info"><span className="chat-avatar"><MessageCircle /></span><div><strong>Admin / HRD</strong><small>Pesan tersimpan langsung di Firebase</small></div></div>
+        <div className="chat-messages" aria-live="polite">
+          {chatLoading && <p className="chat-state">Memuat pesan...</p>}
+          {!chatLoading && chatMessages.length === 0 && !chatError && <div className="chat-state"><MessageCircle size={34} /><strong>Belum ada percakapan</strong><span>Kirim pesan untuk memulai chat dengan Admin.</span></div>}
+          {chatMessages.map((item) => {
+            const own = item.senderId === user.uid;
+            return <div key={item.id} className={own ? "chat-message own" : "chat-message"}>
+              {!own && <small>{item.senderName || "Admin"}</small>}
+              <p>{item.message}</p>
+              <time>{item.timestamp ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.timestamp)) : ""}</time>
+            </div>;
+          })}
+        </div>
+        {chatError && <p role="alert" className="error-message chat-error">{chatError}</p>}
+        <form className="chat-composer" onSubmit={(event) => { event.preventDefault(); void sendChatMessage(); }}>
+          <input aria-label="Tulis pesan untuk Admin" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="Tulis pesan..." maxLength={2000} />
+          <button type="submit" aria-label="Kirim pesan" disabled={!chatDraft.trim() || chatSending}><Send size={20} /></button>
+        </form>
+      </section>
     </main>}
 
     {page === "settings" && <main className="page-content subpage">
