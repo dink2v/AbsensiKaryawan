@@ -17,9 +17,12 @@ type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile";
 type HistoryTab = "attendance" | "requests";
 type EmployeeNotification = {
   id: string;
+  userId: string;
+  type: string;
   title: string;
   message: string;
   read: boolean;
+  relatedId: string;
   createdAt: Date | null;
 };
 
@@ -126,21 +129,34 @@ function AppShell({ user }: { user: User }) {
   useEffect(() => {
     try {
       const { db } = getFirebaseClient();
+      // Struktur mengikuti NotificationRepository Android:
+      // userId, type, title, message, timestamp (epoch milliseconds),
+      // read, dan relatedId.
       const notificationQuery = query(
         collection(db, "notifications"),
-        where("uid", "==", user.uid)
+        where("userId", "==", user.uid)
       );
       return onSnapshot(notificationQuery, (snapshot) => {
         const records = snapshot.docs.map((item) => {
           const data = item.data();
-          const timestamp = data.createdAt && typeof data.createdAt.toDate === "function"
-            ? data.createdAt.toDate() as Date
-            : null;
+          const rawTimestamp = data.timestamp ?? data.createdAt;
+          let timestamp: Date | null = null;
+          if (typeof rawTimestamp === "number" && Number.isFinite(rawTimestamp)) {
+            timestamp = new Date(rawTimestamp);
+          } else if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
+            timestamp = rawTimestamp.toDate() as Date;
+          } else if (typeof rawTimestamp === "string") {
+            const parsed = new Date(rawTimestamp);
+            if (!Number.isNaN(parsed.getTime())) timestamp = parsed;
+          }
           return {
             id: item.id,
+            userId: typeof data.userId === "string" ? data.userId : "",
+            type: typeof data.type === "string" ? data.type : "INFO",
             title: typeof data.title === "string" ? data.title : "Notifikasi",
             message: typeof data.message === "string" ? data.message : (typeof data.body === "string" ? data.body : ""),
             read: data.read === true || data.isRead === true,
+            relatedId: typeof data.relatedId === "string" ? data.relatedId : "",
             createdAt: timestamp,
           };
         }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
@@ -162,7 +178,6 @@ function AppShell({ user }: { user: User }) {
       const { db } = getFirebaseClient();
       await updateDoc(doc(db, "notifications", notificationId), {
         read: true,
-        readAt: serverTimestamp(),
       });
     } catch (error) {
       console.error("Gagal menandai notifikasi sudah dibaca", error);
