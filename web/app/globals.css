@@ -821,3 +821,140 @@ html, body { background: var(--page); }
 @media (min-width: 700px) {
   .app-shell { margin: 18px auto; min-height: calc(100dvh - 36px); border-radius: 28px; overflow: clip; box-shadow: 0 8px 36px rgba(20, 55, 38, .08); }
 }
+
+
+/* Responsive sizing: phone-first, tablet and desktop */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+button, input, textarea, select {
+  max-width: 100%;
+}
+.app-shell {
+  width: 100%;
+  max-width: 560px;
+  min-height: 100svh;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  overflow-wrap: anywhere;
+}
+.page-content {
+  width: 100%;
+  padding-inline: clamp(14px, 4.5vw, 22px);
+}
+.topbar {
+  padding: clamp(16px, 4vw, 25px) clamp(14px, 4.5vw, 24px) 18px;
+}
+.greeting { font-size: clamp(19px, 5vw, 24px); }
+.round-button, .avatar {
+  width: clamp(42px, 12vw, 56px);
+  height: clamp(42px, 12vw, 56px);
+  flex-shrink: 0;
+}
+.clock-card {
+  padding: clamp(18px, 5vw, 28px) clamp(16px, 4.5vw, 26px) 20px;
+  border-radius: clamp(22px, 6vw, 34px);
+}
+.status-pill { padding: 10px 12px; font-size: clamp(9px, 2.6vw, 11px); }
+.clock-time { font-size: clamp(30px, 9vw, 52px); overflow-wrap: normal; }
+.clock-foot { gap: 12px; font-size: clamp(11px, 3vw, 13px); }
+.clock-foot strong { font-size: clamp(15px, 4.3vw, 18px); }
+.section-title { font-size: clamp(18px, 5vw, 21px); margin-block: 26px 16px; }
+.attendance-action {
+  min-height: 94px;
+  gap: clamp(10px, 3vw, 16px);
+  padding: clamp(13px, 3.7vw, 18px);
+  border-radius: clamp(20px, 5.5vw, 30px);
+}
+.action-icon {
+  width: clamp(44px, 13vw, 60px);
+  height: clamp(44px, 13vw, 60px);
+  flex-basis: clamp(44px, 13vw, 60px);
+}
+.action-copy strong { font-size: clamp(14px, 3.8vw, 17px); }
+.action-copy small { font-size: clamp(11px, 3.1vw, 13px); }
+.quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(8px, 2.6vw, 12px); }
+.quick-card {
+  min-height: clamp(118px, 35vw, 156px);
+  padding: clamp(12px, 3.5vw, 16px) 5px;
+  border-radius: clamp(18px, 5vw, 28px);
+  gap: 10px;
+}
+.quick-card > span {
+  width: clamp(42px, 15vw, 58px);
+  height: clamp(42px, 15vw, 58px);
+}
+.quick-card strong { font-size: clamp(11px, 3.3vw, 14px); text-align: center; }
+.quick-card small { font-size: clamp(9px, 2.7vw, 11px); text-align: center; }
+.bottom-nav {
+  width: 100%;
+  max-width: 560px;
+  padding: 8px 4px max(10px, env(safe-area-inset-bottom));
+}
+.nav-item { font-size: clamp(9px, 2.8vw, 11px); gap: 4px; }
+.nav-icon { width: min(100%, 48px); height: 34px; }
+.nav-icon svg { width: 22px; height: 22px; }
+.nav-scan-icon {
+  width: clamp(54px, 17vw, 68px);
+  height: clamp(54px, 17vw, 68px);
+  margin-top: -30px;
+}
+.nav-scan-icon svg { width: 29px; height: 29px; }
+.subpage { padding-top: 16px; }
+.page-heading { gap: 8px; margin-bottom: 22px; }
+.page-heading h1 { font-size: clamp(21px, 6vw, 27px); }
+.page-heading p { font-size: clamp(12px, 3.5vw, 14px); }
+.form-card, .settings-card, .logout {
+  padding: clamp(16px, 4.5vw, 22px);
+  border-radius: clamp(20px, 5vw, 26px);
+}
+.input-block input, .input-block textarea, .input-block select {
+  min-height: 52px;
+  padding: 14px;
+  font-size: 16px;
+}
+.primary-button { min-height: 56px; font-size: clamp(15px, 4vw, 18px); border-radius: 20px; }
+.wide { min-height: 56px; }
+.login-page {
+  width: 100%;
+  max-width: 520px;
+  min-height: 100svh;
+  padding: clamp(24px, 7vh, 54px) clamp(16px, 5vw, 22px) 24px;
+}
+.brand { margin-bottom: clamp(24px, 6vh, 46px); }
+.brand-mark {
+  width: clamp(72px, 22vw, 112px);
+  height: clamp(72px, 22vw, 112px);
+  border-radius: clamp(22px, 7vw, 34px);
+  margin-bottom: 18px;
+}
+.brand p { font-size: clamp(13px, 3.8vw, 17px); }
+.login-card { padding: clamp(20px, 5.5vw, 32px) clamp(16px, 5vw, 26px); border-radius: clamp(22px, 7vw, 34px); }
+.login-card h2 { font-size: clamp(21px, 5.5vw, 25px); }
+.field { min-height: 58px; gap: 12px; padding-inline: 15px; border-radius: 20px; margin-bottom: 18px; }
+.field input { font-size: 16px; }
+@media (min-width: 700px) {
+  .app-shell { max-width: 680px; }
+  .bottom-nav { max-width: 680px; }
+  .page-content { padding-inline: 24px; }
+  .quick-grid { gap: 16px; }
+}
+@media (min-width: 1024px) {
+  .app-shell { max-width: 720px; }
+  .bottom-nav { max-width: 720px; }
+}
+@media (max-width: 360px) {
+  .clock-head { align-items: flex-start; }
+  .status-pill { white-space: normal; text-align: center; max-width: 118px; }
+  .clock-foot { align-items: flex-start; }
+  .quick-grid { gap: 7px; }
+  .quick-card { padding-inline: 3px; }
+  .nav-scan-icon { margin-top: -25px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
