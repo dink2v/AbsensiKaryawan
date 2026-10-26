@@ -10,7 +10,7 @@ import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
   FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
   ScanQrCode, Settings, UserRound, X, BriefcaseBusiness, Palette, CircleHelp,
-  Info, RefreshCw, MessageCircle, Send
+  Info, RefreshCw, MessageCircle, Send, Headset
 } from "lucide-react";
 
 type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile" | "chat";
@@ -513,18 +513,29 @@ function AppShell({ user }: { user: User }) {
     </main>}
 
     {page === "chat" && <main className="page-content subpage chat-page">
-      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")} aria-label="Kembali ke beranda"><ArrowRight className="back-arrow" /></button><div><h1>Chat Admin</h1><p className="muted">Kirim pesan ke Admin / HRD</p></div></div>
       <section className="chat-card">
-        <div className="chat-info"><span className="chat-avatar"><MessageCircle /></span><div><strong>Admin / HRD</strong><small>Pesan tersimpan langsung di Firebase</small></div></div>
+        <div className="chat-info">
+          <button className="chat-back" type="button" onClick={() => setPage("settings")} aria-label="Kembali ke Pengaturan"><ArrowRight className="back-arrow" /></button>
+          <span className="chat-avatar"><Headset size={25} /></span>
+          <div className="chat-contact"><strong>Hubungi ADMIN</strong><small><span className="chat-online-dot" />Siap membantu</small></div>
+        </div>
         <div className="chat-messages" aria-live="polite">
           {chatLoading && <p className="chat-state">Memuat pesan...</p>}
-          {!chatLoading && chatMessages.length === 0 && !chatError && <div className="chat-state"><MessageCircle size={34} /><strong>Belum ada percakapan</strong><span>Kirim pesan untuk memulai chat dengan Admin.</span></div>}
+          {!chatLoading && chatMessages.length === 0 && !chatError && <div className="chat-state">
+            <span className="chat-empty-avatar"><Headset size={42} /></span>
+            <strong>Mulai Percakapan</strong>
+            <span>Sampaikan pertanyaan atau kendala kamu kepada ADMIN. Kami siap membantu.</span>
+            <div className="chat-first-prompt">Silakan kirim pesan pertama kamu 👋</div>
+          </div>}
+          {!chatLoading && chatMessages.length > 0 && <div className="chat-date-label"><span>Percakapan</span></div>}
           {chatMessages.map((item) => {
-            const own = item.senderId === user.uid;
-            return <div key={item.id} className={own ? "chat-message own" : "chat-message"}>
-              {!own && <small>{item.senderName || "Admin"}</small>}
-              <p>{item.message}</p>
-              <time>{item.timestamp ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.timestamp)) : ""}</time>
+            const own = item.senderType !== "ADMIN";
+            return <div key={item.id} className={"chat-message-row " + (own ? "sent" : "received")}>
+              <div className={own ? "chat-message own" : "chat-message"}>
+                {!own && <small>{item.senderName || "Admin"}</small>}
+                <p>{item.message}</p>
+                <time>{item.timestamp ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.timestamp)) : ""}</time>
+              </div>
             </div>;
           })}
         </div>
