@@ -182,7 +182,7 @@ function AppShell({ user }: { user: User }) {
     <header className="topbar">
       <div><p className="greeting">Halo, Karyawan <span>👋</span></p><p className="muted">{new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}</p></div>
       <button className="round-button" aria-label="Notifikasi" onClick={() => alert("Notifikasi akan dihubungkan ke Firebase.")}><Bell /></button>
-      <div className="avatar">K</div>
+      <button className="avatar avatar-button" type="button" aria-label="Buka Profil" title="Buka Profil" onClick={() => setPage("profile")}>{String(employeeProfile?.nama || employeeProfile?.name || user.displayName || user.email || "K").trim().charAt(0).toUpperCase()}</button>
     </header>
 
     {page === "home" && <main className="page-content">
