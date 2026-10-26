@@ -1059,3 +1059,95 @@ img, svg, video, canvas { max-width: 100%; }
   .brand-mark { width: 64px; height: 64px; margin-bottom: 12px; }
   .login-footer { padding-top: 20px; }
 }
+
+
+/* Desktop + mobile responsive layout: normalize legacy fixed sizing */
+html, body, #__next { width: 100%; min-height: 100%; }
+body { margin: 0; }
+.app-shell {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding-bottom: calc(86px + env(safe-area-inset-bottom));
+}
+.topbar, .page-content {
+  width: 100%;
+  max-width: 100%;
+}
+.page-content { padding-inline: clamp(14px, 3.2vw, 32px); }
+.topbar { padding: clamp(16px, 3vw, 28px) clamp(14px, 3.2vw, 32px) 20px; }
+.bottom-nav {
+  width: 100%;
+  max-width: 100%;
+  left: 0;
+  right: 0;
+  transform: none;
+  border-radius: 0;
+}
+.login-page { max-width: 100%; }
+.login-card { width: 100%; max-width: 560px; }
+.subpage { width: 100%; max-width: 100%; }
+.page-content > * { max-width: 100%; }
+.clock-card, .attendance-action, .quick-card, .form-card, .settings-card,
+.history-record, .profile-hero, .chat-card, .scanner-placeholder {
+  max-width: 100%;
+}
+@media (max-width: 599px) {
+  .app-shell { padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .topbar { gap: 10px; }
+  .page-content { padding-inline: 14px; }
+  .clock-card { padding: 18px 16px; }
+  .clock-head { flex-wrap: wrap; }
+  .status-pill { white-space: normal; max-width: 100%; }
+  .clock-time { font-size: clamp(30px, 10vw, 46px); }
+  .clock-foot { gap: 10px; }
+  .attendance-action { min-height: 80px; }
+  .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .quick-card { min-height: 120px; }
+  .bottom-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .nav-item { min-width: 0; }
+  .nav-scan-icon { margin-top: -26px; }
+  .chat-messages { max-height: 52dvh; }
+}
+@media (min-width: 600px) {
+  .app-shell { padding-bottom: 28px; }
+  .topbar, .page-content { max-width: 1120px; margin-inline: auto; }
+  .topbar { padding-inline: clamp(24px, 4vw, 48px); }
+  .page-content { padding-inline: clamp(24px, 4vw, 48px); }
+  .bottom-nav {
+    position: sticky;
+    bottom: 0;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 24px;
+    padding: 12px 8px max(12px, env(safe-area-inset-bottom));
+  }
+  .nav-scan-icon { width: 56px; height: 56px; margin-top: -12px; }
+  .nav-scan-icon svg { width: 26px; height: 26px; }
+  .clock-card { padding: 28px; }
+  .attendance-action { min-height: 92px; }
+  .quick-grid { gap: 16px; }
+  .quick-card { min-height: 150px; }
+  .subpage { padding-top: 24px; }
+  .form-card, .settings-card, .history-record, .profile-hero, .chat-card {
+    border-radius: 22px;
+  }
+}
+@media (min-width: 900px) {
+  .app-shell { min-height: 100dvh; }
+  .topbar, .page-content { max-width: 1200px; }
+  .page-content { padding-inline: 40px; }
+  .bottom-nav { justify-content: center; }
+  .nav-item { max-width: 180px; }
+  .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scanner-placeholder { max-width: 620px; margin-inline: auto; }
+}
+@media (min-width: 1440px) {
+  .topbar, .page-content { max-width: 1320px; }
+}
