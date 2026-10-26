@@ -31,11 +31,11 @@ Agar deployment berjalan, buka **Settings → Pages** pada repository dan pilih 
 - Login: menggunakan Firebase Authentication (email/password).
 - Beranda: membaca data absensi hari ini dari koleksi `attendance` berdasarkan UID akun dan tanggal.
 - Riwayat absensi: kini membaca koleksi `attendance` secara langsung dan menampilkan tanggal, jam masuk/pulang, status, serta lokasi bila tersedia.
-- Presensi QR: kamera browser dan validasi terhadap `qr_settings` belum diaktifkan.
+- Presensi QR: pemindai kamera browser membaca QR kantor aktif dari `qr_settings` (`qrData`, `officeName`, `aktif`), mencocokkan isi QR, lalu menyimpan presensi ke `attendance`.
 - Pengajuan: formulir dan daftar pengajuan masih perlu dihubungkan ke skema koleksi `pengajuan` yang dipakai Android.
 - Setting/profil dan notifikasi: sebagian interaksi masih berupa placeholder.
 
-**Jangan gunakan untuk presensi operasional sebelum kamera QR, validasi data, aturan Firestore, dan alur pengajuan selesai diuji.**
+**Jangan gunakan untuk presensi operasional sebelum alur kamera QR diuji di perangkat nyata, aturan Firestore diverifikasi, dan alur pengajuan selesai diintegrasikan.**
 
 ## Prinsip integrasi
 
