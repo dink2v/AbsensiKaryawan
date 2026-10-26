@@ -721,7 +721,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .chat-composer button { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; color: white; background: var(--green); border: 0; border-radius: 50%; }
 .chat-composer button:disabled { opacity: .45; cursor: not-allowed; }
 .chat-error { margin: 10px 14px; }
-.bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.bottom-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .theme-dark .chat-card, .theme-dark .chat-info, .theme-dark .chat-message:not(.own) { background: #202b25; border-color: #39483f; }
 .theme-dark .chat-messages { background: #17211b; }
 .theme-dark .chat-state strong { color: #edf5ef; }
