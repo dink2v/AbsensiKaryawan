@@ -511,63 +511,121 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 
 
-/* Extra-small phone preview: scale the entire mobile layout down further. */
+/* Consistent mobile sizing across every WebApp screen. */
 @media (max-width: 699px) {
-  .login-page { padding: 22px 14px 16px; }
-  .brand { margin-bottom: 20px; }
-  .brand-mark { width: 58px; height: 58px; border-radius: 18px; margin-bottom: 10px; }
+  html { font-size: 14px; }
+  .login-page { padding: 24px 14px 18px; }
+  .brand { margin-bottom: 22px; }
+  .brand-mark { width: 60px; height: 60px; border-radius: 18px; margin-bottom: 11px; }
   .brand-mark svg { width: 24px; height: 24px; }
   .brand h1 { font-size: 23px; }
-  .brand p { font-size: 12px; }
+  .brand p { margin-top: 7px; font-size: 12px; }
   .login-card { padding: 18px 16px; border-radius: 18px; }
-  .login-card h2 { font-size: 18px; }
-  .intro { font-size: 12px; margin-bottom: 16px; }
-  .field { min-height: 48px; padding: 0 12px; border-radius: 13px; margin-bottom: 12px; }
+  .login-card h2 { font-size: 18px; margin-bottom: 9px; }
+  .intro { font-size: 12px; line-height: 1.6; margin-bottom: 16px; }
+  .field { min-height: 48px; gap: 10px; padding: 0 12px; border-radius: 13px; margin-bottom: 13px; }
+  .field > span { font-size: 11px; }
   .field input { font-size: 13px; }
-  .primary-button { min-height: 48px; padding: 10px 14px; border-radius: 13px; font-size: 14px; }
+  .primary-button { min-height: 48px; padding: 10px 14px; border-radius: 13px; font-size: 14px; gap: 8px; }
   .forgot { margin: 14px auto 18px; }
-  .login-footer { padding-top: 20px; font-size: 10px; }
+  .account-note { font-size: 12px; }
+  .login-footer { padding-top: 22px; font-size: 10px; gap: 7px; }
 
-  .app-shell { padding-bottom: 72px; }
+  .app-shell { padding: 0 0 72px; }
   .topbar { gap: 8px; padding: 14px 14px 12px; }
-  .greeting { font-size: 17px; }
+  .greeting { font-size: 17px; margin-bottom: 4px; }
   .topbar .muted { font-size: 10px; }
   .round-button, .avatar { width: 36px; height: 36px; }
   .avatar { font-size: 14px; }
   .page-content { padding: 0 12px; }
   .clock-card { padding: 16px 14px 14px; border-radius: 18px; }
-  .clock-head > span { font-size: 10px; }
-  .clock-time { font-size: clamp(26px, 7vw, 32px); margin: 8px 0 14px; }
-  .clock-foot { font-size: 9px; padding-top: 10px; }
+  .clock-head { gap: 7px; }
+  .clock-head > span { gap: 6px; font-size: 10px; }
+  .clock-time { font-size: clamp(26px, 7vw, 32px); margin: 9px 0 14px; }
+  .clock-foot { font-size: 9px; padding-top: 11px; gap: 8px; }
   .clock-foot strong { font-size: 12px; margin-top: 5px; }
   .status-pill { padding: 6px 8px; font-size: 9px; }
   .section-title { font-size: 15px; margin: 20px 0 10px; }
   .attendance-action { min-height: 68px; gap: 9px; padding: 10px 11px; border-radius: 16px; margin-bottom: 8px; }
-  .action-icon { width: 38px; height: 38px; flex-basis: 38px; }
+  .action-icon { width: 38px; height: 38px; flex: 0 0 38px; }
   .action-icon svg { width: 18px; height: 18px; }
   .action-copy { gap: 4px; }
   .action-copy strong { font-size: 12px; }
   .action-copy small { font-size: 10px; }
   .quick-title { margin-top: 18px; }
-  .quick-grid { gap: 6px; }
+  .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .quick-card { min-height: 96px; padding: 9px 5px; gap: 6px; border-radius: 14px; }
   .quick-card > span { width: 36px; height: 36px; }
-  .quick-card strong { font-size: 10px; }
-  .quick-card small { font-size: 9px; }
+  .quick-card strong { font-size: 10px; text-align: center; }
+  .quick-card small { font-size: 9px; text-align: center; }
   .bottom-nav { padding: 4px 3px max(6px, env(safe-area-inset-bottom)); }
   .nav-icon { width: 36px; height: 27px; }
   .nav-icon svg { width: 18px; height: 18px; }
-  .nav-item { font-size: 9px; gap: 3px; }
+  .nav-item { gap: 3px; font-size: 9px; padding: 2px 0; }
   .nav-scan-icon { width: 50px; height: 50px; margin-top: -22px; }
   .nav-scan-icon svg { width: 23px; height: 23px; }
   .subpage { padding-top: 12px; }
   .page-heading { gap: 7px; margin-bottom: 14px; }
   .page-heading h1 { font-size: 19px; }
   .page-heading p { font-size: 10px; }
+  .info-banner { padding: 12px; border-radius: 15px; font-size: 12px; gap: 9px; margin-bottom: 14px; }
+  .scanner-placeholder { border-radius: 18px; padding: 18px 14px; margin-bottom: 15px; }
+  .scanner-label { gap: 7px; font-size: 12px; }
+  .scanner-placeholder p { font-size: 10px; }
+  .input-block { gap: 7px; margin: 13px 0; font-size: 12px; }
+  .input-block input, .input-block textarea, .input-block select { min-height: 46px; padding: 12px; border-radius: 13px; font-size: 13px; }
+  .wide { min-height: 48px; }
+  .accordion { margin: 15px 0 12px; gap: 10px; border-radius: 15px; padding: 14px; font-size: 12px; }
   .form-card, .settings-card, .logout { border-radius: 15px; padding: 13px; }
-  .new-request { padding: 13px; border-radius: 16px; }
-  .stat { padding: 10px 7px; border-radius: 13px; }
+  .form-card h2 { font-size: 16px; gap: 8px; }
+  .form-card > p { font-size: 12px; }
+  .new-request { gap: 10px; padding: 14px; border-radius: 16px; margin-bottom: 15px; }
+  .new-request strong { font-size: 13px; }
+  .new-request small { font-size: 11px; }
+  .segmented { gap: 7px; margin: 14px 0; }
+  .segmented button, .filter-pills button { padding: 9px 12px; font-size: 11px; }
+  .segmented.large button { min-height: 46px; }
+  .stats-grid { gap: 7px; }
+  .stat { padding: 10px 7px; border-radius: 13px; gap: 5px; }
+  .stat > svg, .stat > span { width: 22px; height: 22px; }
   .stat strong { font-size: 16px; }
-  .history-record { padding: 10px; }
-  .scanner-card { padding: 9px; }
+  .stat small { font-size: 10px; }
+  .filter-pills { gap: 6px; margin: 15px 0; }
+  .empty-state { min-height: 180px; gap: 12px; padding: 20px 8px; }
+  .empty-state strong { font-size: 15px; }
+  .empty-state p { font-size: 12px; }
+  .history-empty { min-height: 35vh; }
+  .history-list { gap: 9px; margin-top: 12px; }
+  .history-record { padding: 10px; border-radius: 13px; }
+  .history-record-date, .history-record-times, .history-location { gap: 7px; font-size: 11px; }
+  .history-record-times { margin-top: 10px; padding-top: 9px; gap: 10px; }
+  .history-record-times span { font-size: 10px; }
+  .history-record-times strong { font-size: 12px; }
+  .history-location { margin-top: 9px; font-size: 10px; }
+  .settings-card { padding: 3px 13px; }
+  .setting-row { gap: 10px; padding: 14px 0; }
+  .setting-row > span { width: 38px; height: 38px; flex-basis: 38px; border-radius: 12px; }
+  .setting-row > div { gap: 5px; }
+  .setting-row strong { font-size: 12px; }
+  .setting-row small { font-size: 10px; }
+  .account-title { margin-top: 22px; }
+  .scanner-card { padding: 9px; border-radius: 14px; }
+  .scanner-status { gap: 7px; margin-bottom: 10px; font-size: 12px; }
+  .qr-reader { max-width: 100%; border-radius: 10px; }
+  .scanner-help { gap: 5px; margin-top: 9px; font-size: 10px; }
+  .verified-qr { gap: 7px; margin: 9px 0; padding: 9px; border-radius: 10px; font-size: 12px; }
+  .verified-qr small { font-size: 10px; }
+}
+
+@media (max-width: 380px) {
+  .login-page { padding-left: 12px; padding-right: 12px; }
+  .login-card { padding: 16px 13px; }
+  .topbar { padding-left: 11px; padding-right: 11px; }
+  .page-content { padding-left: 10px; padding-right: 10px; }
+  .clock-card { padding: 14px 11px; }
+  .clock-head > span { font-size: 9px; }
+  .status-pill { padding: 5px 6px; font-size: 8px; }
+  .quick-grid { gap: 4px; }
+  .quick-card { padding-inline: 3px; }
+  .nav-item { font-size: 8px; }
 }
