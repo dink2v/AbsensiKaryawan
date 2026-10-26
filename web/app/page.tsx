@@ -15,6 +15,8 @@ import {
 
 type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile";
 type HistoryTab = "attendance" | "requests";
+type SettingsSection = "main" | "notifications" | "appearance" | "help" | "about";
+type ThemeMode = "terang" | "gelap" | "sistem";
 type EmployeeNotification = {
   id: string;
   userId: string;
@@ -85,6 +87,8 @@ function Login({ onLogin }: { onLogin: (email: string, password: string) => Prom
 function AppShell({ user }: { user: User }) {
   const [page, setPage] = useState<Page>("home");
   const [historyTab, setHistoryTab] = useState<HistoryTab>("attendance");
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("main");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("sistem");
   const [requestType, setRequestType] = useState("Izin");
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [outsideOpen, setOutsideOpen] = useState(true);
@@ -259,7 +263,7 @@ function AppShell({ user }: { user: User }) {
     { id: "settings", label: "Setting", icon: Settings },
   ];
 
-  return <div className="app-shell">
+  return <div className={`app-shell ${themeMode === "gelap" ? "theme-dark" : ""}`}>
     <header className="topbar">
       <div><p className="greeting">Halo, Karyawan <span>👋</span></p><p className="muted">{new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}</p></div>
       <div className="notification-wrap">
@@ -419,16 +423,41 @@ function AppShell({ user }: { user: User }) {
     </main>}
 
     {page === "settings" && <main className="page-content subpage">
-      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengaturan</h1><p className="muted">Atur preferensi dan informasi aplikasi</p></div></div>
-      <h2 className="section-title">Pengaturan Aplikasi</h2>
-      <section className="settings-card">
-        <button className="setting-row"><span><Bell /></span><div><strong>Notifikasi</strong><small>Kelola pemberitahuan aplikasi</small></div><ChevronRight /></button>
-        <button className="setting-row"><span><Palette /></span><div><strong>Tampilan</strong><small>Atur tema dan tampilan aplikasi</small></div><ChevronRight /></button>
-        <button className="setting-row"><span><CircleHelp /></span><div><strong>Bantuan</strong><small>Panduan penggunaan aplikasi</small></div><ChevronRight /></button>
-        <button className="setting-row"><span><Info /></span><div><strong>Tentang Aplikasi</strong><small>Informasi aplikasi dan versi</small></div><ChevronRight /></button>
-      </section>
-      <h2 className="section-title account-title">Akun</h2>
-      <button className="setting-row logout" onClick={() => { const { auth } = getFirebaseClient(); void signOut(auth); }}><span><LogOut /></span><div><strong>Keluar</strong><small>Keluar dari akun aplikasi</small></div><ChevronRight /></button>
+      <div className="page-heading"><button className="back-button" onClick={() => settingsSection === "main" ? setPage("home") : setSettingsSection("main")} aria-label="Kembali"><ArrowRight className="back-arrow" /></button><div><h1>{settingsSection === "main" ? "Pengaturan" : settingsSection === "notifications" ? "Notifikasi" : settingsSection === "appearance" ? "Tampilan" : settingsSection === "help" ? "Bantuan" : "Tentang Aplikasi"}</h1><p className="muted">{settingsSection === "main" ? "Atur preferensi dan informasi aplikasi" : settingsSection === "notifications" ? "Lihat pemberitahuan akun kamu" : settingsSection === "appearance" ? "Atur tampilan aplikasi" : settingsSection === "help" ? "Panduan penggunaan WebApp" : "Informasi aplikasi"}</p></div></div>
+      {settingsSection === "main" && <>
+        <h2 className="section-title">Pengaturan Aplikasi</h2>
+        <section className="settings-card">
+          <button className="setting-row" onClick={() => setSettingsSection("notifications")}><span><Bell /></span><div><strong>Notifikasi</strong><small>Lihat pemberitahuan dan status terbaru</small></div><ChevronRight /></button>
+          <button className="setting-row" onClick={() => setSettingsSection("appearance")}><span><Palette /></span><div><strong>Tampilan</strong><small>Atur mode terang atau gelap</small></div><ChevronRight /></button>
+          <button className="setting-row" onClick={() => setSettingsSection("help")}><span><CircleHelp /></span><div><strong>Bantuan</strong><small>Panduan penggunaan aplikasi</small></div><ChevronRight /></button>
+          <button className="setting-row" onClick={() => setSettingsSection("about")}><span><Info /></span><div><strong>Tentang Aplikasi</strong><small>Informasi aplikasi dan versi</small></div><ChevronRight /></button>
+        </section>
+        <h2 className="section-title account-title">Akun</h2>
+        <button className="setting-row logout" onClick={() => { const { auth } = getFirebaseClient(); void signOut(auth); }}><span><LogOut /></span><div><strong>Keluar</strong><small>Keluar dari akun aplikasi</small></div><ChevronRight /></button>
+      </>}
+      {settingsSection === "notifications" && <section className="settings-card settings-detail">
+        <div className="notification-panel-head"><strong>Notifikasi terbaru</strong><button type="button" className="text-button" disabled={unreadNotifications === 0 || notificationBusy !== null} onClick={() => void markAllNotificationsRead()}>Tandai semua dibaca</button></div>
+        {notificationLoadError ? <p className="notification-empty">Notifikasi gagal dimuat. Periksa koneksi dan aturan akses Firestore.</p> : notifications.length === 0 ? <div className="empty-state"><Bell size={38} /><strong>Belum ada notifikasi</strong><p>Notifikasi ACC pengajuan dan pesan Admin akan muncul di sini jika sudah tercatat di Firebase.</p></div> :
+          <div className="notification-list">{notifications.map((item) => <button key={item.id} type="button" className={item.read ? "notification-item read" : "notification-item unread"} disabled={notificationBusy === item.id} onClick={() => { if (!item.read) void markNotificationRead(item.id); }}><span className="notification-dot" /><span className="notification-copy"><strong>{item.title}</strong>{item.message && <span>{item.message}</span>}<small>{item.createdAt ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(item.createdAt) : "Baru saja"}</small></span>{!item.read && <span className="notification-unread-label">Baru</span>}</button>)}</div>}
+      </section>}
+      {settingsSection === "appearance" && <section className="settings-card settings-detail">
+        <h2 className="settings-detail-title">Mode Tampilan</h2>
+        {([{id:"terang",title:"Terang",subtitle:"Tampilan terang"},{id:"gelap",title:"Gelap",subtitle:"Tampilan dengan latar gelap"},{id:"sistem",title:"Sistem",subtitle:"Gunakan tampilan standar"}] as const).map((mode) => <button key={mode.id} type="button" className="setting-row theme-option" onClick={() => setThemeMode(mode.id)}><span><Palette /></span><div><strong>{mode.title}</strong><small>{mode.subtitle}</small></div>{themeMode === mode.id && <Check className="theme-check" />}</button>)}
+        <p className="muted settings-note">Pilihan tema diterapkan pada WebApp selama sesi ini.</p>
+      </section>}
+      {settingsSection === "help" && <section className="settings-card settings-detail help-content">
+        <h2 className="settings-detail-title">Panduan Singkat</h2>
+        <article><strong>Presensi</strong><p>Buka menu Scan untuk memindai QR kantor. Pastikan izin kamera di browser sudah diberikan.</p></article>
+        <article><strong>Pengajuan izin, sakit, atau cuti</strong><p>Buka menu Pengajuan untuk melihat dan mengirim pengajuan. Status akan terlihat setelah integrasi data pengajuan aktif.</p></article>
+        <article><strong>Notifikasi dan Chat Admin</strong><p>Notifikasi ditampilkan jika sudah tersimpan di Firebase. Jika ada kendala akun atau presensi, hubungi Admin/HRD.</p></article>
+        <article><strong>Akun bermasalah?</strong><p>Keluar lalu masuk kembali. Jika tetap gagal, minta Admin memeriksa akun dan aturan akses Firebase.</p></article>
+      </section>}
+      {settingsSection === "about" && <section className="settings-card settings-detail about-content">
+        <div className="about-mark"><FileText size={38} /></div><h2>Absensi Karyawan</h2><p className="muted">Sistem Presensi Karyawan · WebApp</p>
+        <div className="profile-row"><span><Info /></span><div><small>Platform</small><strong>Web</strong></div></div>
+        <div className="profile-row"><span><RefreshCw /></span><div><small>Versi</small><strong>1.0.0</strong></div></div>
+        <p className="muted settings-note">WebApp pendamping aplikasi Android Absensi Karyawan.</p>
+      </section>}
     </main>}
 
     <nav className="bottom-nav" aria-label="Navigasi utama">
