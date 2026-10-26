@@ -1,4 +1,4 @@
-import { getApp, getApps, initializeApp } from "firebase/app";
+import { getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -18,6 +18,7 @@ export function getFirebaseClient() {
     throw new Error("Konfigurasi Firebase Web belum lengkap. Admin perlu mengatur variabel NEXT_PUBLIC_FIREBASE_* di GitHub Actions Variables.");
   }
 
-  const app = getApps().length ? getApp() : initializeApp(config);
+  const appName = "absensi-karyawan-web-auth";
+  const app = getApps().find((item) => item.name === appName) ?? initializeApp(config, appName);
   return { auth: getAuth(app), db: getFirestore(app) };
 }
