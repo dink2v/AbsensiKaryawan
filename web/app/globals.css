@@ -1267,3 +1267,55 @@ body { margin: 0; }
     padding-inline: 56px;
   }
 }
+
+
+/* Actual desktop dashboard composition (mobile remains stacked) */
+@media (min-width: 1024px) {
+  .home-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+    grid-template-areas:
+      "clock attendance-title"
+      "clock attendance-scan"
+      "clock attendance-outside"
+      "quick-title quick-title"
+      "quick-grid quick-grid";
+    align-items: stretch;
+    column-gap: 28px;
+    row-gap: 0;
+  }
+  .home-content > .clock-card {
+    grid-area: clock;
+    align-self: start;
+    min-height: 300px;
+    margin-bottom: 0;
+  }
+  .home-content > .section-title:not(.quick-title) {
+    grid-area: attendance-title;
+    margin-top: 0;
+    margin-bottom: 16px;
+    align-self: end;
+  }
+  .home-content > .attendance-action:nth-of-type(1) {
+    grid-area: attendance-scan;
+  }
+  .home-content > .attendance-action:nth-of-type(2) {
+    grid-area: attendance-outside;
+  }
+  .home-content > .quick-title {
+    grid-area: quick-title;
+    margin-top: 34px;
+  }
+  .home-content > .quick-grid {
+    grid-area: quick-grid;
+  }
+}
+@media (min-width: 1440px) {
+  .home-content {
+    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+    column-gap: 36px;
+  }
+  .home-content > .clock-card {
+    padding: 34px;
+  }
+}
