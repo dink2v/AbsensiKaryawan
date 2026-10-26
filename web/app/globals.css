@@ -958,3 +958,104 @@ button, input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+
+/* Layout collision prevention and final responsive safeguards */
+*, *::before, *::after { box-sizing: border-box; }
+html { min-width: 320px; scroll-padding-bottom: 100px; }
+body { min-width: 320px; }
+img, svg, video, canvas { max-width: 100%; }
+.app-shell { position: relative; isolation: isolate; }
+.app-shell > * { min-width: 0; }
+.page-content, .subpage, .page-heading, .form-card, .settings-card,
+.history-record, .profile-hero, .chat-card, .chat-info, .chat-messages,
+.chat-composer, .settings-section, .setting-row, .request-card,
+.request-item, .history-list, .profile-content {
+  min-width: 0;
+  max-width: 100%;
+}
+.page-content > * { min-width: 0; }
+.page-heading h1, .page-heading p, .form-card h2, .setting-row,
+.action-copy, .chat-info, .history-record, .request-card {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.page-heading h1 { line-height: 1.2; }
+.topbar > div:first-child { min-width: 0; }
+.topbar .muted { overflow-wrap: anywhere; line-height: 1.45; }
+.clock-head > span { min-width: 0; }
+.clock-head > span > span { overflow-wrap: anywhere; }
+.clock-time { line-height: 1.12; }
+.clock-foot > span { min-width: 0; flex: 1; }
+.clock-foot strong { overflow-wrap: anywhere; line-height: 1.25; }
+.attendance-action > * { min-width: 0; }
+.action-copy { overflow-wrap: anywhere; }
+.quick-card { min-width: 0; overflow-wrap: anywhere; }
+.quick-card strong, .quick-card small { max-width: 100%; line-height: 1.35; }
+.bottom-nav { left: 0; right: 0; transform: none; margin-inline: auto; }
+.nav-item { overflow-wrap: anywhere; text-align: center; }
+.nav-icon { flex-shrink: 0; }
+.nav-scan-icon { flex-shrink: 0; }
+.subpage { width: 100%; }
+.page-heading > div { min-width: 0; }
+.form-card, .settings-card, .logout, .history-record, .profile-hero,
+.chat-card, .request-card { overflow: hidden; }
+.input-block { min-width: 0; }
+.input-block label, .input-block > span { overflow-wrap: anywhere; }
+.input-block input, .input-block textarea, .input-block select { min-width: 0; }
+.segmented, .filter-pills { max-width: 100%; scrollbar-width: thin; }
+.segmented button, .filter-pills button { min-width: 0; }
+.stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stat { min-width: 0; padding: clamp(10px, 3vw, 18px) clamp(8px, 2.8vw, 14px); }
+.stat strong { font-size: clamp(18px, 5vw, 24px); }
+.stat small { font-size: clamp(10px, 2.8vw, 12px); overflow-wrap: anywhere; }
+.chat-card { display: flex; flex-direction: column; min-height: 0; }
+.chat-messages { width: 100%; min-height: 220px; max-height: min(58dvh, 620px); overflow-y: auto; overscroll-behavior: contain; }
+.chat-message { min-width: 0; overflow-wrap: anywhere; }
+.chat-composer { width: 100%; }
+.chat-composer input { min-width: 0; }
+.chat-composer button { flex-shrink: 0; }
+.scanner-placeholder { width: 100%; min-width: 0; }
+.scan-frame { flex: 0 1 auto; min-width: 0; }
+.login-page, .login-card, .field { min-width: 0; }
+.login-card { overflow-wrap: anywhere; }
+.login-card h2 { line-height: 1.25; }
+.field input { min-width: 0; }
+@media (max-width: 390px) {
+  .topbar { gap: 9px; }
+  .page-content { padding-inline: 14px; }
+  .clock-card { padding: 17px 15px; }
+  .clock-head { flex-wrap: wrap; }
+  .status-pill { max-width: 100%; }
+  .clock-foot { flex-wrap: wrap; }
+  .clock-foot > span { flex-basis: calc(50% - 6px); }
+  .attendance-action { gap: 10px; padding: 12px; }
+  .action-icon { width: 42px; height: 42px; flex-basis: 42px; }
+  .quick-grid { gap: 7px; }
+  .quick-card { padding-inline: 3px; }
+  .nav-item { font-size: 9px; }
+  .nav-icon { width: 40px; }
+  .page-heading { align-items: flex-start; }
+  .page-heading h1 { font-size: 21px; }
+  .stats-grid { gap: 7px; }
+  .stat { padding: 10px 8px; border-radius: 16px; }
+  .stat > svg, .stat > span { width: 22px; height: 22px; }
+}
+@media (max-width: 340px) {
+  .greeting { font-size: 18px; }
+  .avatar, .round-button { width: 40px; height: 40px; }
+  .quick-card strong { font-size: 10px; }
+  .nav-item { font-size: 8px; }
+  .nav-scan-icon { width: 50px; height: 50px; margin-top: -22px; }
+  .nav-scan-icon svg { width: 24px; height: 24px; }
+  .page-content { padding-inline: 12px; }
+}
+@media (min-width: 700px) {
+  .bottom-nav { left: 50%; right: auto; transform: translateX(-50%); }
+}
+@media (max-height: 620px) and (max-width: 600px) {
+  .login-page { padding-top: 18px; }
+  .brand { margin-bottom: 18px; }
+  .brand-mark { width: 64px; height: 64px; margin-bottom: 12px; }
+  .login-footer { padding-top: 20px; }
+}
