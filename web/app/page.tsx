@@ -375,7 +375,7 @@ function AppShell({ user }: { user: User }) {
       <button className="avatar avatar-button" type="button" aria-label="Buka Profil" title="Buka Profil" onClick={() => setPage("profile")}>{String(employeeProfile?.nama || employeeProfile?.name || user.displayName || user.email || "K").trim().charAt(0).toUpperCase()}</button>
     </header>
 
-    {page === "home" && <main className="page-content">
+    {page === "home" && <main className="page-content home-content">
       <section className="clock-card">
         <div className="clock-head"><span><Clock3 size={18} /> Waktu Sekarang</span><b className={`status-pill ${attendanceLoadError ? "status-error" : todayAttendance ? "status-present" : "status-absent"}`}>{attendanceLoadError ? "GAGAL MEMUAT" : todayAttendance ? "SUDAH ABSEN" : "BELUM ABSEN"}</b></div>
         <div className="clock-time">{new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date())}</div>
