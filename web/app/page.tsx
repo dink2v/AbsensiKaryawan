@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { addDoc, collection, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
 import QrScanner from "./qr-scanner";
@@ -15,6 +15,13 @@ import {
 
 type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile";
 type HistoryTab = "attendance" | "requests";
+type EmployeeNotification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: Date | null;
+};
 
 const green = "#123f32";
 
@@ -92,6 +99,11 @@ function AppShell({ user }: { user: User }) {
   const [historyLoadError, setHistoryLoadError] = useState(false);
   const [employeeProfile, setEmployeeProfile] = useState<Record<string, unknown> | null>(null);
   const [profileLoadError, setProfileLoadError] = useState(false);
+  const [notifications, setNotifications] = useState<EmployeeNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationLoadError, setNotificationLoadError] = useState(false);
+  const [notificationBusy, setNotificationBusy] = useState<string | null>(null);
+  const unreadNotifications = notifications.filter((item) => !item.read).length;
 
   useEffect(() => {
     let active = true;
@@ -110,6 +122,60 @@ function AppShell({ user }: { user: User }) {
     void loadProfile();
     return () => { active = false; };
   }, [user.uid]);
+
+  useEffect(() => {
+    try {
+      const { db } = getFirebaseClient();
+      const notificationQuery = query(
+        collection(db, "notifications"),
+        where("uid", "==", user.uid)
+      );
+      return onSnapshot(notificationQuery, (snapshot) => {
+        const records = snapshot.docs.map((item) => {
+          const data = item.data();
+          const timestamp = data.createdAt && typeof data.createdAt.toDate === "function"
+            ? data.createdAt.toDate() as Date
+            : null;
+          return {
+            id: item.id,
+            title: typeof data.title === "string" ? data.title : "Notifikasi",
+            message: typeof data.message === "string" ? data.message : (typeof data.body === "string" ? data.body : ""),
+            read: data.read === true || data.isRead === true,
+            createdAt: timestamp,
+          };
+        }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+        setNotifications(records);
+        setNotificationLoadError(false);
+      }, (error) => {
+        console.error("Gagal membaca notifikasi Firebase", error);
+        setNotificationLoadError(true);
+      });
+    } catch (error) {
+      console.error("Firebase belum siap untuk membaca notifikasi", error);
+      setNotificationLoadError(true);
+    }
+  }, [user.uid]);
+
+  async function markNotificationRead(notificationId: string) {
+    setNotificationBusy(notificationId);
+    try {
+      const { db } = getFirebaseClient();
+      await updateDoc(doc(db, "notifications", notificationId), {
+        read: true,
+        readAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error("Gagal menandai notifikasi sudah dibaca", error);
+      setNotificationLoadError(true);
+    } finally {
+      setNotificationBusy(null);
+    }
+  }
+
+  async function markAllNotificationsRead() {
+    const unread = notifications.filter((item) => !item.read);
+    await Promise.all(unread.map((item) => markNotificationRead(item.id)));
+  }
 
   useEffect(() => {
     try {
@@ -181,7 +247,22 @@ function AppShell({ user }: { user: User }) {
   return <div className="app-shell">
     <header className="topbar">
       <div><p className="greeting">Halo, Karyawan <span>👋</span></p><p className="muted">{new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}</p></div>
-      <button className="round-button" aria-label="Notifikasi" onClick={() => alert("Notifikasi akan dihubungkan ke Firebase.")}><Bell /></button>
+      <div className="notification-wrap">
+        <button className="round-button notification-button" type="button" aria-label={unreadNotifications ? `Notifikasi, ${unreadNotifications} belum dibaca` : "Notifikasi"} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}>
+          <Bell />
+          {unreadNotifications > 0 && <span className="notification-badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
+        </button>
+        {notificationsOpen && <section className="notification-panel" aria-label="Daftar notifikasi">
+          <div className="notification-panel-head"><strong>Notifikasi</strong><button type="button" className="text-button" disabled={unreadNotifications === 0 || notificationBusy !== null} onClick={() => void markAllNotificationsRead()}>Tandai semua dibaca</button></div>
+          {notificationLoadError ? <p className="notification-empty">Notifikasi gagal dimuat. Periksa aturan akses Firestore.</p> :
+            notifications.length === 0 ? <p className="notification-empty">Belum ada notifikasi.</p> :
+              <div className="notification-list">{notifications.map((item) => <button key={item.id} type="button" className={item.read ? "notification-item read" : "notification-item unread"} disabled={notificationBusy === item.id} onClick={() => { if (!item.read) void markNotificationRead(item.id); }}>
+                <span className="notification-dot" />
+                <span className="notification-copy"><strong>{item.title}</strong>{item.message && <span>{item.message}</span>}<small>{item.createdAt ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(item.createdAt) : "Baru saja"}</small></span>
+                {!item.read && <span className="notification-unread-label">Baru</span>}
+              </button>)}</div>}
+        </section>}
+      </div>
       <button className="avatar avatar-button" type="button" aria-label="Buka Profil" title="Buka Profil" onClick={() => setPage("profile")}>{String(employeeProfile?.nama || employeeProfile?.name || user.displayName || user.email || "K").trim().charAt(0).toUpperCase()}</button>
     </header>
 
