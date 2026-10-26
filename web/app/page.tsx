@@ -332,5 +332,5 @@ export default function Home() {
   }
   if (!authReady) return <main className="login-page"><Brand /><p className="muted">Memeriksa sesi akun...</p></main>;
   if (authError && !user) return <main className="login-page"><Brand /><section className="login-card"><p role="alert" className="error-message">{authError}</p><p className="muted">Pastikan variabel Firebase Web sudah diatur pada GitHub Actions Variables.</p></section></main>;
-  return user ? <><AppShell user={user} /><button className="web-logout" onClick={async () => { const { auth } = getFirebaseClient(); await signOut(auth); }}>Keluar</button></> : <Login onLogin={login} />;
+  return user ? <AppShell user={user} /> : <Login onLogin={login} />;
 }
