@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/webapp-foundation
+      - feature/webapp-integration
     paths:
       - "web/**"
       - ".github/workflows/deploy-pages.yml"
