@@ -629,3 +629,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .quick-card { padding-inline: 3px; }
   .nav-item { font-size: 8px; }
 }
+
+
+/* Employee profile page */
+.profile-hero { display:flex; flex-direction:column; align-items:center; text-align:center; padding:28px 20px; margin-bottom:18px; border-radius:28px; background:linear-gradient(145deg,#1c3d30,#08392c); color:white; box-shadow:var(--shadow); }
+.profile-avatar { width:76px; height:76px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.15); color:white; margin-bottom:14px; }
+.profile-hero h2 { margin:0 0 8px; font-size:22px; }
+.profile-hero p { margin:0; color:#d1dcd6; font-size:14px; overflow-wrap:anywhere; }
+.profile-details { padding:4px 20px; }
+.profile-row { display:flex; align-items:center; gap:14px; padding:17px 0; border-bottom:1px solid var(--line); min-width:0; }
+.profile-row:last-child { border-bottom:0; }
+.profile-row > span { width:42px; height:42px; flex:0 0 42px; display:grid; place-items:center; border-radius:14px; background:var(--green-soft); color:var(--green); }
+.profile-row > div { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.profile-row small { color:var(--muted); font-size:12px; }
+.profile-row strong { font-size:14px; overflow-wrap:anywhere; }
