@@ -673,3 +673,29 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .notification-panel-head { padding: 12px; }
   .notification-item { padding: 12px; }
 }
+
+
+/* Settings pages wired to the Android-style settings menu */
+.settings-detail { overflow: hidden; }
+.settings-detail-title { margin: 18px 20px 8px; font-size: 16px; }
+.settings-note { padding: 0 20px 18px; font-size: 12px; line-height: 1.6; }
+.theme-option { width: 100%; text-align: left; }
+.theme-check { margin-left: auto; color: var(--green); }
+.help-content { padding: 8px 20px 18px; }
+.help-content article { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.help-content article:last-child { border-bottom: 0; }
+.help-content article strong { font-size: 14px; }
+.help-content article p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.about-content { padding: 24px 20px 10px; text-align: center; }
+.about-mark { width: 76px; height: 76px; display: grid; place-items: center; margin: 0 auto 14px; border-radius: 24px; background: var(--green-deep); color: white; }
+.about-content h2 { margin: 0 0 7px; font-size: 20px; }
+.about-content > .muted { margin: 0 0 16px; }
+.about-content .profile-row { text-align: left; }
+.theme-dark { --page: #121816; --text: #f0f5f2; --muted: #a6b2ab; --line: #33423a; --white: #1e2822; --green-soft: #263c31; background: var(--page); color: var(--text); }
+.theme-dark .page-content, .theme-dark .topbar { color: var(--text); }
+.theme-dark .settings-card, .theme-dark .form-card, .theme-dark .history-record, .theme-dark .notification-panel { background: #1e2822; border-color: #33423a; color: var(--text); }
+.theme-dark .setting-row, .theme-dark .notification-panel-head, .theme-dark .notification-item { background: #1e2822; color: var(--text); border-color: #33423a; }
+.theme-dark .notification-item.unread { background: #263c31; }
+.theme-dark .notification-copy > span { color: #c1cec5; }
+.theme-dark .bottom-nav { background: #1e2822; border-color: #33423a; }
+.theme-dark .input-block input, .theme-dark .input-block textarea, .theme-dark .input-block select { background: #121816; color: var(--text); border-color: #425148; }
