@@ -83,6 +83,39 @@ function AppShell({ user }: { user: User }) {
   const [attendanceMessage, setAttendanceMessage] = useState("");
   const [todayAttendance, setTodayAttendance] = useState<{ jamMasuk: string; jamPulang: string } | null>(null);
   const [attendanceLoadError, setAttendanceLoadError] = useState(false);
+  const [attendanceHistory, setAttendanceHistory] = useState<Array<{ id: string; tanggal: string; jamMasuk: string; jamPulang: string; status: string; kantor: string }>>([]);
+  const [historyLoadError, setHistoryLoadError] = useState(false);
+
+  useEffect(() => {
+    try {
+      const { db } = getFirebaseClient();
+      const attendanceQuery = query(
+        collection(db, "attendance"),
+        where("uid", "==", user.uid)
+      );
+      return onSnapshot(attendanceQuery, (snapshot) => {
+        const records = snapshot.docs.map((item) => {
+          const data = item.data();
+          return {
+            id: item.id,
+            tanggal: typeof data.tanggal === "string" ? data.tanggal : "",
+            jamMasuk: typeof data.jamMasuk === "string" ? data.jamMasuk : "",
+            jamPulang: typeof data.jamPulang === "string" ? data.jamPulang : "",
+            status: typeof data.status === "string" ? data.status : "Hadir",
+            kantor: typeof data.kantor === "string" ? data.kantor : (typeof data.lokasi === "string" ? data.lokasi : ""),
+          };
+        }).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+        setAttendanceHistory(records);
+        setHistoryLoadError(false);
+      }, (error) => {
+        console.error("Gagal membaca riwayat absensi", error);
+        setHistoryLoadError(true);
+      });
+    } catch (error) {
+      console.error("Firebase belum siap untuk membaca riwayat", error);
+      setHistoryLoadError(true);
+    }
+  }, [user.uid]);
 
   useEffect(() => {
     try {
@@ -201,7 +234,11 @@ function AppShell({ user }: { user: User }) {
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Riwayat</h1><p className="muted">Riwayat dan status pengajuan</p></div><button className="icon-button" aria-label="Muat ulang"><RefreshCw /></button></div>
       <div className="segmented large"><button className={historyTab === "attendance" ? "selected" : ""} onClick={() => setHistoryTab("attendance")}>Absensi</button><button className={historyTab === "requests" ? "selected" : ""} onClick={() => setHistoryTab("requests")}>Pengajuan</button></div>
       <div className="filter-pills">{(historyTab === "attendance" ? ["7 Hari", "1 Bulan", "Semua"] : ["Semua", "Menunggu", "Disetujui", "Ditolak"]).map((x, i) => <button className={i === 0 ? "selected" : ""} key={x}>{x}</button>)}</div>
-      <div className="empty-state history-empty">{historyTab === "attendance" ? <CalendarDays size={42} /> : <FileText size={42} />}<strong>{historyTab === "attendance" ? "Belum ada riwayat absensi" : "Belum ada pengajuan"}</strong><p>{historyTab === "attendance" ? "Data kehadiran akan muncul di sini." : "Pengajuan yang kamu buat akan muncul di sini."}</p></div>
+      {historyTab === "attendance" ? (
+        historyLoadError ? <div className="empty-state history-empty"><Info size={42} /><strong>Riwayat belum bisa dimuat</strong><p>Periksa koneksi dan aturan akses Firestore, lalu coba lagi.</p></div> :
+        attendanceHistory.length === 0 ? <div className="empty-state history-empty"><CalendarDays size={42} /><strong>Belum ada riwayat absensi</strong><p>Data kehadiran akan muncul di sini setelah presensi tersimpan.</p></div> :
+        <div className="history-list">{attendanceHistory.map((record) => <article className="history-record" key={record.id}><div className="history-record-date"><CalendarDays size={19} /><strong>{record.tanggal || "Tanggal tidak tersedia"}</strong><span className="status-pill status-present">{record.status}</span></div><div className="history-record-times"><span>Jam Masuk<strong>{record.jamMasuk || "-"}</strong></span><span>Jam Pulang<strong>{record.jamPulang || "-"}</strong></span></div>{record.kantor && <p className="muted history-location"><MapPin size={15} /> {record.kantor}</p>}</article>)}</div>
+      ) : <div className="empty-state history-empty"><FileText size={42} /><strong>Riwayat pengajuan belum terhubung</strong><p>Data pengajuan akan ditampilkan setelah integrasi koleksi pengajuan selesai.</p></div>}
     </main>}
 
     {page === "settings" && <main className="page-content subpage">
