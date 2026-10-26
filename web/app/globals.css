@@ -168,8 +168,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .quick-card { border-radius: 22px; }
 }
 
-/* Desktop-first workspace: activate only at 1280px and above. */
-@media (min-width: 1280px) {
+/* Responsive workspace: switch to desktop navigation when there is enough room. */
+@media (min-width: 900px) {
   .login-page {
     max-width: 100%;
     min-height: 100dvh;
