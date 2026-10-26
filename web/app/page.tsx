@@ -13,7 +13,7 @@ import {
   Info, RefreshCw
 } from "lucide-react";
 
-type Page = "home" | "requests" | "history" | "settings" | "scan";
+type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile";
 type HistoryTab = "attendance" | "requests";
 
 const green = "#123f32";
@@ -90,6 +90,26 @@ function AppShell({ user }: { user: User }) {
   const [attendanceLoadError, setAttendanceLoadError] = useState(false);
   const [attendanceHistory, setAttendanceHistory] = useState<Array<{ id: string; tanggal: string; jamMasuk: string; jamPulang: string; status: string; kantor: string }>>([]);
   const [historyLoadError, setHistoryLoadError] = useState(false);
+  const [employeeProfile, setEmployeeProfile] = useState<Record<string, unknown> | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadProfile() {
+      try {
+        const { db } = getFirebaseClient();
+        const snapshot = await getDoc(doc(db, "users", user.uid));
+        if (!active) return;
+        setEmployeeProfile(snapshot.exists() ? snapshot.data() : {});
+        setProfileLoadError(false);
+      } catch (error) {
+        console.error("Gagal memuat profil karyawan", error);
+        if (active) setProfileLoadError(true);
+      }
+    }
+    void loadProfile();
+    return () => { active = false; };
+  }, [user.uid]);
 
   useEffect(() => {
     try {
@@ -286,6 +306,20 @@ function AppShell({ user }: { user: User }) {
         attendanceHistory.length === 0 ? <div className="empty-state history-empty"><CalendarDays size={42} /><strong>Belum ada riwayat absensi</strong><p>Data kehadiran akan muncul di sini setelah presensi tersimpan.</p></div> :
         <div className="history-list">{attendanceHistory.map((record) => <article className="history-record" key={record.id}><div className="history-record-date"><CalendarDays size={19} /><strong>{record.tanggal || "Tanggal tidak tersedia"}</strong><span className="status-pill status-present">{record.status}</span></div><div className="history-record-times"><span>Jam Masuk<strong>{record.jamMasuk || "-"}</strong></span><span>Jam Pulang<strong>{record.jamPulang || "-"}</strong></span></div>{record.kantor && <p className="muted history-location"><MapPin size={15} /> {record.kantor}</p>}</article>)}</div>
       ) : <div className="empty-state history-empty"><FileText size={42} /><strong>Riwayat pengajuan belum terhubung</strong><p>Data pengajuan akan ditampilkan setelah integrasi koleksi pengajuan selesai.</p></div>}
+    </main>}
+
+    {page === "profile" && <main className="page-content subpage">
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")} aria-label="Kembali ke beranda"><ArrowRight className="back-arrow" /></button><div><h1>Profil Saya</h1><p className="muted">Informasi akun karyawan</p></div></div>
+      {profileLoadError ? <div className="empty-state"><Info size={42} /><strong>Profil belum bisa dimuat</strong><p>Periksa koneksi dan izin akses Firestore, lalu coba lagi.</p><button className="primary-button" onClick={async () => { setProfileLoadError(false); try { const { db } = getFirebaseClient(); const snapshot = await getDoc(doc(db, "users", user.uid)); setEmployeeProfile(snapshot.exists() ? snapshot.data() : {}); } catch { setProfileLoadError(true); } }}>Coba Lagi</button></div> : <>
+        <section className="profile-hero"><div className="profile-avatar"><UserRound size={34} /></div><h2>{String(employeeProfile?.nama ?? employeeProfile?.name ?? user.displayName ?? "Karyawan")}</h2><p>{user.email || "Email tidak tersedia"}</p></section>
+        <section className="settings-card profile-details">
+          <div className="profile-row"><span><UserRound /></span><div><small>Nama Lengkap</small><strong>{String(employeeProfile?.nama ?? employeeProfile?.name ?? user.displayName ?? "-")}</strong></div></div>
+          <div className="profile-row"><span><BriefcaseBusiness /></span><div><small>Divisi</small><strong>{String(employeeProfile?.divisi ?? employeeProfile?.division ?? "-")}</strong></div></div>
+          <div className="profile-row"><span><BriefcaseBusiness /></span><div><small>Jabatan</small><strong>{String(employeeProfile?.jabatan ?? employeeProfile?.position ?? "-")}</strong></div></div>
+          <div className="profile-row"><span><Info /></span><div><small>Status Akun</small><strong>{String(employeeProfile?.status ?? (employeeProfile?.active === false ? "Nonaktif" : "Aktif"))}</strong></div></div>
+          <div className="profile-row"><span><LockKeyhole /></span><div><small>Email Login</small><strong>{user.email || "-"}</strong></div></div>
+        </section>
+      </>}
     </main>}
 
     {page === "settings" && <main className="page-content subpage">
