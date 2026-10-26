@@ -1151,3 +1151,119 @@ body { margin: 0; }
 @media (min-width: 1440px) {
   .topbar, .page-content { max-width: 1320px; }
 }
+
+
+/* Desktop sizing refinement — keep mobile behavior intact */
+@media (min-width: 1024px) {
+  .topbar, .page-content {
+    max-width: 1320px;
+  }
+  .topbar {
+    padding: 30px 48px 24px;
+  }
+  .page-content {
+    padding: 0 48px 32px;
+  }
+  .app-shell {
+    padding-bottom: 24px;
+  }
+  .bottom-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    max-width: 1320px;
+    margin: 24px auto 0;
+    padding: 14px 24px max(14px, env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+  }
+  .nav-item {
+    flex: 1;
+    max-width: 190px;
+    font-size: 13px;
+    gap: 8px;
+  }
+  .nav-icon {
+    width: 52px;
+    height: 38px;
+  }
+  .nav-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  .nav-scan-icon {
+    width: 60px;
+    height: 60px;
+    margin-top: -14px;
+  }
+  .nav-scan-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+  .greeting {
+    font-size: 28px;
+  }
+  .section-title {
+    font-size: 24px;
+    margin-block: 32px 20px;
+  }
+  .clock-time {
+    font-size: clamp(44px, 4vw, 60px);
+  }
+  .attendance-action {
+    min-height: 108px;
+    padding: 22px 24px;
+  }
+  .action-copy strong {
+    font-size: 19px;
+  }
+  .action-copy small {
+    font-size: 14px;
+  }
+  .quick-grid {
+    gap: 20px;
+  }
+  .quick-card {
+    min-height: 172px;
+    padding: 22px 16px;
+  }
+  .quick-card strong {
+    font-size: 15px;
+  }
+  .quick-card small {
+    font-size: 12px;
+  }
+  .subpage {
+    padding-top: 32px;
+  }
+  .page-heading {
+    margin-bottom: 28px;
+  }
+  .page-heading h1 {
+    font-size: 30px;
+  }
+  .page-heading p {
+    font-size: 15px;
+  }
+  .form-card, .settings-card, .history-record, .profile-hero, .chat-card {
+    padding: 28px;
+    border-radius: 26px;
+  }
+  .input-block input, .input-block textarea, .input-block select {
+    font-size: 16px;
+  }
+  .primary-button {
+    min-height: 58px;
+    font-size: 17px;
+  }
+}
+@media (min-width: 1440px) {
+  .topbar, .page-content, .bottom-nav {
+    max-width: 1440px;
+  }
+  .topbar {
+    padding-inline: 56px;
+  }
+  .page-content {
+    padding-inline: 56px;
+  }
+}
