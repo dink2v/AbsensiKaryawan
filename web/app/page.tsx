@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { addDoc, collection, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
+import QrScanner from "./qr-scanner";
 import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
   FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
@@ -81,6 +82,9 @@ function AppShell({ user }: { user: User }) {
   const [sent, setSent] = useState(false);
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState("");
+  const [scannedQr, setScannedQr] = useState<{ qrData: string; officeName: string } | null>(null);
+  const [qrNote, setQrNote] = useState("");
+
   const [todayAttendance, setTodayAttendance] = useState<{ jamMasuk: string; jamPulang: string } | null>(null);
   const [attendanceLoadError, setAttendanceLoadError] = useState(false);
   const [attendanceHistory, setAttendanceHistory] = useState<Array<{ id: string; tanggal: string; jamMasuk: string; jamPulang: string; status: string; kantor: string }>>([]);
@@ -180,9 +184,47 @@ function AppShell({ user }: { user: User }) {
     {page === "scan" && <main className="page-content subpage">
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Scan Kehadiran</h1><p className="muted">Arahkan kamera ke QR Code</p></div></div>
       <div className="info-banner"><Info size={20} /> Pastikan pencahayaan cukup dan QR terlihat jelas di dalam kotak.</div>
-      <div className="scanner-placeholder"><div className="scanner-label"><ScanQrCode size={20} /> PEMINDAI QR</div><div className="scan-frame"><i /><i /><i /><i /><span /></div><p>Fitur kamera akan diaktifkan pada tahap integrasi.</p></div>
-      <label className="input-block">Catatan (opsional)<input placeholder="Tambahkan catatan jika diperlukan" /></label>
-      <button className="primary-button wide" onClick={() => alert("Presensi belum dikirim. Kamera, validasi QR, dan Firebase perlu dihubungkan terlebih dahulu.")}><Check /> Konfirmasi Absen</button>
+      <QrScanner onValidQr={(qrData, officeName) => setScannedQr({ qrData, officeName })} />
+      {scannedQr && <div className="verified-qr"><Check size={18} /><span><strong>QR terverifikasi</strong><small>{scannedQr.officeName}</small></span></div>}
+      <label className="input-block">Catatan (opsional)<input value={qrNote} onChange={e => setQrNote(e.target.value)} placeholder="Tambahkan catatan jika diperlukan" /></label>
+      <button className="primary-button wide" disabled={!scannedQr || attendanceBusy} onClick={async () => {
+        setAttendanceMessage("");
+        setAttendanceBusy(true);
+        try {
+          const { db } = getFirebaseClient();
+          const now = new Date();
+          const tanggal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          const jamMasuk = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+          if (attendanceHistory.some(record => record.tanggal === tanggal && record.jamMasuk)) {
+            setAttendanceMessage("Presensi masuk hari ini sudah tercatat.");
+            return;
+          }
+          await addDoc(collection(db, "attendance"), {
+            uid: user.uid,
+            nama: user.displayName || user.email || "Karyawan",
+            tanggal,
+            jamMasuk,
+            jamPulang: "",
+            status: "Hadir",
+            qrData: scannedQr.qrData,
+            kantor: scannedQr.officeName,
+            catatan: qrNote.trim(),
+            createdAt: serverTimestamp(),
+          });
+          setAttendanceMessage("Presensi masuk berhasil disimpan.");
+          setScannedQr(null);
+          setQrNote("");
+        } catch (e) {
+          console.error("Gagal menyimpan presensi QR", e);
+          const code = (e as { code?: string })?.code;
+          setAttendanceMessage(code === "permission-denied"
+            ? "Presensi ditolak oleh aturan keamanan Firestore. Hubungi Admin."
+            : "Presensi belum tersimpan. Periksa koneksi lalu coba lagi.");
+        } finally {
+          setAttendanceBusy(false);
+        }
+      }}>{attendanceBusy ? "Menyimpan..." : <><Check /> Konfirmasi Absen</>}</button>
+      {attendanceMessage && <p role="status" aria-live="polite" className={attendanceMessage.includes("berhasil disimpan") ? "success-message" : "error-message"}>{attendanceMessage}</p>}
       <button className="accordion" onClick={() => setOutsideOpen(!outsideOpen)}><BriefcaseBusiness /> Absen di Luar Kantor <ChevronRight className={outsideOpen ? "rotate" : ""} /></button>
       {outsideOpen && <section className="form-card"><h2><BriefcaseBusiness /> Absen dari lokasi tugas</h2><p>Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.</p><label className="input-block">Lokasi<input value={location} onChange={e => setLocation(e.target.value)} placeholder="Contoh: SMK Negeri 1 Blitar" /></label><label className="input-block">Alasan / Keperluan<textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Contoh: Bertemu klien untuk keperluan pekerjaan" rows={3} /></label><button className="primary-button wide" disabled={!location.trim() || !reason.trim() || attendanceBusy} onClick={async () => {
         setAttendanceMessage("");
