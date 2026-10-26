@@ -191,6 +191,10 @@ function AppShell({ user }: { user: User }) {
         setAttendanceMessage("");
         setAttendanceBusy(true);
         try {
+          if (!scannedQr) {
+            setAttendanceMessage("Scan QR yang valid terlebih dahulu.");
+            return;
+          }
           const { db } = getFirebaseClient();
           const now = new Date();
           const tanggal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
