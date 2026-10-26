@@ -531,7 +531,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .account-note { font-size: 12px; }
   .login-footer { padding-top: 22px; font-size: 10px; gap: 7px; }
 
-  .app-shell { padding: 0 0 72px; }
+  .app-shell { padding: 0 0 calc(120px + env(safe-area-inset-bottom)); }
   .topbar { gap: 8px; padding: 14px 14px 12px; }
   .greeting { font-size: 17px; margin-bottom: 4px; }
   .topbar .muted { font-size: 10px; }
@@ -553,7 +553,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .action-copy strong { font-size: 12px; }
   .action-copy small { font-size: 10px; }
   .quick-title { margin-top: 18px; }
-  .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .quick-grid { position: relative; z-index: 1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .quick-card { position: relative; z-index: 1; touch-action: manipulation; pointer-events: auto; }
   .quick-card { min-height: 96px; padding: 9px 5px; gap: 6px; border-radius: 14px; }
   .quick-card > span { width: 36px; height: 36px; }
   .quick-card strong { font-size: 10px; text-align: center; }
