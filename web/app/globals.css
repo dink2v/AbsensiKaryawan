@@ -509,3 +509,65 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .verified-qr small {
   color: #4b6e55;
 }
+
+
+/* Compact mobile layout: reduce oversized spacing and controls on phone previews. */
+@media (max-width: 699px) {
+  .login-page { padding: 32px 18px 22px; }
+  .brand { margin-bottom: 28px; }
+  .brand-mark { width: 76px; height: 76px; border-radius: 24px; margin-bottom: 16px; }
+  .brand-mark svg { width: 30px; height: 30px; }
+  .brand h1 { font-size: clamp(24px, 5vw, 32px); }
+  .brand p { margin-top: 8px; font-size: 14px; }
+  .login-card { padding: 24px 20px 22px; border-radius: 24px; }
+  .login-card h2 { font-size: 21px; margin-bottom: 10px; }
+  .intro { font-size: 14px; line-height: 1.65; margin-bottom: 22px; }
+  .field { min-height: 60px; gap: 12px; padding: 0 16px; border-radius: 18px; margin-bottom: 18px; }
+  .field input { font-size: 15px; }
+  .primary-button { min-height: 58px; padding: 13px 18px; border-radius: 18px; font-size: 16px; gap: 10px; }
+  .forgot { margin: 18px auto 24px; }
+  .login-footer { padding-top: 28px; font-size: 12px; gap: 8px; }
+
+  .app-shell { padding-bottom: 88px; }
+  .topbar { gap: 10px; padding: 18px 18px 16px; }
+  .greeting { font-size: 20px; margin-bottom: 5px; }
+  .topbar .muted { font-size: 12px; }
+  .round-button, .avatar { width: 44px; height: 44px; }
+  .avatar { font-size: 17px; }
+  .page-content { padding: 0 16px; }
+  .clock-card { padding: 22px 18px 18px; border-radius: 24px; }
+  .clock-head > span { gap: 7px; font-size: 12px; }
+  .clock-time { font-size: clamp(30px, 8vw, 40px); margin: 12px 0 20px; }
+  .clock-foot { font-size: 11px; padding-top: 15px; }
+  .clock-foot strong { font-size: 15px; margin-top: 8px; }
+  .status-pill { padding: 9px 10px; font-size: 10px; }
+  .section-title { font-size: 18px; margin: 26px 0 14px; }
+  .attendance-action { min-height: 86px; gap: 12px; padding: 14px 15px; border-radius: 22px; margin-bottom: 11px; }
+  .action-icon { width: 48px; height: 48px; flex-basis: 48px; }
+  .action-icon svg { width: 22px; height: 22px; }
+  .action-copy { gap: 7px; }
+  .action-copy strong { font-size: 15px; }
+  .action-copy small { font-size: 12px; }
+  .quick-title { margin-top: 24px; }
+  .quick-grid { gap: 8px; }
+  .quick-card { min-height: 124px; padding: 13px 7px; gap: 9px; border-radius: 20px; }
+  .quick-card > span { width: 46px; height: 46px; }
+  .quick-card strong { font-size: 12px; }
+  .quick-card small { font-size: 10px; }
+  .bottom-nav { padding: 6px 4px max(8px, env(safe-area-inset-bottom)); }
+  .nav-icon { width: 44px; height: 32px; }
+  .nav-icon svg { width: 21px; height: 21px; }
+  .nav-item { font-size: 10px; gap: 4px; }
+  .nav-scan-icon { width: 60px; height: 60px; margin-top: -28px; }
+  .nav-scan-icon svg { width: 28px; height: 28px; }
+  .subpage { padding-top: 18px; }
+  .page-heading { gap: 9px; margin-bottom: 20px; }
+  .page-heading h1 { font-size: 23px; }
+  .page-heading p { font-size: 12px; }
+  .form-card, .settings-card, .logout { border-radius: 20px; padding: 18px; }
+  .new-request { padding: 18px; border-radius: 22px; }
+  .stat { padding: 14px 10px; border-radius: 18px; }
+  .stat strong { font-size: 20px; }
+  .history-record { padding: 13px; }
+  .scanner-card { padding: 12px; }
+}
