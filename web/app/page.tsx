@@ -198,7 +198,7 @@ function AppShell({ user }: { user: User }) {
       <div className="quick-grid">
         <button className="quick-card" onClick={() => setPage("history")}><span><History /></span><strong>Riwayat</strong><small>Absensi</small></button>
         <button className="quick-card" onClick={() => setPage("requests")}><span><FileText /></span><strong>Pengajuan</strong><small>Izin / Sakit</small></button>
-        <button className="quick-card" onClick={() => setPage("settings")}><span><UserRound /></span><strong>Profil</strong><small>Data Saya</small></button>
+        <button className="quick-card" onClick={() => setPage("profile")}><span><UserRound /></span><strong>Profil</strong><small>Data Saya</small></button>
       </div>
     </main>}
 
