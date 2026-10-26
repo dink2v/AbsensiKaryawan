@@ -14,7 +14,7 @@ class AdminChatRepository {
         FirebaseFirestore.getInstance()
 
     private val chatRoomsCollection =
-        firestore.collection("chatRoomas")
+        firestore.collection("chatRooms")
 
     private val notificationRepository =
         NotificationRepository()
