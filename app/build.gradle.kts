@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.example.absensikaryawan"
 
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.example.absensikaryawan"
