@@ -52,13 +52,13 @@ dependencies {
 
     implementation(
         platform(
-            "androidx.compose:compose-bom:2026.08.00"
+            "androidx.compose:compose-bom:2025.12.00"
         )
     )
 
     androidTestImplementation(
         platform(
-            "androidx.compose:compose-bom:2026.08.00"
+            "androidx.compose:compose-bom:2025.12.00"
         )
     )
 
@@ -68,15 +68,15 @@ dependencies {
     // ==========================================================
 
     implementation(
-        "androidx.core:core-ktx:1.19.0"
+        "androidx.core:core-ktx:1.17.0"
     )
 
     implementation(
-        "androidx.lifecycle:lifecycle-runtime-ktx:2.11.0"
+        "androidx.lifecycle:lifecycle-runtime-ktx:2.9.4"
     )
 
     implementation(
-        "androidx.activity:activity-compose:1.13.0"
+        "androidx.activity:activity-compose:1.11.0"
     )
 
 
