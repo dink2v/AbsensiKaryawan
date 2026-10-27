@@ -13,7 +13,7 @@ android {
         applicationId = "com.example.absensikaryawan"
 
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
 
         versionCode = 2
         versionName = "1.1"
