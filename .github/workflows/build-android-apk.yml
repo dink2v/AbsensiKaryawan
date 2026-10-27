@@ -36,7 +36,7 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK platform
-        run: yes | sdkmanager --licenses && sdkmanager "platforms;android-37"
+        run: yes | sdkmanager --licenses && sdkmanager "platforms;android-37.0"
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
