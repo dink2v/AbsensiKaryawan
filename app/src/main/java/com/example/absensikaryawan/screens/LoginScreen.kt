@@ -434,7 +434,8 @@ fun LoginScreen(
                                         val userProfile =
                                             userRepository
                                                 .getUserByEmail(
-                                                    userEmail
+                                                    userEmail,
+                                                    currentUser.uid
                                                 )
 
                                         if (userProfile == null) {
