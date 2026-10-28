@@ -83,6 +83,7 @@ class UserRepository {
                 val role = adminDocument.getString("role")
                     ?.trim()
                     ?.lowercase()
+                    ?: ""
                 val isActive = adminDocument.getBoolean("active") == true
 
                 if (
