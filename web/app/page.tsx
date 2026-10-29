@@ -92,10 +92,17 @@ function AppShell({ user }: { user: User }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>("sistem");
   const [requestType, setRequestType] = useState("Izin");
   const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestStart, setRequestStart] = useState("");
+  const [requestEnd, setRequestEnd] = useState("");
+  const [requestReason, setRequestReason] = useState("");
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [requestMessage, setRequestMessage] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [employeeRequests, setEmployeeRequests] = useState<Array<{id:string; jenis:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
+  const [requestLoadError, setRequestLoadError] = useState(false);
   const [outsideOpen, setOutsideOpen] = useState(true);
   const [location, setLocation] = useState("");
   const [reason, setReason] = useState("");
-  const [sent, setSent] = useState(false);
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState("");
   const [scannedQr, setScannedQr] = useState<{ qrData: string; officeName: string } | null>(null);
@@ -184,6 +191,86 @@ function AppShell({ user }: { user: User }) {
       setNotificationLoadError(true);
     }
   }, [user.uid]);
+
+  useEffect(() => {
+    if (page !== "requests") return;
+    try {
+      const { db } = getFirebaseClient();
+      return onSnapshot(
+        query(collection(db, "pengajuan"), where("uid", "==", user.uid)),
+        (snapshot) => {
+          const records = snapshot.docs.map((item) => {
+            const data = item.data();
+            const rawCreatedAt = data.createdAt;
+            let createdAt: Date | null = null;
+            if (rawCreatedAt && typeof rawCreatedAt.toDate === "function") createdAt = rawCreatedAt.toDate() as Date;
+            else if (typeof rawCreatedAt === "string") {
+              const parsed = new Date(rawCreatedAt);
+              if (!Number.isNaN(parsed.getTime())) createdAt = parsed;
+            }
+            return {
+              id: item.id,
+              jenis: typeof data.jenis === "string" ? data.jenis : "Lainnya",
+              tanggalMulai: typeof data.tanggalMulai === "string" ? data.tanggalMulai : "",
+              tanggalSelesai: typeof data.tanggalSelesai === "string" ? data.tanggalSelesai : "",
+              keterangan: typeof data.keterangan === "string" ? data.keterangan : "",
+              status: typeof data.status === "string" ? data.status : "Menunggu",
+              createdAt,
+            };
+          }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+          setEmployeeRequests(records);
+          setRequestLoadError(false);
+        },
+        (error) => {
+          console.error("Gagal memuat pengajuan", error);
+          setRequestLoadError(true);
+        }
+      );
+    } catch (error) {
+      console.error("Firebase belum siap untuk pengajuan", error);
+      setRequestLoadError(true);
+    }
+  }, [page, user.uid]);
+
+  async function submitRequest() {
+    setRequestError("");
+    setRequestMessage("");
+    if (!requestStart || !requestEnd || !requestReason.trim()) {
+      setRequestError("Tanggal mulai, tanggal selesai, dan keterangan wajib diisi.");
+      return;
+    }
+    if (requestEnd < requestStart) {
+      setRequestError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+      return;
+    }
+    setRequestBusy(true);
+    try {
+      const { db } = getFirebaseClient();
+      await addDoc(collection(db, "pengajuan"), {
+        uid: user.uid,
+        nama: String(employeeProfile?.nama ?? employeeProfile?.name ?? user.displayName ?? user.email ?? "Karyawan"),
+        jenis: requestType,
+        tanggalMulai: requestStart,
+        tanggalSelesai: requestEnd,
+        keterangan: requestReason.trim(),
+        status: "Menunggu",
+        createdAt: serverTimestamp(),
+      });
+      setRequestMessage("Pengajuan berhasil dikirim dan menunggu persetujuan Admin.");
+      setRequestStart("");
+      setRequestEnd("");
+      setRequestReason("");
+      setShowRequestForm(false);
+    } catch (error) {
+      console.error("Gagal mengirim pengajuan", error);
+      const code = (error as { code?: string })?.code;
+      setRequestError(code === "permission-denied"
+        ? "Pengajuan ditolak oleh aturan keamanan Firestore. Hubungi Admin untuk memeriksa izin koleksi pengajuan."
+        : "Pengajuan belum tersimpan. Periksa koneksi lalu coba lagi.");
+    } finally {
+      setRequestBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (page !== "chat") return;
@@ -521,13 +608,12 @@ function AppShell({ user }: { user: User }) {
     </main>}
 
     {page === "requests" && <main className="page-content subpage">
-      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengajuan</h1><p className="muted">Pengajuan yang kamu buat</p></div><button className="icon-button" onClick={() => setSent(false)} aria-label="Muat ulang"><RefreshCw /></button></div>
-      <button className="new-request" onClick={() => setShowRequestForm(!showRequestForm)}><FilePlus2 size={30} /><span><strong>{showRequestForm ? "Tutup Form Pengajuan" : "Buat Pengajuan Baru"}</strong><small>Ajukan izin, cuti, atau keperluan lainnya</small></span></button>
-      {showRequestForm && <section className="form-card"><h2>Pengajuan Baru</h2><label className="input-block">Jenis Pengajuan<select value={requestType} onChange={e => setRequestType(e.target.value)}><option>Izin</option><option>Sakit</option><option>Cuti</option><option>Lainnya</option></select></label><label className="input-block">Tanggal Mulai<input type="date" /></label><label className="input-block">Tanggal Selesai<input type="date" /></label><label className="input-block">Keterangan<textarea rows={3} placeholder="Jelaskan keperluan pengajuan" /></label><button className="primary-button wide" onClick={() => { setSent(true); setShowRequestForm(false); }}>Kirim Pengajuan</button></section>}
-      <div className="segmented"><button className="selected">Pengajuan Saya</button><button onClick={() => alert("Daftar approval mengikuti hak akses akun.")}>Menunggu Approval</button></div>
-      <div className="stats-grid"><div className="stat stat-wait"><span>•••</span><strong>{sent ? "1" : "0"}</strong><small>Menunggu</small></div><div className="stat stat-approved"><Check /><strong>0</strong><small>Disetujui</small></div><div className="stat stat-rejected"><X /><strong>0</strong><small>Ditolak</small></div></div>
-      <div className="filter-pills"><button className="selected">Semua</button><button>Menunggu</button><button>Disetujui</button><button>Ditolak</button></div>
-      <div className="empty-state"><FileText size={42} /><strong>{sent ? "Pengajuan tersimpan sebagai contoh" : "Belum ada pengajuan"}</strong><p>Pengajuan yang kamu buat akan muncul di sini.</p></div>
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengajuan</h1><p className="muted">Ajukan izin, sakit, cuti, atau keperluan lainnya</p></div><button className="icon-button" type="button" aria-label="Muat ulang pengajuan" onClick={() => { setRequestLoadError(false); setPage("home"); setTimeout(() => setPage("requests"), 0); }}><RefreshCw /></button></div>
+      <button className="new-request" type="button" onClick={() => { setShowRequestForm(!showRequestForm); setRequestError(""); setRequestMessage(""); }}><FilePlus2 size={30} /><span><strong>{showRequestForm ? "Tutup Form Pengajuan" : "Buat Pengajuan Baru"}</strong><small>Isi tanggal dan keterangan dengan benar</small></span></button>
+      {showRequestForm && <section className="form-card"><h2>Pengajuan Baru</h2><label className="input-block">Jenis Pengajuan<select value={requestType} onChange={e => setRequestType(e.target.value)}><option>Izin</option><option>Sakit</option><option>Cuti</option><option>Lainnya</option></select></label><label className="input-block">Tanggal Mulai<input type="date" value={requestStart} onChange={e => setRequestStart(e.target.value)} required /></label><label className="input-block">Tanggal Selesai<input type="date" min={requestStart || undefined} value={requestEnd} onChange={e => setRequestEnd(e.target.value)} required /></label><label className="input-block">Keterangan<textarea rows={3} value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Jelaskan keperluan pengajuan" required /></label><button className="primary-button wide" type="button" disabled={requestBusy} onClick={() => void submitRequest()}>{requestBusy ? "Mengirim..." : "Kirim Pengajuan"}</button>{requestError && <p role="alert" className="error-message">{requestError}</p>}</section>}
+      {requestMessage && <p role="status" className="success-message">{requestMessage}</p>}
+      <div className="stats-grid"><div className="stat stat-wait"><span>•••</span><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "menunggu" || item.status.toLowerCase() === "pending").length}</strong><small>Menunggu</small></div><div className="stat stat-approved"><Check /><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "disetujui" || item.status.toLowerCase() === "approved").length}</strong><small>Disetujui</small></div><div className="stat stat-rejected"><X /><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "ditolak" || item.status.toLowerCase() === "rejected").length}</strong><small>Ditolak</small></div></div>
+      {requestLoadError ? <div className="empty-state"><Info size={42} /><strong>Pengajuan belum bisa dimuat</strong><p>Periksa koneksi dan aturan akses Firestore untuk koleksi pengajuan.</p></div> : employeeRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan yang kamu kirim akan muncul di sini.</p></div> : <div className="history-list">{employeeRequests.map(item => <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Tanggal Mulai<strong>{item.tanggalMulai || "-"}</strong></span><span>Tanggal Selesai<strong>{item.tanggalSelesai || "-"}</strong></span></div><p className="muted history-location">{item.keterangan}</p></article>)}</div>}
     </main>}
 
     {page === "history" && <main className="page-content subpage">
