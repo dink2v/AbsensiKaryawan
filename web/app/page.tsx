@@ -137,7 +137,7 @@ function AppShell({ user }: { user: User }) {
         const currentUid = String(data.currentApproverUid ?? "");
         const pending = String(data.status ?? "").toLowerCase() === "menunggu";
         return pending && data.approvalLocked !== true &&
-          (currentUid === user.uid || (viewers.includes(user.uid) && chain.includes(user.uid) && statuses[user.uid] === "menunggu"));
+          (currentUid === user.uid || (chain.includes(user.uid) && statuses[user.uid] === "menunggu"));
       });
       setApprovalRequests(visible.map(item => {
         const data = item.data();
@@ -167,7 +167,7 @@ function AppShell({ user }: { user: User }) {
         const currentUid = String(data.currentApproverUid ?? "");
         const pending = String(data.status ?? "").toLowerCase() === "menunggu";
         if (!pending || data.approvalLocked === true) throw new Error("Pengajuan sudah tidak menunggu persetujuan.");
-        if (!chain.includes(user.uid) || !viewers.includes(user.uid) || currentUid !== user.uid || statuses[user.uid] !== "menunggu") {
+        if (!chain.includes(user.uid) || currentUid !== user.uid || statuses[user.uid] !== "menunggu") {
           throw new Error("Akun ini bukan approver aktif untuk pengajuan tersebut.");
         }
 
@@ -375,17 +375,63 @@ function AppShell({ user }: { user: User }) {
     setRequestBusy(true);
     try {
       const { db } = getFirebaseClient();
-      await addDoc(collection(db, "pengajuan"), {
+      // Mirror the Android approval chain: Supervisor -> Manager -> HRD -> Owner.
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      const approvalRoles = ["Supervisor", "Manager", "HRD", "Owner"];
+      const approvers = approvalRoles.map((role) => {
+        const matches = usersSnapshot.docs.filter((personDoc) =>
+          String(personDoc.data().jabatan ?? "").trim().toLowerCase() === role.toLowerCase()
+        );
+        if (matches.length !== 1) {
+          throw new Error(matches.length === 0
+            ? `Approver dengan jabatan ${role} belum tersedia.`
+            : `Ada lebih dari satu approver dengan jabatan ${role}. Hubungi Admin untuk menentukan approver.`);
+        }
+        const person = matches[0].data();
+        return {
+          uid: String(person.uid ?? matches[0].id).trim(),
+          nama: String(person.nama ?? ""),
+          jabatan: String(person.jabatan ?? role),
+        };
+      });
+      if (approvers.some((person) => !person.uid)) {
+        throw new Error("Data UID approver belum lengkap. Hubungi Admin.");
+      }
+      const approvalChain = approvers.map((person) => person.uid);
+      const approvalStatuses: Record<string, string> = {};
+      approvers.forEach((person, index) => {
+        approvalStatuses[person.uid] = index === 0 ? "menunggu" : "belum";
+      });
+      const employeeName = String(employeeProfile?.nama ?? employeeProfile?.name ?? user.displayName ?? user.email ?? "Karyawan");
+      const requestRef = await addDoc(collection(db, "pengajuan"), {
         uid: user.uid,
-        nama: String(employeeProfile?.nama ?? employeeProfile?.name ?? user.displayName ?? user.email ?? "Karyawan"),
+        nama: employeeName,
         jenis: requestType,
         tanggalMulai: requestStart,
         tanggalSelesai: requestEnd,
+        alasan: requestReason.trim(),
         keterangan: requestReason.trim(),
-        status: "Menunggu",
+        status: "menunggu",
+        waktuPengajuan: serverTimestamp(),
         createdAt: serverTimestamp(),
+        approvalChain,
+        approvalStatuses,
+        currentApproverUid: approvers[0].uid,
+        currentApproverName: approvers[0].nama,
+        currentApproverJabatan: approvers[0].jabatan,
+        approvalLocked: false,
       });
-      setRequestMessage("Pengajuan berhasil dikirim dan menunggu persetujuan Admin.");
+      await addDoc(collection(db, "notifications"), {
+        userId: approvers[0].uid,
+        type: "PENGAJUAN_BARU",
+        title: "Pengajuan Baru",
+        message: `${employeeName} membuat pengajuan ${requestType} dan menunggu persetujuan Anda.`,
+        timestamp: Date.now(),
+        isRead: false,
+        read: false,
+        relatedId: requestRef.id,
+      });
+      setRequestMessage("Pengajuan berhasil dikirim dan menunggu persetujuan Supervisor.");
       setRequestStart("");
       setRequestEnd("");
       setRequestReason("");
