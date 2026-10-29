@@ -230,6 +230,7 @@ function AppShell({ user }: { user: User }) {
           message: `Pengajuan ${outcome.jenis} Anda telah disetujui oleh atasan yang berwenang.`,
           timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
         });
+      }
       setApprovalMessage(status === "Ditolak"
         ? `Pengajuan ${item.nama} berhasil ditolak.`
         : `Pengajuan ${item.nama} berhasil disetujui. Tidak perlu menunggu atasan lain.`);
