@@ -1153,620 +1153,234 @@ body { margin: 0; }
 }
 
 
-/* Desktop sizing refinement — keep mobile behavior intact */
-@media (min-width: 1024px) {
-  .topbar, .page-content {
+
+/* Clean responsive layout rules. Keep one authoritative desktop definition. */
+@media (min-width: 700px) {
+  html, body { min-height: 100%; }
+  html body .app-shell {
+    width: calc(100% - 180px) !important;
+    max-width: none !important;
+    min-height: 100dvh;
+    margin: 0 0 0 180px !important;
+    padding: 20px 24px 28px !important;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  html body .app-shell > .topbar,
+  html body .app-shell > .page-content {
+    width: 100%;
     max-width: 1320px;
+    margin-left: auto;
+    margin-right: auto;
   }
-  .topbar {
-    padding: 30px 48px 24px;
+  html body .app-shell > .topbar { padding: 4px 0 18px; }
+  html body .app-shell > .page-content { padding: 0; }
+
+  html body .app-shell > .bottom-nav {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    transform: none !important;
+    width: 180px !important;
+    max-width: 180px !important;
+    height: 100dvh !important;
+    min-height: 100dvh;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 22px 10px !important;
+    overflow-y: auto;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
   }
-  .page-content {
-    padding: 0 48px 32px;
+  html body .app-shell > .bottom-nav::before {
+    content: "ABSENSI KARYAWAN";
+    display: block;
+    flex: 0 0 auto;
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .25px;
+    white-space: nowrap;
+    padding: 4px 5px 18px;
   }
-  .app-shell {
-    padding-bottom: 24px;
+  html body .app-shell > .bottom-nav .nav-item {
+    flex: 0 0 42px !important;
+    width: 100%;
+    max-width: none;
+    min-height: 42px !important;
+    height: 42px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 7px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
   }
-  .bottom-nav {
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
-    max-width: 1320px;
-    margin: 24px auto 0;
-    padding: 14px 24px max(14px, env(safe-area-inset-bottom));
-    border-radius: 24px 24px 0 0;
-  }
-  .nav-item {
-    flex: 1;
-    max-width: 190px;
-    font-size: 13px;
-    gap: 8px;
-  }
-  .nav-icon {
-    width: 52px;
-    height: 38px;
-  }
-  .nav-icon svg {
-    width: 24px;
-    height: 24px;
-  }
-  .nav-scan-icon {
-    width: 60px;
-    height: 60px;
-    margin-top: -14px;
-  }
-  .nav-scan-icon svg {
+  html body .app-shell > .bottom-nav .nav-icon {
+    flex: 0 0 28px;
     width: 28px;
     height: 28px;
   }
-  .greeting {
-    font-size: 28px;
+  html body .app-shell > .bottom-nav .nav-icon svg {
+    width: 20px;
+    height: 20px;
   }
-  .section-title {
-    font-size: 24px;
-    margin-block: 32px 20px;
+  html body .app-shell > .bottom-nav .nav-scan-icon {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    border-radius: 8px;
   }
-  .clock-time {
-    font-size: clamp(44px, 4vw, 60px);
+  html body .app-shell > .bottom-nav .nav-scan-icon svg {
+    width: 18px;
+    height: 18px;
   }
-  .attendance-action {
-    min-height: 108px;
-    padding: 22px 24px;
-  }
-  .action-copy strong {
-    font-size: 19px;
-  }
-  .action-copy small {
-    font-size: 14px;
-  }
-  .quick-grid {
-    gap: 20px;
-  }
-  .quick-card {
-    min-height: 172px;
-    padding: 22px 16px;
-  }
-  .quick-card strong {
-    font-size: 15px;
-  }
-  .quick-card small {
-    font-size: 12px;
-  }
-  .subpage {
-    padding-top: 32px;
-  }
-  .page-heading {
-    margin-bottom: 28px;
-  }
-  .page-heading h1 {
-    font-size: 30px;
-  }
-  .page-heading p {
-    font-size: 15px;
-  }
-  .form-card, .settings-card, .history-record, .profile-hero, .chat-card {
-    padding: 28px;
-    border-radius: 26px;
-  }
-  .input-block input, .input-block textarea, .input-block select {
-    font-size: 16px;
-  }
-  .primary-button {
-    min-height: 58px;
+
+  html body .app-shell .greeting { font-size: 26px; }
+  html body .app-shell .section-title {
     font-size: 17px;
+    margin: 16px 0 10px;
   }
-}
-@media (min-width: 1440px) {
-  .topbar, .page-content, .bottom-nav {
-    max-width: 1440px;
+  html body .app-shell .clock-card {
+    min-height: 0;
+    margin: 0;
+    padding: 20px 22px;
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(145deg, #1c3d30, #08392c);
   }
-  .topbar {
-    padding-inline: 56px;
+  html body .app-shell .clock-head > span { color: #dce7e2; }
+  html body .app-shell .clock-time {
+    margin: 10px 0 14px;
+    font-size: clamp(34px, 2.8vw, 42px);
+    color: #fff;
   }
-  .page-content {
-    padding-inline: 56px;
+  html body .app-shell .clock-foot { gap: 16px; color: #d3e1da; }
+  html body .app-shell .clock-foot strong { color: #fff; }
+  html body .app-shell .attendance-action {
+    width: 100%;
+    min-height: 66px;
+    margin: 0;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 13px;
+    color: var(--text);
+    background: #fff;
   }
-}
-
-
-/* Actual desktop dashboard composition (mobile remains stacked) */
-@media (min-width: 1024px) {
-  .home-content {
+  html body .app-shell .attendance-action.dark-action {
+    color: #fff;
+    background: #1d3b30;
+  }
+  html body .app-shell .action-icon {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+  }
+  html body .app-shell .action-copy { min-width: 0; }
+  html body .app-shell .action-copy strong { font-size: 15px; }
+  html body .app-shell .action-copy small {
+    font-size: 12px;
+    white-space: normal;
+  }
+  html body .app-shell .action-copy small { color: #626b66; }
+  html body .app-shell .dark-action .action-copy small { color: #d8e4de; }
+  html body .app-shell .quick-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  html body .app-shell .quick-card {
+    min-width: 0;
+    min-height: 100px;
+    padding: 10px;
+    gap: 7px;
+    border-radius: 14px;
+    color: var(--text);
+    background: #fff;
+  }
+  html body .app-shell .quick-card > span {
+    width: 36px;
+    height: 36px;
+  }
+  html body .app-shell .quick-card strong { font-size: 13px; }
+  html body .app-shell .quick-card small { font-size: 11px; }
+  html body .app-shell .subpage { padding-top: 18px; }
+  html body .app-shell .form-card,
+  html body .app-shell .settings-card,
+  html body .app-shell .history-record,
+  html body .app-shell .profile-hero,
+  html body .app-shell .chat-card { padding: 24px; border-radius: 20px; }
+}
+@media (min-width: 1024px) {
+  html body .app-shell > .page-content.home-content {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
     grid-template-areas:
       "clock attendance-title"
       "clock attendance-scan"
       "clock attendance-outside"
       "quick-title quick-title"
       "quick-grid quick-grid";
-    align-items: stretch;
-    column-gap: 28px;
-    row-gap: 0;
+    align-items: start;
+    column-gap: 18px;
+    row-gap: 10px;
   }
-  .home-content > .clock-card {
+  html body .app-shell > .page-content.home-content > .clock-card {
     grid-area: clock;
     align-self: start;
-    min-height: 300px;
-    margin-bottom: 0;
   }
-  .home-content > .section-title:not(.quick-title) {
+  html body .app-shell > .page-content.home-content > h2.section-title:not(.quick-title) {
     grid-area: attendance-title;
-    margin-top: 0;
-    margin-bottom: 16px;
+    margin: 0 0 2px;
     align-self: end;
+    color: var(--text);
   }
-  .home-content > .attendance-action:nth-of-type(1) {
+  html body .app-shell > .page-content.home-content > button.attendance-action.dark-action {
     grid-area: attendance-scan;
   }
-  .home-content > .attendance-action:nth-of-type(2) {
+  html body .app-shell > .page-content.home-content > button.attendance-action:not(.dark-action) {
     grid-area: attendance-outside;
   }
-  .home-content > .quick-title {
+  html body .app-shell > .page-content.home-content > h2.quick-title {
     grid-area: quick-title;
-    margin-top: 34px;
+    margin-top: 12px;
   }
-  .home-content > .quick-grid {
+  html body .app-shell > .page-content.home-content > .quick-grid {
     grid-area: quick-grid;
   }
 }
 @media (min-width: 1440px) {
-  .home-content {
-    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
-    column-gap: 36px;
-  }
-  .home-content > .clock-card {
-    padding: 34px;
-  }
-}
-
-/* Hotfix: keep the desktop sidebar separate from the dashboard content.
-   Earlier responsive overrides reset the app shell margin and let the page
-   render underneath the fixed navigation. */
-@media (min-width: 700px) {
-  .app-shell {
-    width: calc(100% - 248px);
-    max-width: none;
-    min-height: 100dvh;
-    margin: 0 0 0 248px;
-    padding: 28px clamp(24px, 3vw, 56px) 32px;
-    background: var(--page);
-  }
-  .topbar,
-  .page-content {
-    width: 100%;
-    max-width: 1440px;
-    margin-inline: auto;
-  }
-  .topbar {
-    padding: 8px 0 24px;
-  }
-  .page-content {
-    padding: 0;
-  }
-  .page-content .clock-card {
-    color: #fff;
-    background: linear-gradient(145deg, #1c3d30, #08392c);
-  }
-  .page-content .clock-head > span { color: #dce7e2; }
-  .page-content .clock-time,
-  .page-content .clock-foot strong { color: #fff; }
-  .page-content .clock-foot { color: #b9c9c2; }
-  .page-content .section-title { color: var(--text); }
-  .page-content .attendance-action {
-    color: var(--text);
-    background: #fff;
-  }
-  .page-content .attendance-action.dark-action {
-    color: #fff;
-    background: #1d3b30;
-  }
-  .page-content .action-copy small { color: #626b66; }
-  .page-content .dark-action .action-copy small { color: #d8e4de; }
-  .page-content .quick-card {
-    color: var(--text);
-    background: #fff;
-  }
-}
-
-/* Final desktop layout override: keep the sidebar outside the main content
-   even when earlier responsive rules set a centered max-width shell. */
-@media screen and (min-width: 700px) {
-  html body .app-shell {
-    width: calc(100% - 248px) !important;
-    max-width: none !important;
-    margin: 0 0 0 248px !important;
-    padding: 28px clamp(24px, 3vw, 56px) 32px !important;
-    min-height: 100vh;
-    overflow: visible;
-    border-radius: 0;
-    box-shadow: none;
-  }
   html body .app-shell > .topbar,
-  html body .app-shell > .page-content {
-    width: 100%;
-    max-width: 1440px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  html body .app-shell > .page-content {
-    padding-left: 0;
-    padding-right: 0;
-  }
-  html body .app-shell > .bottom-nav {
-    position: fixed;
-    inset: 0 auto 0 0;
-    transform: none;
-    width: 248px;
-    max-width: 248px;
-    height: 100vh;
-    display: flex;
+  html body .app-shell > .page-content { max-width: 1360px; }
+}
+@media (min-width: 700px) and (max-width: 1023px) {
+  html body .app-shell > .page-content.home-content {
+    display: flex !important;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-start;
-    gap: 8px;
-    padding: 30px 18px;
-    overflow-y: auto;
-    background: #fff;
-    border: 0;
-    border-right: 1px solid var(--line);
-    border-radius: 0;
-    box-shadow: none;
-  }
-  html body .app-shell > .bottom-nav::before {
-    content: "ABSENSI KARYAWAN";
-    display: block;
-    color: var(--green);
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: .4px;
-    padding: 8px 12px 28px;
-  }
-  html body .app-shell > .bottom-nav .nav-item {
-    width: 100%;
-    min-height: 48px;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 13px;
-    padding: 9px 12px;
-    border-radius: 12px;
-    font-size: 14px;
-    color: #68756d;
-  }
-  html body .app-shell > .bottom-nav .nav-item.active {
-    background: var(--green-soft);
-    color: var(--green);
-  }
-  html body .app-shell > .bottom-nav .nav-scan-icon {
-    width: 30px;
-    height: 30px;
-    margin: 0;
-    border-radius: 8px;
-  }
-}
-
-/* Compact desktop sizing refinement */
-@media screen and (min-width: 700px) {
-  html body .app-shell {
-    width: calc(100% - 204px) !important;
-    margin-left: 204px !important;
-    padding: 22px clamp(20px, 2.4vw, 36px) 28px !important;
-  }
-  html body .app-shell > .bottom-nav {
-    width: 204px;
-    max-width: 204px;
-    padding: 22px 14px;
-    gap: 5px;
-  }
-  html body .app-shell > .bottom-nav::before {
-    font-size: 12px;
-    padding: 6px 10px 20px;
-  }
-  html body .app-shell > .bottom-nav .nav-item {
-    min-height: 42px;
-    gap: 10px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    font-size: 13px;
-  }
-  html body .app-shell > .bottom-nav .nav-scan-icon {
-    width: 26px;
-    height: 26px;
-  }
-  html body .app-shell > .topbar {
-    padding: 4px 0 20px;
-  }
-  html body .app-shell > .page-content .clock-card {
-    padding: 24px 26px 20px;
-    border-radius: 20px;
-  }
-  html body .app-shell > .page-content .clock-time {
-    font-size: clamp(38px, 3.2vw, 46px);
-    margin: 12px 0 18px;
-  }
-  html body .app-shell > .page-content .attendance-action {
-    min-height: 78px;
-    padding: 13px 16px;
     gap: 12px;
-    border-radius: 15px;
   }
-  html body .app-shell > .page-content .action-icon {
-    width: 42px;
-    height: 42px;
-    flex-basis: 42px;
-  }
-  html body .app-shell > .page-content .section-title {
-    font-size: 18px;
-    margin: 20px 0 13px;
-  }
-  html body .app-shell > .page-content .quick-card {
-    min-height: 124px;
-    padding: 12px 7px;
-    border-radius: 18px;
-    gap: 9px;
-  }
-  html body .app-shell > .page-content .quick-card > span {
-    width: 44px;
-    height: 44px;
-  }
-}
-
-
-
-/* Dashboard desktop layout correction: compact sizing and non-overlapping grid */
-@media screen and (min-width: 700px) {
-  html body .app-shell {
-    width: calc(100% - 180px) !important;
-    margin-left: 180px !important;
-    padding: 18px 24px 24px !important;
-  }
-  html body .app-shell > .bottom-nav {
-    width: 180px !important;
-    max-width: 180px !important;
-    padding: 18px 12px !important;
-    gap: 4px !important;
-  }
-  html body .app-shell > .bottom-nav::before {
-    font-size: 11px !important;
-    padding: 4px 8px 16px !important;
-  }
-  html body .app-shell > .bottom-nav .nav-item {
-    min-height: 38px !important;
-    padding: 6px 8px !important;
-    gap: 9px !important;
-    font-size: 12px !important;
-  }
-  html body .app-shell > .topbar {
-    padding: 2px 0 16px !important;
-  }
-  html body .app-shell > .page-content .clock-card {
-    padding: 20px 22px !important;
-    border-radius: 18px !important;
-    min-height: 0 !important;
-  }
-  html body .app-shell > .page-content .clock-time {
-    font-size: clamp(32px, 2.8vw, 40px) !important;
-    margin: 10px 0 14px !important;
-  }
-  html body .app-shell > .page-content .clock-foot {
-    gap: 16px !important;
-  }
-  html body .app-shell > .page-content .attendance-action {
-    min-height: 66px !important;
-    padding: 10px 12px !important;
-    gap: 10px !important;
-    border-radius: 13px !important;
-  }
-  html body .app-shell > .page-content .action-icon {
-    width: 36px !important;
-    height: 36px !important;
-    flex-basis: 36px !important;
-  }
-  html body .app-shell > .page-content .action-copy strong {
-    font-size: 15px !important;
-  }
-  html body .app-shell > .page-content .action-copy small {
-    font-size: 12px !important;
-  }
-  html body .app-shell > .page-content .section-title {
-    font-size: 17px !important;
-    margin: 16px 0 10px !important;
-  }
-  html body .app-shell > .page-content .quick-grid {
-    gap: 12px !important;
-  }
-  html body .app-shell > .page-content .quick-card {
-    min-height: 100px !important;
-    padding: 10px !important;
-    gap: 7px !important;
-    border-radius: 14px !important;
-  }
-  html body .app-shell > .page-content .quick-card > span {
-    width: 36px !important;
-    height: 36px !important;
-  }
-  html body .app-shell > .page-content .quick-card strong {
-    font-size: 13px !important;
-  }
-  html body .app-shell > .page-content .quick-card small {
-    font-size: 11px !important;
-  }
-}
-@media screen and (min-width: 1024px) {
-  html body .app-shell > .page-content.home-content {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1.05fr) minmax(300px, .95fr) !important;
-    grid-template-areas:
-      "clock attendance-title"
-      "clock attendance-scan"
-      "clock attendance-outside"
-      "quick-title quick-title"
-      "quick-grid quick-grid" !important;
-    align-items: start !important;
-    column-gap: 20px !important;
-    row-gap: 0 !important;
-  }
-  html body .app-shell > .page-content.home-content > .clock-card {
-    grid-area: clock !important;
-    align-self: stretch !important;
-    margin: 0 !important;
-    min-width: 0 !important;
-  }
+  html body .app-shell > .page-content.home-content > .clock-card { order: 0; }
   html body .app-shell > .page-content.home-content > h2.section-title:not(.quick-title) {
-    grid-area: attendance-title !important;
-    align-self: end !important;
-    margin: 0 0 10px !important;
-    color: #fff !important;
+    order: 1;
+    margin: 4px 0 0;
   }
-  html body .app-shell > .page-content.home-content > button.attendance-action:nth-of-type(1) {
-    grid-area: attendance-scan !important;
-  }
-  html body .app-shell > .page-content.home-content > button.attendance-action:nth-of-type(2) {
-    grid-area: attendance-outside !important;
-  }
-  html body .app-shell > .page-content.home-content > h2.quick-title {
-    grid-area: quick-title !important;
-    margin-top: 22px !important;
-  }
-  html body .app-shell > .page-content.home-content > .quick-grid {
-    grid-area: quick-grid !important;
-  }
-  html body .app-shell > .page-content .status-pill {
-    color: #70400b !important;
-  }
-}
-@media screen and (max-width: 1023px) and (min-width: 700px) {
-  html body .app-shell > .page-content.home-content {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
-  }
-  html body .app-shell > .page-content.home-content > .clock-card {
-    margin-bottom: 0 !important;
-  }
-}
-
-
-/* Final stability pass: use a clean vertical flow on desktop to prevent
-   grid-area collisions between the clock card and attendance actions. */
-@media screen and (min-width: 700px) {
-  html body .app-shell {
-    width: calc(100% - 180px) !important;
-    margin-left: 180px !important;
-    padding: 16px 22px 24px !important;
-  }
-  html body .app-shell > .bottom-nav {
-    width: 180px !important;
-    max-width: 180px !important;
-    padding: 18px 10px !important;
-  }
-  html body .app-shell > .topbar {
-    padding: 2px 0 14px !important;
-  }
-  html body .app-shell > .page-content.home-content {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 12px !important;
-    width: 100% !important;
-  }
-  html body .app-shell > .page-content.home-content > .clock-card {
-    width: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 20px 22px !important;
-    box-sizing: border-box !important;
-  }
-  html body .app-shell > .page-content.home-content > h2.section-title:not(.quick-title) {
-    order: 1 !important;
-    color: var(--text) !important;
-    font-size: 17px !important;
-    margin: 8px 0 0 !important;
-  }
-  html body .app-shell > .page-content.home-content > .clock-card {
-    order: 0 !important;
-  }
-  html body .app-shell > .page-content.home-content > button.attendance-action {
-    order: 2 !important;
-    width: 100% !important;
-    min-height: 62px !important;
-    margin: 0 !important;
-    padding: 10px 14px !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-  }
-  html body .app-shell > .page-content.home-content > button.attendance-action + button.attendance-action {
-    order: 3 !important;
-  }
-  html body .app-shell > .page-content.home-content > h2.quick-title {
-    order: 4 !important;
-    margin: 14px 0 0 !important;
-    font-size: 17px !important;
-  }
-  html body .app-shell > .page-content.home-content > .quick-grid {
-    order: 5 !important;
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 12px !important;
-    width: 100% !important;
-  }
-  html body .app-shell > .page-content.home-content > .quick-grid > .quick-card {
-    min-width: 0 !important;
-    min-height: 100px !important;
-    padding: 10px !important;
-    gap: 7px !important;
-    box-sizing: border-box !important;
-  }
-  html body .app-shell > .page-content.home-content .clock-time {
-    font-size: clamp(32px, 2.7vw, 40px) !important;
-    margin: 10px 0 14px !important;
-  }
-  html body .app-shell > .page-content.home-content .action-copy {
-    min-width: 0 !important;
-  }
-  html body .app-shell > .page-content.home-content .action-copy strong {
-    font-size: 15px !important;
-  }
-  html body .app-shell > .page-content.home-content .action-copy small {
-    font-size: 12px !important;
-    white-space: normal !important;
-  }
-}
-@media screen and (min-width: 1200px) {
-  html body .app-shell > .page-content.home-content {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, .82fr) !important;
-    grid-template-areas:
-      "clock attendance-title"
-      "clock attendance-scan"
-      "clock attendance-outside"
-      "quick-title quick-title"
-      "quick-grid quick-grid" !important;
-    column-gap: 18px !important;
-    row-gap: 10px !important;
-  }
-  html body .app-shell > .page-content.home-content > .clock-card {
-    grid-area: clock !important;
-    align-self: start !important;
-  }
-  html body .app-shell > .page-content.home-content > h2.section-title:not(.quick-title) {
-    grid-area: attendance-title !important;
-    margin: 0 !important;
-    align-self: end !important;
-  }
-  html body .app-shell > .page-content.home-content > button.attendance-action.dark-action {
-    grid-area: attendance-scan !important;
-  }
-  html body .app-shell > .page-content.home-content > button.attendance-action:not(.dark-action) {
-    grid-area: attendance-outside !important;
-  }
-  html body .app-shell > .page-content.home-content > h2.quick-title {
-    grid-area: quick-title !important;
-    margin-top: 16px !important;
-  }
-  html body .app-shell > .page-content.home-content > .quick-grid {
-    grid-area: quick-grid !important;
-  }
+  html body .app-shell > .page-content.home-content > button.attendance-action { order: 2; }
+  html body .app-shell > .page-content.home-content > button.attendance-action:not(.dark-action) { order: 3; }
+  html body .app-shell > .page-content.home-content > h2.quick-title { order: 4; }
+  html body .app-shell > .page-content.home-content > .quick-grid { order: 5; }
 }
