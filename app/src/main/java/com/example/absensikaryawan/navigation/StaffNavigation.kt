@@ -98,35 +98,60 @@ fun StaffNavigation(
 
         try {
 
+            // Role admin web dibaca dari koleksi controlAdmins pada Firebase
+            // yang sama. Setiap admin harus punya dokumen dengan ID UID-nya.
+            val controlAdmin =
+                db.collection("controlAdmins")
+                    .document(uid)
+                    .get()
+                    .await()
+
+            val adminRole =
+                controlAdmin.getString("role")
+                    ?.trim()
+                    ?.uppercase()
+                    .orEmpty()
+
+            val isControlAdmin =
+                controlAdmin.exists() &&
+                    controlAdmin.getBoolean("active") == true &&
+                    (adminRole == "ADMIN" || adminRole == "OWNER")
+
+            // Peran karyawan tetap didukung dari koleksi users.
             val snapshot =
                 db.collection("users")
-                    .whereEqualTo(
-                        "uid",
-                        uid
-                    )
+                    .whereEqualTo("uid", uid)
                     .limit(1)
                     .get()
                     .await()
 
-            val document =
-                snapshot.documents.firstOrNull()
+            val document = snapshot.documents.firstOrNull()
 
             val jabatan =
-                document
-                    ?.getString("jabatan")
+                document?.getString("jabatan")
+                    ?.trim()
+                    ?.uppercase()
+                    .orEmpty()
+
+            val userRole =
+                document?.getString("role")
                     ?.trim()
                     ?.uppercase()
                     .orEmpty()
 
             isApprover =
-                jabatan == "SUPERVISOR" ||
-                        jabatan == "MANAGER" ||
-                        jabatan == "HRD" ||
-                        jabatan == "OWNER"
+                isControlAdmin ||
+                    userRole == "ADMIN" ||
+                    userRole == "OWNER" ||
+                    jabatan == "ADMIN" ||
+                    jabatan == "SUPERVISOR" ||
+                    jabatan == "MANAGER" ||
+                    jabatan == "HRD" ||
+                    jabatan == "OWNER"
 
             Log.d(
                 "STAFF_NAV",
-                "CEK APPROVER → uid=$uid | jabatan=$jabatan | isApprover=$isApprover"
+                "CEK ROLE → uid=$uid | role=$adminRole/$userRole | jabatan=$jabatan | isApprover=$isApprover"
             )
 
         } catch (e: Exception) {
