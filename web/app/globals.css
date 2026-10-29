@@ -1384,3 +1384,77 @@ body { margin: 0; }
   html body .app-shell > .page-content.home-content > h2.quick-title { order: 4; }
   html body .app-shell > .page-content.home-content > .quick-grid { order: 5; }
 }
+
+
+/* Office selection attendance flow */
+.office-choice-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.office-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border, #e3e8e5);
+  border-radius: 14px;
+  background: var(--card, #fff);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.office-choice.selected {
+  border-color: #176b4d;
+  background: #f0f8f3;
+  box-shadow: 0 0 0 2px rgba(23, 107, 77, .08);
+}
+.office-choice-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
+  background: #e3f3e9;
+  color: #176b4d;
+}
+.office-choice-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.office-choice-copy strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+.office-choice-copy small {
+  color: #69766f;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.office-choice-check {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  color: #176b4d;
+}
+.theme-dark .office-choice {
+  background: #18241f;
+  border-color: #34443b;
+}
+.theme-dark .office-choice.selected {
+  background: #20392e;
+  border-color: #69b58e;
+}
+.theme-dark .office-choice-copy small {
+  color: #b4c2ba;
+}
+@media (min-width: 700px) {
+  .office-choice-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
