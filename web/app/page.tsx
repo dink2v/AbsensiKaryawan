@@ -481,22 +481,57 @@ function AppShell({ user }: { user: User }) {
       setRequestType("");
       setShowRequestForm(false);
 
-      // Notifikasi adalah proses terpisah supaya kegagalannya tidak membuat
-      // pengajuan yang sudah tersimpan terlihat seolah-olah gagal dikirim.
+      // Samakan penerima dan tipe notifikasi dengan APK:
+      // approver pertama menerima PENGAJUAN_APPROVAL, semua Admin menerima PENGAJUAN_BARU.
+      // Kegagalan notifikasi tidak membatalkan pengajuan yang sudah tersimpan.
+      const notificationFailures: string[] = [];
       try {
         await addDoc(collection(db, "notifications"), {
           userId: approvers[0].uid,
-          type: "PENGAJUAN_BARU",
+          type: "PENGAJUAN_APPROVAL",
           title: "Pengajuan Baru",
-          message: `${employeeName} membuat pengajuan ${requestType} dan menunggu persetujuan Anda.`,
+          message: `${employeeName} mengajukan ${requestType} dan membutuhkan persetujuan Anda.`,
           timestamp: Date.now(),
           isRead: false,
           read: false,
           relatedId: requestRef.id,
         });
       } catch (notificationError) {
-        console.error("Pengajuan tersimpan, tetapi notifikasi Supervisor gagal dibuat", notificationError);
-        setRequestMessage("Pengajuan tersimpan, tetapi notifikasi Supervisor gagal dikirim. Hubungi Admin untuk memeriksa izin koleksi notifications.");
+        console.error("Notifikasi approver gagal dibuat", notificationError);
+        notificationFailures.push("approver");
+      }
+
+      try {
+        const adminsSnapshot = await getDocs(
+          query(collection(db, "users"), where("isAdmin", "==", true))
+        );
+        const adminNotifications = adminsSnapshot.docs.map(async (adminDoc) => {
+          const adminData = adminDoc.data();
+          const adminUid = String(adminData.uid ?? adminDoc.id).trim();
+          if (!adminUid) return;
+          await addDoc(collection(db, "notifications"), {
+            userId: adminUid,
+            type: "PENGAJUAN_BARU",
+            title: "Pengajuan Baru",
+            message: `${employeeName} mengajukan ${requestType}.`,
+            timestamp: Date.now(),
+            isRead: false,
+            read: false,
+            relatedId: requestRef.id,
+          });
+        });
+        const results = await Promise.allSettled(adminNotifications);
+        if (results.some((result) => result.status === "rejected")) {
+          notificationFailures.push("admin");
+          console.error("Sebagian notifikasi Admin gagal dibuat", results.filter((result) => result.status === "rejected"));
+        }
+      } catch (notificationError) {
+        console.error("Notifikasi Admin gagal dibuat", notificationError);
+        notificationFailures.push("admin");
+      }
+
+      if (notificationFailures.length > 0) {
+        setRequestMessage("Pengajuan berhasil disimpan, tetapi sebagian notifikasi gagal dikirim. Hubungi Admin untuk memeriksa izin koleksi notifications.");
       }
     } catch (error) {
       console.error("Gagal mengirim pengajuan", error);
