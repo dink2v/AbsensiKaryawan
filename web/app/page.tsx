@@ -471,7 +471,7 @@ function AppShell({ user }: { user: User }) {
         currentApproverJabatan: approvers[0].jabatan,
         approvalLocked: false,
       });
-      setRequestMessage("Pengajuan berhasil dikirim dan menunggu persetujuan Supervisor.");
+      setRequestMessage("Pengajuan berhasil dikirim dan menunggu keputusan atasan yang berwenang.");
       setRequestStart("");
       setRequestEnd("");
       setRequestTime("");
@@ -844,13 +844,36 @@ function AppShell({ user }: { user: User }) {
 
     </main>}
 
-    {page === "requests" && isApprover && approverTab === "approval" && <main className="page-content subpage">
+    {page === "requests" && isApprover && approverTab === "approval" && <main className="page-content subpage requests-page approval-page">
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Persetujuan Pengajuan</h1><p className="muted">Periksa dan putuskan pengajuan karyawan</p></div></div>
       <div className="segmented large" aria-label="Bagian pengajuan"><button type="button" className="selected" onClick={() => setApproverTab("approval")}>Persetujuan</button><button type="button" onClick={() => setApproverTab("mine")}>Pengajuan Saya</button></div>
       {approvalMessage && <p role="status" className="success-message">{approvalMessage}</p>}
       {approvalError && <p role="alert" className="error-message">{approvalError}</p>}
-      <div className="request-summary"><div><span className="summary-dot" /><div><strong>{approvalRequests.filter(item => item.canApprove).length} pengajuan menunggu tindakan Anda</strong><p className="muted">Pengajuan yang berada dalam wewenang akunmu ditampilkan di sini. Kamu bisa menyetujui atau menolak langsung tanpa menunggu atasan lain.</p></div></div></div>
-      {approvalRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan dalam wewenangmu akan muncul di sini. Kamu bisa langsung menyetujui atau menolak tanpa menunggu atasan lain.</p></div> : <div className="history-list">{approvalRequests.map(item => { const canAct = item.status.toLowerCase() === "menunggu" && item.canApprove; return <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.nama} · {item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Tanggal mulai<strong>{item.tanggalMulai || item.tanggal || "-"}</strong></span><span>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? "Tanggal selesai" : "Waktu / detail"}<strong>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? item.tanggalSelesai : item.jamPulang || (item.jamKeluar ? item.jamKeluar + (item.jamKembali ? " – " + item.jamKembali : "") : "-")}</strong></span></div><p className="muted history-location">{item.keterangan || "Tidak ada keterangan"}</p>{canAct && <div className="approval-actions"><button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? "Memproses..." : "Setujui"}</button><button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}>Tolak</button></div>}{!canAct && <p className="muted">Pengajuan ini bukan dalam wewenang persetujuan akunmu.</p>}{canAct && <p className="approval-turn-note">Kamu berwenang memutuskan pengajuan ini sekarang, tanpa menunggu atasan lain.</p>}</article>; })}</div>}
+      <section className="request-summary approval-summary"><div><span className="summary-dot" /><div><strong>{approvalRequests.filter(item => item.canApprove).length} pengajuan menunggu tindakan Anda</strong><p>Pengajuan dalam wewenang akunmu dapat langsung disetujui atau ditolak. Tidak perlu menunggu giliran atasan lain.</p></div></div></section>
+      {approvalRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan dalam wewenangmu akan muncul di sini. Kamu bisa langsung menyetujui atau menolak tanpa menunggu atasan lain.</p></div> : <div className="history-list request-history-list approval-request-list">{approvalRequests.map(item => {
+        const canAct = item.status.toLowerCase() === "menunggu" && item.canApprove;
+        const normalizedStatus = item.status.toLowerCase();
+        const statusLabel = ["menunggu", "pending"].includes(normalizedStatus) ? "Menunggu" : ["disetujui", "approved"].includes(normalizedStatus) ? "Disetujui" : ["ditolak", "rejected"].includes(normalizedStatus) ? "Ditolak" : item.status;
+        return <article className="history-record request-record approval-record" key={item.id}>
+          <div className="request-record-top">
+            <span className="request-record-icon"><UserRound size={19} /></span>
+            <div className="request-record-title"><strong>{item.nama}</strong><small>{item.jenis}</small></div>
+            <span className={`status-pill request-status ${["disetujui","approved"].includes(normalizedStatus) ? "status-present" : ["ditolak","rejected"].includes(normalizedStatus) ? "status-error" : "status-waiting"}`}>{statusLabel}</span>
+          </div>
+          <div className="request-record-details">
+            <div><span>Tanggal mulai</span><strong>{item.tanggalMulai || item.tanggal || "-"}</strong></div>
+            <div><span>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? "Tanggal selesai" : item.jenis === "Pulang Cepat" ? "Jam pulang" : item.jenis === "Izin Keluar" ? "Waktu keluar / kembali" : "Keterangan waktu"}</span><strong>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? item.tanggalSelesai : item.jamPulang || (item.jamKeluar ? item.jamKeluar + (item.jamKembali ? " – " + item.jamKembali : "") : "-")}</strong></div>
+          </div>
+          <p className="request-record-reason">{item.keterangan || "Tidak ada keterangan tambahan."}</p>
+          {canAct ? <>
+            <div className="approval-actions">
+              <button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? <><RefreshCw size={16} className="spin-icon" /> Memproses...</> : <><Check size={16} /> Setujui</>}</button>
+              <button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}><X size={16} /> Tolak</button>
+            </div>
+            <p className="approval-turn-note">Keputusanmu langsung mengunci status pengajuan.</p>
+          </> : <p className="muted approval-readonly-note">Pengajuan ini hanya dapat dilihat oleh akunmu; tindakan persetujuan tidak tersedia.</p>}
+        </article>;
+      })}</div>
     </main>}
 
     {page === "requests" && (!isApprover || approverTab === "mine") && <main className="page-content subpage requests-page">
