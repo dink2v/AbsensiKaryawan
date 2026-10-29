@@ -127,7 +127,9 @@ function AppShell({ user }: { user: User }) {
     setApprovalError("");
     // Listen to the same Firestore requests as Android, but only show requests
     // assigned to this approver in the APK approval chain.
-    const requestsQuery = query(collection(db, "pengajuan"), orderBy("createdAt", "desc"));
+    // Android records use waktuPengajuan; do not orderBy createdAt because
+    // Firestore would hide Android documents that do not contain that field.
+    const requestsQuery = query(collection(db, "pengajuan"));
     return onSnapshot(requestsQuery, snapshot => {
       const visible = snapshot.docs.filter(item => {
         const data = item.data();
@@ -141,9 +143,10 @@ function AppShell({ user }: { user: User }) {
       });
       setApprovalRequests(visible.map(item => {
         const data = item.data();
-        const created = data.createdAt?.toDate?.() ?? null;
+        const rawCreated = data.createdAt ?? data.waktuPengajuan;
+        const created = rawCreated?.toDate?.() ?? null;
         return { id: item.id, uid: String(data.uid ?? data.userId ?? data.pemohonUid ?? ""), nama: String(data.nama ?? data.name ?? data.pemohonNama ?? "Karyawan"), jenis: String(data.jenis ?? data.type ?? data.jenisPengajuan ?? "Pengajuan"), tanggalMulai: String(data.tanggalMulai ?? data.tanggal ?? ""), tanggalSelesai: String(data.tanggalSelesai ?? data.tanggalMulai ?? data.tanggal ?? ""), keterangan: String(data.keterangan ?? data.alasan ?? data.alasanPengajuan ?? ""), status: String(data.status ?? "menunggu"), createdAt: created };
-      }));
+      }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)));
     }, () => setApprovalError("Pengajuan gagal dimuat. Periksa koneksi dan aturan akses Firestore."));
   }, [isApprover, page, user.uid]);
 
