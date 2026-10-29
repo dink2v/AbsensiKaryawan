@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
-import { doc, getDoc, updateDoc, setDoc, orderBy } from "firebase/firestore";
-import { addDoc, collection, getDocs, onSnapshot, query, serverTimestamp, where, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
 import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
@@ -126,15 +125,27 @@ function AppShell({ user }: { user: User }) {
     if (!isApprover || page !== "requests") return;
     const { db } = getFirebaseClient();
     setApprovalError("");
+    // Listen to the same Firestore requests as Android, but only show requests
+    // assigned to this approver in the APK approval chain.
     const requestsQuery = query(collection(db, "pengajuan"), orderBy("createdAt", "desc"));
     return onSnapshot(requestsQuery, snapshot => {
-      setApprovalRequests(snapshot.docs.map(item => {
+      const visible = snapshot.docs.filter(item => {
+        const data = item.data();
+        const viewers = Array.isArray(data.approvalViewers) ? data.approvalViewers.map(String) : [];
+        const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
+        const statuses = data.approvalStatuses && typeof data.approvalStatuses === "object" ? data.approvalStatuses as Record<string, string> : {};
+        const currentUid = String(data.currentApproverUid ?? "");
+        const pending = String(data.status ?? "").toLowerCase() === "menunggu";
+        return pending && data.approvalLocked !== true &&
+          (currentUid === user.uid || (viewers.includes(user.uid) && chain.includes(user.uid) && statuses[user.uid] === "menunggu"));
+      });
+      setApprovalRequests(visible.map(item => {
         const data = item.data();
         const created = data.createdAt?.toDate?.() ?? null;
-        return { id: item.id, uid: String(data.uid ?? data.userId ?? ""), nama: String(data.nama ?? data.name ?? "Karyawan"), jenis: String(data.jenis ?? data.type ?? "Pengajuan"), tanggalMulai: String(data.tanggalMulai ?? data.tanggal ?? ""), tanggalSelesai: String(data.tanggalSelesai ?? data.tanggalMulai ?? data.tanggal ?? ""), keterangan: String(data.keterangan ?? data.alasan ?? ""), status: String(data.status ?? "Menunggu"), createdAt: created };
+        return { id: item.id, uid: String(data.uid ?? data.userId ?? data.pemohonUid ?? ""), nama: String(data.nama ?? data.name ?? data.pemohonNama ?? "Karyawan"), jenis: String(data.jenis ?? data.type ?? data.jenisPengajuan ?? "Pengajuan"), tanggalMulai: String(data.tanggalMulai ?? data.tanggal ?? ""), tanggalSelesai: String(data.tanggalSelesai ?? data.tanggalMulai ?? data.tanggal ?? ""), keterangan: String(data.keterangan ?? data.alasan ?? data.alasanPengajuan ?? ""), status: String(data.status ?? "menunggu"), createdAt: created };
       }));
     }, () => setApprovalError("Pengajuan gagal dimuat. Periksa koneksi dan aturan akses Firestore."));
-  }, [isApprover, page]);
+  }, [isApprover, page, user.uid]);
 
   async function decideRequest(item: {id:string; nama:string}, status: "Disetujui" | "Ditolak") {
     if (!isApprover || approvalBusyId) return;
@@ -143,10 +154,76 @@ function AppShell({ user }: { user: User }) {
     setApprovalMessage("");
     try {
       const { db } = getFirebaseClient();
-      await updateDoc(doc(db, "pengajuan", item.id), { status, diprosesOleh: user.uid, diprosesPada: serverTimestamp() });
-      setApprovalMessage(`Pengajuan ${item.nama} berhasil ${status.toLowerCase()}.`);
-    } catch {
-      setApprovalError("Status gagal diperbarui. Pastikan akun atasan memiliki izin update pada koleksi pengajuan.");
+      const requestRef = doc(db, "pengajuan", item.id);
+      await runTransaction(db, async transaction => {
+        const snapshot = await transaction.get(requestRef);
+        if (!snapshot.exists()) throw new Error("Pengajuan tidak ditemukan.");
+        const data = snapshot.data();
+        const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
+        const statuses = data.approvalStatuses && typeof data.approvalStatuses === "object"
+          ? { ...(data.approvalStatuses as Record<string, string>) }
+          : {};
+        const viewers = Array.isArray(data.approvalViewers) ? data.approvalViewers.map(String) : [];
+        const currentUid = String(data.currentApproverUid ?? "");
+        const pending = String(data.status ?? "").toLowerCase() === "menunggu";
+        if (!pending || data.approvalLocked === true) throw new Error("Pengajuan sudah tidak menunggu persetujuan.");
+        if (!chain.includes(user.uid) || !viewers.includes(user.uid) || currentUid !== user.uid || statuses[user.uid] !== "menunggu") {
+          throw new Error("Akun ini bukan approver aktif untuk pengajuan tersebut.");
+        }
+
+        statuses[user.uid] = status === "Disetujui" ? "disetujui" : "ditolak";
+        const currentIndex = chain.indexOf(user.uid);
+        if (status === "Ditolak") {
+          transaction.update(requestRef, {
+            status: "ditolak",
+            approvalStatuses: statuses,
+            approvalLocked: true,
+            currentApproverUid: "",
+            currentApproverName: "",
+            currentApproverJabatan: "",
+            waktuKeputusan: serverTimestamp(),
+            diprosesOleh: user.uid,
+            diprosesPada: serverTimestamp(),
+          });
+          return;
+        }
+
+        const nextUid = chain[currentIndex + 1];
+        if (!nextUid) {
+          transaction.update(requestRef, {
+            status: "disetujui",
+            approvalStatuses: statuses,
+            approvalLocked: true,
+            currentApproverUid: "",
+            currentApproverName: "",
+            currentApproverJabatan: "",
+            waktuKeputusan: serverTimestamp(),
+            diprosesOleh: user.uid,
+            diprosesPada: serverTimestamp(),
+          });
+          return;
+        }
+
+        statuses[nextUid] = "menunggu";
+        transaction.update(requestRef, {
+          status: "menunggu",
+          approvalStatuses: statuses,
+          currentApproverUid: nextUid,
+          currentApproverName: "",
+          currentApproverJabatan: "",
+          approvalLocked: false,
+          diprosesOleh: user.uid,
+          diprosesPada: serverTimestamp(),
+        });
+      });
+      setApprovalMessage(status === "Ditolak"
+        ? `Pengajuan ${item.nama} berhasil ditolak.`
+        : `Persetujuan untuk ${item.nama} berhasil diproses sesuai alur approval.`);
+    } catch (error) {
+      console.error("Gagal memproses persetujuan", error);
+      setApprovalError(error instanceof Error && error.message
+        ? error.message
+        : "Status gagal diperbarui. Periksa izin akses Firestore.");
     } finally {
       setApprovalBusyId("");
     }
