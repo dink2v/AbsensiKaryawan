@@ -148,7 +148,6 @@ function AppShell({ user }: { user: User }) {
         const viewers = Array.isArray(data.approvalViewers) ? data.approvalViewers.map(String) : [];
         const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
         const statuses = data.approvalStatuses && typeof data.approvalStatuses === "object" ? data.approvalStatuses as Record<string, string> : {};
-        const currentUid = String(data.currentApproverUid ?? "");
         const pending = String(data.status ?? "").toLowerCase() === "menunggu";
         // Show every pending request assigned to this approver in the chain.
         // Only the active approver can take action; upcoming approvers can still see
