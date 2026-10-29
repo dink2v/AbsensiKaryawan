@@ -105,6 +105,7 @@ function AppShell({ user }: { user: User }) {
   const [requestStatusFilter, setRequestStatusFilter] = useState("Semua");
   const [historyRequestFilter, setHistoryRequestFilter] = useState("Semua");
   const [isApprover, setIsApprover] = useState(false);
+  const [approverTab, setApproverTab] = useState<"approval" | "mine">("approval");
   const [approvalRequests, setApprovalRequests] = useState<Array<{id:string; uid:string; nama:string; jenis:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
   const [approvalBusyId, setApprovalBusyId] = useState("");
   const [approvalMessage, setApprovalMessage] = useState("");
@@ -866,15 +867,16 @@ function AppShell({ user }: { user: User }) {
 
     </main>}
 
-    {page === "requests" && isApprover && <main className="page-content subpage">
+    {page === "requests" && isApprover && approverTab === "approval" && <main className="page-content subpage">
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Persetujuan Pengajuan</h1><p className="muted">Periksa dan putuskan pengajuan karyawan</p></div></div>
+      <div className="segmented large" aria-label="Bagian pengajuan"><button type="button" className={approverTab === "approval" ? "selected" : ""} onClick={() => setApproverTab("approval")}>Persetujuan</button><button type="button" className={approverTab === "mine" ? "selected" : ""} onClick={() => setApproverTab("mine")}>Pengajuan Saya</button></div>
       {approvalMessage && <p role="status" className="success-message">{approvalMessage}</p>}
       {approvalError && <p role="alert" className="error-message">{approvalError}</p>}
       <div className="stats-grid"><div className="stat stat-wait"><span>•••</span><strong>{approvalRequests.filter(item => ["menunggu","pending"].includes(item.status.toLowerCase())).length}</strong><small>Menunggu</small></div><div className="stat stat-approved"><Check /><strong>{approvalRequests.filter(item => ["disetujui","approved"].includes(item.status.toLowerCase())).length}</strong><small>Disetujui</small></div><div className="stat stat-rejected"><X /><strong>{approvalRequests.filter(item => ["ditolak","rejected"].includes(item.status.toLowerCase())).length}</strong><small>Ditolak</small></div></div>
       {approvalRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan karyawan akan muncul di sini.</p></div> : <div className="history-list">{approvalRequests.map(item => <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.nama} · {item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Mulai<strong>{item.tanggalMulai || "-"}</strong></span><span>Selesai<strong>{item.tanggalSelesai || "-"}</strong></span></div><p className="muted history-location">{item.keterangan || "Tidak ada keterangan"}</p>{["menunggu","pending"].includes(item.status.toLowerCase()) && <div className="approval-actions"><button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? "Memproses..." : "Setujui"}</button><button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}>Tolak</button></div>}</article>)}</div>}
     </main>}
 
-    {page === "requests" && <main className="page-content subpage">
+    {page === "requests" && (!isApprover || approverTab === "mine") && <main className="page-content subpage">
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengajuan</h1><p className="muted">Ajukan izin, sakit, cuti, atau keperluan lainnya</p></div><button className="icon-button" type="button" aria-label="Muat ulang pengajuan" onClick={() => { setRequestLoadError(false); setPage("home"); setTimeout(() => setPage("requests"), 0); }}><RefreshCw /></button></div>
       <button className="new-request" type="button" onClick={() => { setShowRequestForm(!showRequestForm); setRequestError(""); setRequestMessage(""); }}><FilePlus2 size={30} /><span><strong>{showRequestForm ? "Tutup Form Pengajuan" : "Buat Pengajuan Baru"}</strong><small>Isi tanggal dan keterangan dengan benar</small></span></button>
       {requestMessage && <div className="info-banner" role="status"><Check size={20} /> {requestMessage}</div>}
