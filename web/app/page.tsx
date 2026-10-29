@@ -360,7 +360,7 @@ function AppShell({ user }: { user: User }) {
   }, [user.uid]);
 
   useEffect(() => {
-    if (page !== "requests") return;
+    if (page !== "requests" && page !== "history") return;
     try {
       const { db } = getFirebaseClient();
       return onSnapshot(
@@ -887,7 +887,7 @@ function AppShell({ user }: { user: User }) {
     {page === "history" && <main className="page-content subpage">
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Riwayat</h1><p className="muted">Riwayat dan status pengajuan</p></div><button className="icon-button" aria-label="Muat ulang"><RefreshCw /></button></div>
       <div className="segmented large"><button className={historyTab === "attendance" ? "selected" : ""} onClick={() => setHistoryTab("attendance")}>Absensi</button><button className={historyTab === "requests" ? "selected" : ""} onClick={() => setHistoryTab("requests")}>Pengajuan</button></div>
-      <div className="filter-pills">{(historyTab === "attendance" ? ["7 Hari", "1 Bulan", "Semua"] : ["Semua", "Menunggu", "Disetujui", "Ditolak"]).map((x, i) => <button className={i === 0 ? "selected" : ""} key={x}>{x}</button>)}</div>
+      <div className="filter-pills">{(historyTab === "attendance" ? ["7 Hari", "1 Bulan", "Semua"] : ["Semua", "Menunggu", "Disetujui", "Ditolak"]).map((x) => <button type="button" className={(historyTab === "attendance" ? x === "7 Hari" : historyRequestFilter === x) ? "selected" : ""} key={x} onClick={() => historyTab === "requests" && setHistoryRequestFilter(x)}>{x}</button>)}</div>
       {historyTab === "attendance" ? (
         historyLoadError ? <div className="empty-state history-empty"><Info size={42} /><strong>Riwayat belum bisa dimuat</strong><p>Periksa koneksi dan aturan akses Firestore, lalu coba lagi.</p></div> :
         attendanceHistory.length === 0 ? <div className="empty-state history-empty"><CalendarDays size={42} /><strong>Belum ada riwayat absensi</strong><p>Data kehadiran akan muncul di sini setelah presensi tersimpan.</p></div> :
