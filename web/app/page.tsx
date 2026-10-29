@@ -147,13 +147,11 @@ function AppShell({ user }: { user: User }) {
         const data = item.data();
         const viewers = Array.isArray(data.approvalViewers) ? data.approvalViewers.map(String) : [];
         const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
-        const statuses = data.approvalStatuses && typeof data.approvalStatuses === "object" ? data.approvalStatuses as Record<string, string> : {};
         const currentUid = String(data.currentApproverUid ?? "");
-        const pending = String(data.status ?? "").toLowerCase() === "menunggu";
-        // Show pending requests to authorized approvers and read-only viewers.
+        // Keep completed requests visible as history. Only the action buttons
+        // are limited to requests whose status is still "menunggu".
         // Any UID in approvalChain may decide immediately; no sequential turn is required.
-        return pending && data.approvalLocked !== true &&
-          (currentUid === user.uid || chain.includes(user.uid) || viewers.includes(user.uid));
+        return currentUid === user.uid || chain.includes(user.uid) || viewers.includes(user.uid);
       });
       setApprovalRequests(visible.map(item => {
         const data = item.data();
@@ -884,7 +882,7 @@ function AppShell({ user }: { user: User }) {
       <div className="segmented large" aria-label="Bagian pengajuan"><button type="button" className="selected" onClick={() => setApproverTab("approval")}>Persetujuan</button><button type="button" onClick={() => setApproverTab("mine")}>Pengajuan Saya</button></div>
       {approvalMessage && <p role="status" className="success-message">{approvalMessage}</p>}
       {approvalError && <p role="alert" className="error-message">{approvalError}</p>}
-      <section className="request-summary approval-summary"><div><span className="summary-dot" /><div><strong>{approvalRequests.filter(item => item.canApprove).length} pengajuan menunggu tindakan Anda</strong><p>Pengajuan dalam wewenang akunmu dapat langsung disetujui atau ditolak. Tidak perlu menunggu giliran atasan lain.</p></div></div></section>
+      <section className="request-summary approval-summary"><div><span className="summary-dot" /><div><strong>{approvalRequests.filter(item => item.status.toLowerCase() === "menunggu" && item.canApprove).length} pengajuan menunggu tindakan Anda</strong><p>Pengajuan dalam wewenang akunmu dapat langsung disetujui atau ditolak. Tidak perlu menunggu giliran atasan lain.</p></div></div></section>
       {approvalRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan dalam wewenangmu akan muncul di sini. Kamu bisa langsung menyetujui atau menolak tanpa menunggu atasan lain.</p></div> : <div className="history-list request-history-list approval-request-list">{approvalRequests.map(item => {
         const canAct = item.status.toLowerCase() === "menunggu" && item.canApprove;
         const normalizedStatus = item.status.toLowerCase();
@@ -905,7 +903,7 @@ function AppShell({ user }: { user: User }) {
               <button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? <><RefreshCw size={16} className="spin-icon" /> Memproses...</> : <><Check size={16} /> Setujui</>}</button>
               <button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}><X size={16} /> Tolak</button>
             </div>
-          </> : <p className="muted approval-readonly-note">Pengajuan ini hanya dapat dilihat oleh akunmu; tindakan persetujuan tidak tersedia.</p>}
+          </> : <p className="muted approval-readonly-note">{["menunggu", "pending"].includes(normalizedStatus) ? "Pengajuan ini hanya dapat dilihat oleh akunmu; tindakan persetujuan tidak tersedia." : "Keputusan sudah tercatat. Riwayat pengajuan ini tetap tersimpan dan tidak bisa diputuskan ulang."}</p>}
         </article>;
       })}</div>}
     </main>}
