@@ -115,7 +115,13 @@ function AppShell({ user }: { user: User }) {
     async function loadRole() {
       try {
         const { db } = getFirebaseClient();
-        const profileSnapshot = await getDoc(doc(db, "users", user.uid));
+        // Some existing user records are keyed by a legacy document ID and store
+        // the Firebase Authentication UID in their "uid" field instead.
+        let profileSnapshot = await getDoc(doc(db, "users", user.uid));
+        if (!profileSnapshot.exists()) {
+          const matches = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
+          profileSnapshot = matches.docs[0] ?? profileSnapshot;
+        }
         const profile = profileSnapshot.data() ?? {};
         const role = String(profile.role ?? profile.peran ?? profile.jabatan ?? "").trim().toLowerCase();
         if (active) setIsApprover(profile.isAdmin === true || ["admin", "owner", "manager", "hrd", "superadmin", "atasan", "supervisor"].includes(role));
@@ -1011,9 +1017,14 @@ export default function Home() {
         try {
           // Employee portal accepts employee accounts only. Admin/control roles must
           // use ABSEN CONTROL, even if their Firebase session is valid.
-          const profileSnapshot = await getDoc(doc(db, "users", currentUser.uid));
+          let profileSnapshot = await getDoc(doc(db, "users", currentUser.uid));
+          // Support legacy user documents whose document ID differs from auth UID.
+          if (!profileSnapshot.exists()) {
+            const matches = await getDocs(query(collection(db, "users"), where("uid", "==", currentUser.uid)));
+            profileSnapshot = matches.docs[0] ?? profileSnapshot;
+          }
           const profile = profileSnapshot.data() ?? {};
-          const role = String(profile.role ?? profile.peran ?? "").trim().toLowerCase();
+          const role = String(profile.role ?? profile.peran ?? profile.jabatan ?? "").trim().toLowerCase();
           if (!profileSnapshot.exists() || profile.active === false ||
               String(profile.status ?? "").trim().toLowerCase() === "nonaktif") {
             await signOut(auth);
