@@ -9,7 +9,7 @@ import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
   FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
   Settings, UserRound, X, BriefcaseBusiness, Palette, CircleHelp,
-  Info, RefreshCw, MessageCircle, Send, Headset
+  Info, RefreshCw, MessageCircle, Send, Headset, ScanQrCode
 } from "lucide-react";
 
 type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile" | "chat";
