@@ -89,7 +89,10 @@ function AppShell({ user }: { user: User }) {
   const [historyTab, setHistoryTab] = useState<HistoryTab>("attendance");
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("main");
   const [themeMode, setThemeMode] = useState<ThemeMode>("sistem");
-  const [requestType, setRequestType] = useState("Izin");
+  const [requestType, setRequestType] = useState("");
+  const [requestTime, setRequestTime] = useState("");
+  const [requestExitTime, setRequestExitTime] = useState("");
+  const [requestReturnTime, setRequestReturnTime] = useState("");
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestStart, setRequestStart] = useState("");
   const [requestEnd, setRequestEnd] = useState("");
@@ -397,12 +400,25 @@ function AppShell({ user }: { user: User }) {
   async function submitRequest() {
     setRequestError("");
     setRequestMessage("");
-    if (!requestStart || !requestEnd || !requestReason.trim()) {
-      setRequestError("Tanggal mulai, tanggal selesai, dan keterangan wajib diisi.");
+    if (!requestType || !requestReason.trim()) {
+      setRequestError("Pilih jenis pengajuan dan isi alasan terlebih dahulu.");
       return;
     }
-    if (requestEnd < requestStart) {
+    const needsRange = requestType === "Izin Sakit" || requestType === "Cuti Reguler";
+    if (needsRange && (!requestStart || !requestEnd)) {
+      setRequestError("Tanggal mulai dan tanggal selesai wajib diisi.");
+      return;
+    }
+    if (needsRange && requestEnd < requestStart) {
       setRequestError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+      return;
+    }
+    if (requestType === "Pulang Cepat" && !requestTime) {
+      setRequestError("Jam pulang wajib diisi.");
+      return;
+    }
+    if (requestType === "Izin Keluar" && (!requestExitTime || !requestReturnTime)) {
+      setRequestError("Jam keluar dan jam kembali wajib diisi.");
       return;
     }
     setRequestBusy(true);
@@ -442,8 +458,12 @@ function AppShell({ user }: { user: User }) {
         uid: user.uid,
         nama: employeeName,
         jenis: requestType,
-        tanggalMulai: requestStart,
-        tanggalSelesai: requestEnd,
+        tanggal: new Date().toLocaleDateString("en-CA"),
+        jamPulang: requestTime,
+        jamKeluar: requestExitTime,
+        jamKembali: requestReturnTime,
+        tanggalMulai: needsRange ? requestStart : "",
+        tanggalSelesai: needsRange ? requestEnd : "",
         alasan: requestReason.trim(),
         keterangan: requestReason.trim(),
         status: "menunggu",
@@ -459,7 +479,11 @@ function AppShell({ user }: { user: User }) {
       setRequestMessage("Pengajuan berhasil dikirim dan menunggu persetujuan Supervisor.");
       setRequestStart("");
       setRequestEnd("");
+      setRequestTime("");
+      setRequestExitTime("");
+      setRequestReturnTime("");
       setRequestReason("");
+      setRequestType("");
       setShowRequestForm(false);
 
       // Notifikasi adalah proses terpisah supaya kegagalannya tidak membuat
@@ -837,7 +861,7 @@ function AppShell({ user }: { user: User }) {
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengajuan</h1><p className="muted">Ajukan izin, sakit, cuti, atau keperluan lainnya</p></div><button className="icon-button" type="button" aria-label="Muat ulang pengajuan" onClick={() => { setRequestLoadError(false); setPage("home"); setTimeout(() => setPage("requests"), 0); }}><RefreshCw /></button></div>
       <button className="new-request" type="button" onClick={() => { setShowRequestForm(!showRequestForm); setRequestError(""); setRequestMessage(""); }}><FilePlus2 size={30} /><span><strong>{showRequestForm ? "Tutup Form Pengajuan" : "Buat Pengajuan Baru"}</strong><small>Isi tanggal dan keterangan dengan benar</small></span></button>
       {requestMessage && <div className="info-banner" role="status"><Check size={20} /> {requestMessage}</div>}
-      {showRequestForm && <section className="form-card"><h2>Pengajuan Baru</h2><label className="input-block">Jenis Pengajuan<select value={requestType} onChange={e => setRequestType(e.target.value)}><option>Izin</option><option>Sakit</option><option>Cuti</option><option>Lainnya</option></select></label><label className="input-block">Tanggal Mulai<input type="date" value={requestStart} onChange={e => setRequestStart(e.target.value)} required /></label><label className="input-block">Tanggal Selesai<input type="date" min={requestStart || undefined} value={requestEnd} onChange={e => setRequestEnd(e.target.value)} required /></label><label className="input-block">Keterangan<textarea rows={3} value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Jelaskan keperluan pengajuan" required /></label><button className="primary-button wide" type="button" disabled={requestBusy} onClick={() => void submitRequest()}>{requestBusy ? "Mengirim..." : "Kirim Pengajuan"}</button>{requestError && <p role="alert" className="error-message">{requestError}</p>}</section>}
+{showRequestForm && <section className="form-card"><h2>Pengajuan Baru</h2><p className="muted">Pilih jenis pengajuan seperti di aplikasi Android.</p><div className="request-type-grid">{[{name:"Pulang Cepat",desc:"Tanggal hari ini, jam pulang, dan alasan"},{name:"Izin Keluar",desc:"Tanggal hari ini, jam keluar dan kembali"},{name:"Izin Terlambat",desc:"Jelaskan alasan keterlambatan"},{name:"Izin Sakit",desc:"Tanggal mulai sampai selesai"},{name:"Cuti Reguler",desc:"Ajukan cuti sesuai ketentuan perusahaan"}].map(type => <button key={type.name} type="button" className={requestType === type.name ? "request-type-card selected" : "request-type-card"} onClick={() => {setRequestType(type.name);setRequestError("");setRequestMessage("");}}><strong>{type.name}</strong><small>{type.desc}</small></button>)}</div>{requestType && <><h3>Detail Pengajuan · {requestType}</h3>{(requestType === "Izin Sakit" || requestType === "Cuti Reguler") && <><label className="input-block">Tanggal Mulai<input type="date" value={requestStart} onChange={e => setRequestStart(e.target.value)} required /></label><label className="input-block">Tanggal Selesai<input type="date" min={requestStart || undefined} value={requestEnd} onChange={e => setRequestEnd(e.target.value)} required /></label></>}{requestType === "Pulang Cepat" && <label className="input-block">Jam Pulang<input type="time" value={requestTime} onChange={e => setRequestTime(e.target.value)} required /></label>}{requestType === "Izin Keluar" && <><label className="input-block">Jam Keluar<input type="time" value={requestExitTime} onChange={e => setRequestExitTime(e.target.value)} required /></label><label className="input-block">Jam Kembali<input type="time" value={requestReturnTime} onChange={e => setRequestReturnTime(e.target.value)} required /></label></>}{requestType === "Izin Terlambat" && <p className="muted">Isi alasan keterlambatan pada kolom di bawah.</p>}<label className="input-block">Alasan<textarea rows={3} value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Jelaskan alasan pengajuan" required /></label><button className="primary-button wide" type="button" disabled={requestBusy} onClick={() => void submitRequest()}>{requestBusy ? "Mengirim..." : "Kirim Pengajuan"}</button></>}{requestError && <p role="alert" className="error-message">{requestError}</p>}</section>}
       {requestMessage && <p role="status" className="success-message">{requestMessage}</p>}
       <div className="stats-grid"><div className="stat stat-wait"><span>•••</span><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "menunggu" || item.status.toLowerCase() === "pending").length}</strong><small>Menunggu</small></div><div className="stat stat-approved"><Check /><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "disetujui" || item.status.toLowerCase() === "approved").length}</strong><small>Disetujui</small></div><div className="stat stat-rejected"><X /><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "ditolak" || item.status.toLowerCase() === "rejected").length}</strong><small>Ditolak</small></div></div>
       {requestLoadError ? <div className="empty-state"><Info size={42} /><strong>Pengajuan belum bisa dimuat</strong><p>Periksa koneksi dan aturan akses Firestore untuk koleksi pengajuan.</p></div> : employeeRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan yang kamu kirim akan muncul di sini.</p></div> : <div className="history-list">{employeeRequests.map(item => <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Tanggal Mulai<strong>{item.tanggalMulai || "-"}</strong></span><span>Tanggal Selesai<strong>{item.tanggalSelesai || "-"}</strong></span></div><p className="muted history-location">{item.keterangan}</p></article>)}</div>}
