@@ -149,9 +149,8 @@ function AppShell({ user }: { user: User }) {
         const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
         const statuses = data.approvalStatuses && typeof data.approvalStatuses === "object" ? data.approvalStatuses as Record<string, string> : {};
         const pending = String(data.status ?? "").toLowerCase() === "menunggu";
-        // Show every pending request assigned to this approver in the chain.
-        // Only the active approver can take action; upcoming approvers can still see
-        // the request and its current stage instead of an apparently empty inbox.
+        // Show pending requests to authorized approvers and read-only viewers.
+        // Any UID in approvalChain may decide immediately; no sequential turn is required.
         return pending && data.approvalLocked !== true &&
           (currentUid === user.uid || chain.includes(user.uid) || viewers.includes(user.uid));
       });
@@ -231,7 +230,6 @@ function AppShell({ user }: { user: User }) {
           message: `Pengajuan ${outcome.jenis} Anda telah disetujui oleh atasan yang berwenang.`,
           timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
         });
-next approver branch
       setApprovalMessage(status === "Ditolak"
         ? `Pengajuan ${item.nama} berhasil ditolak.`
         : `Pengajuan ${item.nama} berhasil disetujui. Tidak perlu menunggu atasan lain.`);
