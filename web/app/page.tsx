@@ -158,6 +158,7 @@ function AppShell({ user }: { user: User }) {
       });
       setApprovalRequests(visible.map(item => {
         const data = item.data();
+        const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
         const rawCreated = data.createdAt ?? data.waktuPengajuan;
         const created = rawCreated?.toDate?.() ?? null;
         return { id: item.id, uid: String(data.uid ?? data.userId ?? data.pemohonUid ?? ""), currentApproverUid: String(data.currentApproverUid ?? ""), currentApproverName: String(data.currentApproverName ?? ""), currentApproverJabatan: String(data.currentApproverJabatan ?? ""), approvalStep: Math.max(0, chain.indexOf(String(data.currentApproverUid ?? "")) + 1), approvalTotal: chain.length, nama: String(data.nama ?? data.name ?? data.pemohonNama ?? "Karyawan"), jenis: String(data.jenis ?? data.type ?? data.jenisPengajuan ?? "Pengajuan"), tanggal: String(data.tanggal ?? ""), jamPulang: String(data.jamPulang ?? ""), jamKeluar: String(data.jamKeluar ?? ""), jamKembali: String(data.jamKembali ?? ""), tanggalMulai: String(data.tanggalMulai ?? data.tanggal ?? ""), tanggalSelesai: String(data.tanggalSelesai ?? data.tanggalMulai ?? data.tanggal ?? ""), keterangan: String(data.keterangan ?? data.alasan ?? data.alasanPengajuan ?? ""), status: String(data.status ?? "menunggu"), createdAt: created };
