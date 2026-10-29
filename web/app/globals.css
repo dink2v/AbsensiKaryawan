@@ -1319,3 +1319,53 @@ body { margin: 0; }
     padding: 34px;
   }
 }
+
+/* Hotfix: keep the desktop sidebar separate from the dashboard content.
+   Earlier responsive overrides reset the app shell margin and let the page
+   render underneath the fixed navigation. */
+@media (min-width: 700px) {
+  .app-shell {
+    width: calc(100% - 248px);
+    max-width: none;
+    min-height: 100dvh;
+    margin: 0 0 0 248px;
+    padding: 28px clamp(24px, 3vw, 56px) 32px;
+    background: var(--page);
+  }
+  .topbar,
+  .page-content {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+  }
+  .topbar {
+    padding: 8px 0 24px;
+  }
+  .page-content {
+    padding: 0;
+  }
+  .page-content .clock-card {
+    color: #fff;
+    background: linear-gradient(145deg, #1c3d30, #08392c);
+  }
+  .page-content .clock-head > span { color: #dce7e2; }
+  .page-content .clock-time,
+  .page-content .clock-foot strong { color: #fff; }
+  .page-content .clock-foot { color: #b9c9c2; }
+  .page-content .section-title { color: var(--text); }
+  .page-content .attendance-action {
+    color: var(--text);
+    background: #fff;
+  }
+  .page-content .attendance-action.dark-action {
+    color: #fff;
+    background: #1d3b30;
+  }
+  .page-content .action-copy small { color: #626b66; }
+  .page-content .dark-action .action-copy small { color: #d8e4de; }
+  .page-content .quick-card {
+    color: var(--text);
+    background: #fff;
+  }
+}
+
