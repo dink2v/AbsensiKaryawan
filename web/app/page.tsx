@@ -417,7 +417,7 @@ function AppShell({ user }: { user: User }) {
         <div className="clock-divider" /><div className="clock-foot"><span>Jam Masuk<strong>{todayAttendance?.jamMasuk || "-"}</strong></span><span>Jam Pulang<strong>{todayAttendance?.jamPulang || "-"}</strong></span></div>{attendanceLoadError && <p className="error-message">Status absensi gagal dimuat. Periksa aturan akses Firestore.</p>}
       </section>
       <h2 className="section-title">Absensi Hari Ini</h2>
-      <button className="attendance-action dark-action" onClick={() => setPage("scan")}><span className="action-icon"><ScanQrCode /></span><span className="action-copy"><strong>Scan QR Absen</strong><small>Scan untuk absen masuk di kantor</small></span><ChevronRight /></button>
+      <button className="attendance-action dark-action" onClick={() => setPage("scan")}><span className="action-icon"><CalendarDays /></span><span className="action-copy"><strong>Pilih Kantor untuk Absen</strong><small>Pilih kantor terdaftar untuk absen masuk</small></span><ChevronRight /></button>
       <button className="attendance-action" onClick={() => { setPage("scan"); setOutsideOpen(true); }}><span className="action-icon pale"><MapPin /></span><span className="action-copy"><strong>Absen Luar Kantor</strong><small>Untuk tugas langsung ke klien</small></span><ChevronRight /></button>
       <h2 className="section-title quick-title">Aksi Cepat</h2>
       <div className="quick-grid">
@@ -470,6 +470,7 @@ function AppShell({ user }: { user: User }) {
           setAttendanceMessage("Presensi masuk berhasil disimpan.");
           setScannedQr(null);
           setQrNote("");
+          setPage("home");
         } catch (e) {
           console.error("Gagal menyimpan presensi", e);
           const code = (e as { code?: string })?.code;
