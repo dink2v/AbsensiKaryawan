@@ -106,7 +106,7 @@ function AppShell({ user }: { user: User }) {
   const [historyRequestFilter, setHistoryRequestFilter] = useState("Semua");
   const [isApprover, setIsApprover] = useState(false);
   const [approverTab, setApproverTab] = useState<"approval" | "mine">("approval");
-  const [approvalRequests, setApprovalRequests] = useState<Array<{id:string; uid:string; nama:string; jenis:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
+  const [approvalRequests, setApprovalRequests] = useState<Array<{id:string; uid:string; nama:string; jenis:string; tanggal:string; jamPulang:string; jamKeluar:string; jamKembali:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
   const [approvalBusyId, setApprovalBusyId] = useState("");
   const [approvalMessage, setApprovalMessage] = useState("");
   const [approvalError, setApprovalError] = useState("");
