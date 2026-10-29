@@ -803,9 +803,6 @@ export default function Home() {
           const profileSnapshot = await getDoc(doc(db, "users", currentUser.uid));
           const profile = profileSnapshot.data() ?? {};
           const role = String(profile.role ?? profile.peran ?? "").trim().toLowerCase();
-          const isAdmin = profile.isAdmin === true ||
-            ["admin", "owner", "manager", "hrd", "superadmin"].includes(role);
-
           if (!profileSnapshot.exists() || profile.active === false ||
               String(profile.status ?? "").trim().toLowerCase() === "nonaktif") {
             await signOut(auth);
