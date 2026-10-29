@@ -456,27 +456,35 @@ function AppShell({ user }: { user: User }) {
         currentApproverJabatan: approvers[0].jabatan,
         approvalLocked: false,
       });
-      await addDoc(collection(db, "notifications"), {
-        userId: approvers[0].uid,
-        type: "PENGAJUAN_BARU",
-        title: "Pengajuan Baru",
-        message: `${employeeName} membuat pengajuan ${requestType} dan menunggu persetujuan Anda.`,
-        timestamp: Date.now(),
-        isRead: false,
-        read: false,
-        relatedId: requestRef.id,
-      });
       setRequestMessage("Pengajuan berhasil dikirim dan menunggu persetujuan Supervisor.");
       setRequestStart("");
       setRequestEnd("");
       setRequestReason("");
       setShowRequestForm(false);
+
+      // Notifikasi adalah proses terpisah supaya kegagalannya tidak membuat
+      // pengajuan yang sudah tersimpan terlihat seolah-olah gagal dikirim.
+      try {
+        await addDoc(collection(db, "notifications"), {
+          userId: approvers[0].uid,
+          type: "PENGAJUAN_BARU",
+          title: "Pengajuan Baru",
+          message: `${employeeName} membuat pengajuan ${requestType} dan menunggu persetujuan Anda.`,
+          timestamp: Date.now(),
+          isRead: false,
+          read: false,
+          relatedId: requestRef.id,
+        });
+      } catch (notificationError) {
+        console.error("Pengajuan tersimpan, tetapi notifikasi Supervisor gagal dibuat", notificationError);
+        setRequestMessage("Pengajuan tersimpan, tetapi notifikasi Supervisor gagal dikirim. Hubungi Admin untuk memeriksa izin koleksi notifications.");
+      }
     } catch (error) {
       console.error("Gagal mengirim pengajuan", error);
       const code = (error as { code?: string })?.code;
       setRequestError(code === "permission-denied"
         ? "Pengajuan ditolak oleh aturan keamanan Firestore. Hubungi Admin untuk memeriksa izin koleksi pengajuan."
-        : "Pengajuan belum tersimpan. Periksa koneksi lalu coba lagi.");
+        : error instanceof Error ? error.message : "Pengajuan belum tersimpan. Periksa koneksi lalu coba lagi.");
     } finally {
       setRequestBusy(false);
     }
@@ -828,6 +836,7 @@ function AppShell({ user }: { user: User }) {
     {page === "requests" && <main className="page-content subpage">
       <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Pengajuan</h1><p className="muted">Ajukan izin, sakit, cuti, atau keperluan lainnya</p></div><button className="icon-button" type="button" aria-label="Muat ulang pengajuan" onClick={() => { setRequestLoadError(false); setPage("home"); setTimeout(() => setPage("requests"), 0); }}><RefreshCw /></button></div>
       <button className="new-request" type="button" onClick={() => { setShowRequestForm(!showRequestForm); setRequestError(""); setRequestMessage(""); }}><FilePlus2 size={30} /><span><strong>{showRequestForm ? "Tutup Form Pengajuan" : "Buat Pengajuan Baru"}</strong><small>Isi tanggal dan keterangan dengan benar</small></span></button>
+      {requestMessage && <div className="info-banner" role="status"><CheckCircle2 size={20} /> {requestMessage}</div>}
       {showRequestForm && <section className="form-card"><h2>Pengajuan Baru</h2><label className="input-block">Jenis Pengajuan<select value={requestType} onChange={e => setRequestType(e.target.value)}><option>Izin</option><option>Sakit</option><option>Cuti</option><option>Lainnya</option></select></label><label className="input-block">Tanggal Mulai<input type="date" value={requestStart} onChange={e => setRequestStart(e.target.value)} required /></label><label className="input-block">Tanggal Selesai<input type="date" min={requestStart || undefined} value={requestEnd} onChange={e => setRequestEnd(e.target.value)} required /></label><label className="input-block">Keterangan<textarea rows={3} value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Jelaskan keperluan pengajuan" required /></label><button className="primary-button wide" type="button" disabled={requestBusy} onClick={() => void submitRequest()}>{requestBusy ? "Mengirim..." : "Kirim Pengajuan"}</button>{requestError && <p role="alert" className="error-message">{requestError}</p>}</section>}
       {requestMessage && <p role="status" className="success-message">{requestMessage}</p>}
       <div className="stats-grid"><div className="stat stat-wait"><span>•••</span><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "menunggu" || item.status.toLowerCase() === "pending").length}</strong><small>Menunggu</small></div><div className="stat stat-approved"><Check /><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "disetujui" || item.status.toLowerCase() === "approved").length}</strong><small>Disetujui</small></div><div className="stat stat-rejected"><X /><strong>{employeeRequests.filter(item => item.status.toLowerCase() === "ditolak" || item.status.toLowerCase() === "rejected").length}</strong><small>Ditolak</small></div></div>
