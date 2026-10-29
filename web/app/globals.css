@@ -1495,6 +1495,20 @@ body { margin: 0; }
 
 
 /* Approval summary */
+.approval-turn-note {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid #16804a;
+  border-radius: 0 10px 10px 0;
+  background: #edf8f1;
+  color: #176044;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.theme-dark .approval-turn-note {
+  background: #20392e;
+  color: #c9ead7;
+}
 .request-summary { margin: 4px 0 22px; padding: 18px 20px; border: 1px solid #dce9e2; border-radius: 20px; background: #edf5f0; }
 .request-summary > div { display: flex; align-items: flex-start; gap: 12px; }
 .request-summary strong { display: block; color: var(--green-deep); font-size: 16px; }
