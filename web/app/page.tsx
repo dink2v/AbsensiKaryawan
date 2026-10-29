@@ -106,7 +106,7 @@ function AppShell({ user }: { user: User }) {
   const [historyRequestFilter, setHistoryRequestFilter] = useState("Semua");
   const [isApprover, setIsApprover] = useState(false);
   const [approverTab, setApproverTab] = useState<"approval" | "mine">("approval");
-  const [approvalRequests, setApprovalRequests] = useState<Array<{id:string; uid:string; currentApproverUid:string; currentApproverName:string; currentApproverJabatan:string; approvalStep:number; approvalTotal:number; nama:string; jenis:string; tanggal:string; jamPulang:string; jamKeluar:string; jamKembali:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
+  const [approvalRequests, setApprovalRequests] = useState<Array<{id:string; uid:string; currentApproverUid:string; currentApproverName:string; currentApproverJabatan:string; approvalStep:number; approvalTotal:number; canApprove:boolean; nama:string; jenis:string; tanggal:string; jamPulang:string; jamKeluar:string; jamKembali:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
   const [approvalBusyId, setApprovalBusyId] = useState("");
   const [approvalMessage, setApprovalMessage] = useState("");
   const [approvalError, setApprovalError] = useState("");
@@ -161,7 +161,7 @@ function AppShell({ user }: { user: User }) {
         const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
         const rawCreated = data.createdAt ?? data.waktuPengajuan;
         const created = rawCreated?.toDate?.() ?? null;
-        return { id: item.id, uid: String(data.uid ?? data.userId ?? data.pemohonUid ?? ""), currentApproverUid: String(data.currentApproverUid ?? ""), currentApproverName: String(data.currentApproverName ?? ""), currentApproverJabatan: String(data.currentApproverJabatan ?? ""), approvalStep: Math.max(0, chain.indexOf(String(data.currentApproverUid ?? "")) + 1), approvalTotal: chain.length, nama: String(data.nama ?? data.name ?? data.pemohonNama ?? "Karyawan"), jenis: String(data.jenis ?? data.type ?? data.jenisPengajuan ?? "Pengajuan"), tanggal: String(data.tanggal ?? ""), jamPulang: String(data.jamPulang ?? ""), jamKeluar: String(data.jamKeluar ?? ""), jamKembali: String(data.jamKembali ?? ""), tanggalMulai: String(data.tanggalMulai ?? data.tanggal ?? ""), tanggalSelesai: String(data.tanggalSelesai ?? data.tanggalMulai ?? data.tanggal ?? ""), keterangan: String(data.keterangan ?? data.alasan ?? data.alasanPengajuan ?? ""), status: String(data.status ?? "menunggu"), createdAt: created };
+        return { id: item.id, uid: String(data.uid ?? data.userId ?? data.pemohonUid ?? ""), currentApproverUid: String(data.currentApproverUid ?? ""), currentApproverName: String(data.currentApproverName ?? ""), currentApproverJabatan: String(data.currentApproverJabatan ?? ""), approvalStep: Math.max(0, chain.indexOf(String(data.currentApproverUid ?? "")) + 1), approvalTotal: chain.length, canApprove: chain.includes(user.uid), nama: String(data.nama ?? data.name ?? data.pemohonNama ?? "Karyawan"), jenis: String(data.jenis ?? data.type ?? data.jenisPengajuan ?? "Pengajuan"), tanggal: String(data.tanggal ?? ""), jamPulang: String(data.jamPulang ?? ""), jamKeluar: String(data.jamKeluar ?? ""), jamKembali: String(data.jamKembali ?? ""), tanggalMulai: String(data.tanggalMulai ?? data.tanggal ?? ""), tanggalSelesai: String(data.tanggalSelesai ?? data.tanggalMulai ?? data.tanggal ?? ""), keterangan: String(data.keterangan ?? data.alasan ?? data.alasanPengajuan ?? ""), status: String(data.status ?? "menunggu"), createdAt: created };
       }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)));
     }, () => setApprovalError("Pengajuan gagal dimuat. Periksa koneksi dan aturan akses Firestore."));
   }, [isApprover, page, user.uid]);
@@ -186,12 +186,11 @@ function AppShell({ user }: { user: User }) {
         const currentUid = String(data.currentApproverUid ?? "");
         const pending = String(data.status ?? "").toLowerCase() === "menunggu";
         if (!pending || data.approvalLocked === true) throw new Error("Pengajuan sudah tidak menunggu persetujuan.");
-        if (!chain.includes(user.uid) || currentUid !== user.uid || statuses[user.uid] !== "menunggu") {
-          throw new Error("Akun ini bukan approver aktif untuk pengajuan tersebut.");
+        if (!chain.includes(user.uid)) {
+          throw new Error("Akun ini tidak terdaftar sebagai atasan yang berwenang menyetujui pengajuan tersebut.");
         }
 
         statuses[user.uid] = status === "Disetujui" ? "disetujui" : "ditolak";
-        const currentIndex = chain.indexOf(user.uid);
         if (status === "Ditolak") {
           transaction.update(requestRef, {
             status: "ditolak",
@@ -207,34 +206,18 @@ function AppShell({ user }: { user: User }) {
           return { outcome: "rejected" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan"), nextUid: "" };
         }
 
-        const nextUid = chain[currentIndex + 1];
-        if (!nextUid) {
-          transaction.update(requestRef, {
-            status: "disetujui",
-            approvalStatuses: statuses,
-            approvalLocked: true,
-            currentApproverUid: "",
-            currentApproverName: "",
-            currentApproverJabatan: "",
-            waktuKeputusan: serverTimestamp(),
-            diprosesOleh: user.uid,
-            diprosesPada: serverTimestamp(),
-          });
-          return { outcome: "approved" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan"), nextUid: "" };
-        }
-
-        statuses[nextUid] = "menunggu";
         transaction.update(requestRef, {
-          status: "menunggu",
+          status: "disetujui",
           approvalStatuses: statuses,
-          currentApproverUid: nextUid,
+          approvalLocked: true,
+          currentApproverUid: "",
           currentApproverName: "",
           currentApproverJabatan: "",
-          approvalLocked: false,
+          waktuKeputusan: serverTimestamp(),
           diprosesOleh: user.uid,
           diprosesPada: serverTimestamp(),
         });
-        return { outcome: "forwarded" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan"), nextUid };
+        return { outcome: "approved" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan") };
       });
       // Match the Android notifications collection/schema after the atomic status update.
       if (outcome.outcome === "rejected") {
@@ -246,28 +229,13 @@ function AppShell({ user }: { user: User }) {
       } else if (outcome.outcome === "approved") {
         if (outcome.requesterUid) await addDoc(collection(db, "notifications"), {
           userId: outcome.requesterUid, type: "PENGAJUAN_DISETUJUI", title: "Pengajuan Disetujui",
-          message: `Pengajuan ${outcome.jenis} Anda telah disetujui seluruh approver.`,
+          message: `Pengajuan ${outcome.jenis} Anda telah disetujui oleh atasan yang berwenang.`,
           timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
         });
-      } else if (outcome.nextUid) {
-        const nextUserQuery = query(collection(db, "users"), where("uid", "==", outcome.nextUid));
-        const nextUserSnapshot = await getDocs(nextUserQuery);
-        const nextUserDoc = nextUserSnapshot.docs[0];
-        if (!nextUserDoc) throw new Error("Data approver berikutnya tidak ditemukan.");
-        const nextUser = nextUserDoc.data();
-        await updateDoc(requestRef, {
-          currentApproverName: String(nextUser.nama ?? ""),
-          currentApproverJabatan: String(nextUser.jabatan ?? ""),
-        });
-        await addDoc(collection(db, "notifications"), {
-          userId: outcome.nextUid, type: "PENGAJUAN_APPROVAL", title: "Pengajuan Menunggu Approval",
-          message: `${item.nama} membuat pengajuan ${outcome.jenis} yang menunggu persetujuan Anda.`,
-          timestamp: Date.now(), isRead: false, relatedId: item.id,
-        });
-      }
+next approver branch
       setApprovalMessage(status === "Ditolak"
         ? `Pengajuan ${item.nama} berhasil ditolak.`
-        : `Persetujuan untuk ${item.nama} berhasil diproses sesuai alur approval.`);
+        : `Pengajuan ${item.nama} berhasil disetujui. Tidak perlu menunggu atasan lain.`);
     } catch (error) {
       console.error("Gagal memproses persetujuan", error);
       setApprovalError(error instanceof Error && error.message
@@ -882,8 +850,8 @@ function AppShell({ user }: { user: User }) {
       <div className="segmented large" aria-label="Bagian pengajuan"><button type="button" className="selected" onClick={() => setApproverTab("approval")}>Persetujuan</button><button type="button" onClick={() => setApproverTab("mine")}>Pengajuan Saya</button></div>
       {approvalMessage && <p role="status" className="success-message">{approvalMessage}</p>}
       {approvalError && <p role="alert" className="error-message">{approvalError}</p>}
-      <div className="request-summary"><div><span className="summary-dot" /><div><strong>{approvalRequests.filter(item => item.currentApproverUid === user.uid).length} pengajuan menunggu tindakan Anda</strong><p className="muted">Pengajuan yang berada dalam alur persetujuan akunmu ditampilkan di sini. Tombol keputusan hanya aktif saat giliranmu.</p></div></div></div>
-      {approvalRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan yang ditujukan ke akunmu akan muncul di sini.</p></div> : <div className="history-list">{approvalRequests.map(item => { const canAct = item.status.toLowerCase() === "menunggu" && item.currentApproverUid === user.uid; return <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.nama} · {item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Tanggal mulai<strong>{item.tanggalMulai || item.tanggal || "-"}</strong></span><span>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? "Tanggal selesai" : "Waktu / detail"}<strong>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? item.tanggalSelesai : item.jamPulang || (item.jamKeluar ? item.jamKeluar + (item.jamKembali ? " – " + item.jamKembali : "") : "-")}</strong></span></div><p className="muted history-location">{item.keterangan || "Tidak ada keterangan"}</p>{canAct && <div className="approval-actions"><button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? "Memproses..." : "Setujui"}</button><button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}>Tolak</button></div>}{!canAct && <p className="muted">{item.currentApproverUid ? <>Tahap {item.approvalStep || "-"}{item.approvalTotal ? ` dari ${item.approvalTotal}` : ""} · Menunggu {item.currentApproverName ? item.currentApproverName : "approver yang bertugas"}{item.currentApproverJabatan ? ` (${item.currentApproverJabatan})` : ""}.</> : "Pengajuan ini tidak memiliki approver aktif."}</p>}{canAct && <p className="approval-turn-note">Tahap {item.approvalStep || 1}{item.approvalTotal ? ` dari ${item.approvalTotal}` : ""} · Sekarang giliran Anda untuk memutuskan pengajuan ini.</p>}</article>; })}</div>}
+      <div className="request-summary"><div><span className="summary-dot" /><div><strong>{approvalRequests.filter(item => item.canApprove).length} pengajuan menunggu tindakan Anda</strong><p className="muted">Pengajuan yang berada dalam wewenang akunmu ditampilkan di sini. Kamu bisa menyetujui atau menolak langsung tanpa menunggu atasan lain.</p></div></div></div>
+      {approvalRequests.length === 0 ? <div className="empty-state"><FileText size={42} /><strong>Belum ada pengajuan</strong><p>Pengajuan yang ditujukan ke akunmu akan muncul di sini.</p></div> : <div className="history-list">{approvalRequests.map(item => { const canAct = item.status.toLowerCase() === "menunggu" && item.canApprove; return <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.nama} · {item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Tanggal mulai<strong>{item.tanggalMulai || item.tanggal || "-"}</strong></span><span>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? "Tanggal selesai" : "Waktu / detail"}<strong>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? item.tanggalSelesai : item.jamPulang || (item.jamKeluar ? item.jamKeluar + (item.jamKembali ? " – " + item.jamKembali : "") : "-")}</strong></span></div><p className="muted history-location">{item.keterangan || "Tidak ada keterangan"}</p>{canAct && <div className="approval-actions"><button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? "Memproses..." : "Setujui"}</button><button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}>Tolak</button></div>}{!canAct && <p className="muted">Pengajuan ini bukan dalam wewenang persetujuan akunmu.</p>}{canAct && <p className="approval-turn-note">Kamu berwenang memutuskan pengajuan ini sekarang, tanpa menunggu atasan lain.</p>}</article>; })}</div>}
     </main>}
 
     {page === "requests" && (!isApprover || approverTab === "mine") && <main className="page-content subpage">
