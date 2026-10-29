@@ -873,7 +873,7 @@ function AppShell({ user }: { user: User }) {
             <p className="approval-turn-note">Keputusanmu langsung mengunci status pengajuan.</p>
           </> : <p className="muted approval-readonly-note">Pengajuan ini hanya dapat dilihat oleh akunmu; tindakan persetujuan tidak tersedia.</p>}
         </article>;
-      })}</div>
+      })}</div>}
     </main>}
 
     {page === "requests" && (!isApprover || approverTab === "mine") && <main className="page-content subpage requests-page">
