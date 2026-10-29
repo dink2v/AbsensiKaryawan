@@ -870,7 +870,6 @@ function AppShell({ user }: { user: User }) {
               <button className="primary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Disetujui")}>{approvalBusyId === item.id ? <><RefreshCw size={16} className="spin-icon" /> Memproses...</> : <><Check size={16} /> Setujui</>}</button>
               <button className="secondary-button" type="button" disabled={!!approvalBusyId} onClick={() => void decideRequest(item, "Ditolak")}><X size={16} /> Tolak</button>
             </div>
-            <p className="approval-turn-note">Keputusanmu langsung mengunci status pengajuan.</p>
           </> : <p className="muted approval-readonly-note">Pengajuan ini hanya dapat dilihat oleh akunmu; tindakan persetujuan tidak tersedia.</p>}
         </article>;
       })}</div>}
