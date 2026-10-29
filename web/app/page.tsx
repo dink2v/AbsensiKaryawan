@@ -376,9 +376,13 @@ function AppShell({ user }: { user: User }) {
             return {
               id: item.id,
               jenis: typeof data.jenis === "string" ? data.jenis : "Lainnya",
-              tanggalMulai: typeof data.tanggalMulai === "string" ? data.tanggalMulai : "",
-              tanggalSelesai: typeof data.tanggalSelesai === "string" ? data.tanggalSelesai : "",
-              keterangan: typeof data.keterangan === "string" ? data.keterangan : "",
+              tanggal: typeof data.tanggal === "string" ? data.tanggal : "",
+              jamPulang: typeof data.jamPulang === "string" ? data.jamPulang : "",
+              jamKeluar: typeof data.jamKeluar === "string" ? data.jamKeluar : "",
+              jamKembali: typeof data.jamKembali === "string" ? data.jamKembali : "",
+              tanggalMulai: typeof data.tanggalMulai === "string" ? data.tanggalMulai : (typeof data.tanggal === "string" ? data.tanggal : ""),
+              tanggalSelesai: typeof data.tanggalSelesai === "string" ? data.tanggalSelesai : (typeof data.tanggalMulai === "string" ? data.tanggalMulai : ""),
+              keterangan: typeof data.keterangan === "string" ? data.keterangan : (typeof data.alasan === "string" ? data.alasan : ""),
               status: typeof data.status === "string" ? data.status : "Menunggu",
               createdAt,
             };
