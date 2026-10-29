@@ -5,11 +5,10 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } fr
 import { doc, getDoc, updateDoc, setDoc, orderBy } from "firebase/firestore";
 import { addDoc, collection, getDocs, onSnapshot, query, serverTimestamp, where } from "firebase/firestore";
 import { getFirebaseClient } from "@/lib/firebase";
-import QrScanner from "./qr-scanner";
 import {
   ArrowRight, Bell, CalendarDays, Check, ChevronRight, Clock3, FilePlus2,
   FileText, History, House, LockKeyhole, Eye, EyeOff, LogOut, MapPin,
-  ScanQrCode, Settings, UserRound, X, BriefcaseBusiness, Palette, CircleHelp,
+  Settings, UserRound, X, BriefcaseBusiness, Palette, CircleHelp,
   Info, RefreshCw, MessageCircle, Send, Headset
 } from "lucide-react";
 
@@ -17,6 +16,7 @@ type Page = "home" | "requests" | "history" | "settings" | "scan" | "profile" | 
 type HistoryTab = "attendance" | "requests";
 type SettingsSection = "main" | "notifications" | "appearance" | "help" | "about";
 type ThemeMode = "terang" | "gelap" | "sistem";
+type RegisteredQr = { id: string; qrData: string; officeName: string; description: string };
 type ChatMessageData = { id: string; senderId: string; senderName: string; senderType: string; message: string; timestamp: number };
 type EmployeeNotification = {
   id: string;
@@ -99,6 +99,9 @@ function AppShell({ user }: { user: User }) {
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState("");
   const [scannedQr, setScannedQr] = useState<{ qrData: string; officeName: string } | null>(null);
+  const [registeredQrs, setRegisteredQrs] = useState<RegisteredQr[]>([]);
+  const [qrListLoading, setQrListLoading] = useState(false);
+  const [qrListError, setQrListError] = useState("");
   const [qrNote, setQrNote] = useState("");
 
   const [todayAttendance, setTodayAttendance] = useState<{ jamMasuk: string; jamPulang: string } | null>(null);
@@ -287,6 +290,38 @@ function AppShell({ user }: { user: User }) {
   }
 
   useEffect(() => {
+    if (page !== "scan") return;
+    let active = true;
+    async function loadRegisteredQrs() {
+      setQrListLoading(true);
+      setQrListError("");
+      try {
+        const { db } = getFirebaseClient();
+        const snapshot = await getDocs(collection(db, "qr_settings"));
+        const records: RegisteredQr[] = snapshot.docs.flatMap((item) => {
+          const data = item.data();
+          const qrData = typeof data.qrData === "string" ? data.qrData.trim() : "";
+          if (data.aktif !== true || !qrData) return [];
+          return [{
+            id: item.id,
+            qrData,
+            officeName: typeof data.officeName === "string" && data.officeName.trim() ? data.officeName.trim() : "Kantor",
+            description: typeof data.description === "string" ? data.description : "",
+          }];
+        });
+        if (active) setRegisteredQrs(records);
+      } catch (error) {
+        console.error("Gagal memuat daftar QR kantor", error);
+        if (active) setQrListError("Daftar kantor gagal dimuat. Periksa koneksi dan aturan akses Firestore.");
+      } finally {
+        if (active) setQrListLoading(false);
+      }
+    }
+    void loadRegisteredQrs();
+    return () => { active = false; };
+  }, [page]);
+
+  useEffect(() => {
     try {
       const { db } = getFirebaseClient();
       const attendanceQuery = query(
@@ -348,7 +383,7 @@ function AppShell({ user }: { user: User }) {
   const navItems: { id: Page; label: string; icon: typeof House }[] = [
     { id: "home", label: "Beranda", icon: House },
     { id: "requests", label: "Pengajuan", icon: FilePlus2 },
-    { id: "scan", label: "Scan QR", icon: ScanQrCode },
+    { id: "scan", label: "Absen", icon: CalendarDays },
     { id: "history", label: "Riwayat", icon: History },
     { id: "settings", label: "Setting", icon: Settings },
   ];
@@ -393,17 +428,23 @@ function AppShell({ user }: { user: User }) {
     </main>}
 
     {page === "scan" && <main className="page-content subpage">
-      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Scan Kehadiran</h1><p className="muted">Arahkan kamera ke QR Code</p></div></div>
-      <div className="info-banner"><Info size={20} /> Pastikan pencahayaan cukup dan QR terlihat jelas di dalam kotak.</div>
-      <QrScanner onValidQr={(qrData, officeName) => setScannedQr({ qrData, officeName })} />
-      {scannedQr && <div className="verified-qr"><Check size={18} /><span><strong>QR terverifikasi</strong><small>{scannedQr.officeName}</small></span></div>}
+      <div className="page-heading"><button className="back-button" onClick={() => setPage("home")}><ArrowRight className="back-arrow" /></button><div><h1>Absen Masuk</h1><p className="muted">Pilih kantor dari daftar QR yang terdaftar</p></div><button className="icon-button" type="button" aria-label="Muat ulang daftar kantor" onClick={() => { setRegisteredQrs([]); setQrListError(""); setPage("home"); setTimeout(() => setPage("scan"), 0); }}><RefreshCw /></button></div>
+      <div className="info-banner"><Info size={20} /> Pilih lokasi kantor yang sesuai sebelum mengonfirmasi kehadiran.</div>
+      {qrListLoading && <div className="empty-state"><RefreshCw size={32} /><strong>Memuat daftar kantor...</strong><p>Mengambil QR kantor aktif dari Firebase.</p></div>}
+      {qrListError && <div className="empty-state"><Info size={32} /><strong>Daftar kantor belum tersedia</strong><p>{qrListError}</p><button className="primary-button" type="button" onClick={() => { setPage("home"); setTimeout(() => setPage("scan"), 0); }}>Coba Lagi</button></div>}
+      {!qrListLoading && !qrListError && registeredQrs.length === 0 && <div className="empty-state"><MapPin size={36} /><strong>Belum ada kantor aktif</strong><p>QR kantor aktif belum ditemukan di Firebase. Hubungi Admin untuk memeriksa koleksi qr_settings.</p></div>}
+      {!qrListLoading && !qrListError && registeredQrs.length > 0 && <section className="form-card">
+        <h2><MapPin /> Pilih Kantor</h2>
+        <div className="office-choice-list">{registeredQrs.map((office) => <button key={office.id} type="button" className={scannedQr?.qrData === office.qrData ? "office-choice selected" : "office-choice"} onClick={() => { setScannedQr({ qrData: office.qrData, officeName: office.officeName }); setAttendanceMessage(""); }}><span className="office-choice-icon"><BriefcaseBusiness size={22} /></span><span className="office-choice-copy"><strong>{office.officeName}</strong><small>{office.description || "Kantor terdaftar"}</small></span><span className="office-choice-check">{scannedQr?.qrData === office.qrData && <Check size={20} />}</span></button>)}</div>
+      </section>}
+      {scannedQr && <div className="verified-qr"><Check size={18} /><span><strong>Kantor dipilih</strong><small>{scannedQr.officeName}</small></span></div>}
       <label className="input-block">Catatan (opsional)<input value={qrNote} onChange={e => setQrNote(e.target.value)} placeholder="Tambahkan catatan jika diperlukan" /></label>
-      <button className="primary-button wide" disabled={!scannedQr || attendanceBusy} onClick={async () => {
+      <button className="primary-button wide" disabled={!scannedQr || attendanceBusy || qrListLoading || Boolean(todayAttendance?.jamMasuk)} onClick={async () => {
         setAttendanceMessage("");
         setAttendanceBusy(true);
         try {
           if (!scannedQr) {
-            setAttendanceMessage("Scan QR yang valid terlebih dahulu.");
+            setAttendanceMessage("Pilih kantor terlebih dahulu.");
             return;
           }
           const { db } = getFirebaseClient();
@@ -430,7 +471,7 @@ function AppShell({ user }: { user: User }) {
           setScannedQr(null);
           setQrNote("");
         } catch (e) {
-          console.error("Gagal menyimpan presensi QR", e);
+          console.error("Gagal menyimpan presensi", e);
           const code = (e as { code?: string })?.code;
           setAttendanceMessage(code === "permission-denied"
             ? "Presensi ditolak oleh aturan keamanan Firestore. Hubungi Admin."
@@ -438,7 +479,7 @@ function AppShell({ user }: { user: User }) {
         } finally {
           setAttendanceBusy(false);
         }
-      }}>{attendanceBusy ? "Menyimpan..." : <><Check /> Konfirmasi Absen</>}</button>
+      }}>{attendanceBusy ? "Menyimpan..." : todayAttendance?.jamMasuk ? "Sudah Absen Hari Ini" : <><Check /> Konfirmasi Absen</>}</button>
       {attendanceMessage && <p role="status" aria-live="polite" className={attendanceMessage.includes("berhasil disimpan") ? "success-message" : "error-message"}>{attendanceMessage}</p>}
       <button className="accordion" onClick={() => setOutsideOpen(!outsideOpen)}><BriefcaseBusiness /> Absen di Luar Kantor <ChevronRight className={outsideOpen ? "rotate" : ""} /></button>
       {outsideOpen && <section className="form-card"><h2><BriefcaseBusiness /> Absen dari lokasi tugas</h2><p>Gunakan jika kamu langsung menuju lokasi klien atau tempat tugas tanpa datang ke kantor terlebih dahulu.</p><label className="input-block">Lokasi<input value={location} onChange={e => setLocation(e.target.value)} placeholder="Contoh: SMK Negeri 1 Blitar" /></label><label className="input-block">Alasan / Keperluan<textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Contoh: Bertemu klien untuk keperluan pekerjaan" rows={3} /></label><button className="primary-button wide" disabled={!location.trim() || !reason.trim() || attendanceBusy} onClick={async () => {
@@ -475,6 +516,7 @@ function AppShell({ user }: { user: User }) {
           setAttendanceBusy(false);
         }
       }}>{attendanceBusy ? "Menyimpan..." : "➤ Kirim Absen"}</button>{attendanceMessage && <p role="status" aria-live="polite" className={attendanceMessage.includes("berhasil disimpan") ? "success-message" : "error-message"}>{attendanceMessage}</p>}</section>}
+
     </main>}
 
     {page === "requests" && <main className="page-content subpage">
@@ -573,7 +615,7 @@ function AppShell({ user }: { user: User }) {
       </section>}
       {settingsSection === "help" && <section className="settings-card settings-detail help-content">
         <h2 className="settings-detail-title">Panduan Singkat</h2>
-        <article><strong>Presensi</strong><p>Buka menu Scan untuk memindai QR kantor. Pastikan izin kamera di browser sudah diberikan.</p></article>
+        <article><strong>Presensi</strong><p>Buka menu Absen, pilih kantor dari daftar QR aktif, lalu konfirmasi kehadiran.</p></article>
         <article><strong>Pengajuan izin, sakit, atau cuti</strong><p>Buka menu Pengajuan untuk melihat dan mengirim pengajuan. Status akan terlihat setelah integrasi data pengajuan aktif.</p></article>
         <article><strong>Notifikasi dan Chat Admin</strong><p>Notifikasi ditampilkan jika sudah tersimpan di Firebase. Jika ada kendala akun atau presensi, hubungi Admin/HRD.</p></article>
         <article><strong>Akun bermasalah?</strong><p>Keluar lalu masuk kembali. Jika tetap gagal, minta Admin memeriksa akun dan aturan akses Firebase.</p></article>
