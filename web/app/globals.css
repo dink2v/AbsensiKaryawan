@@ -1369,3 +1369,79 @@ body { margin: 0; }
   }
 }
 
+/* Final desktop layout override: keep the sidebar outside the main content
+   even when earlier responsive rules set a centered max-width shell. */
+@media screen and (min-width: 700px) {
+  html body .app-shell {
+    width: calc(100% - 248px) !important;
+    max-width: none !important;
+    margin: 0 0 0 248px !important;
+    padding: 28px clamp(24px, 3vw, 56px) 32px !important;
+    min-height: 100vh;
+    overflow: visible;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  html body .app-shell > .topbar,
+  html body .app-shell > .page-content {
+    width: 100%;
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  html body .app-shell > .page-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  html body .app-shell > .bottom-nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: none;
+    width: 248px;
+    max-width: 248px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 30px 18px;
+    overflow-y: auto;
+    background: #fff;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  html body .app-shell > .bottom-nav::before {
+    content: "ABSENSI KARYAWAN";
+    display: block;
+    color: var(--green);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    padding: 8px 12px 28px;
+  }
+  html body .app-shell > .bottom-nav .nav-item {
+    width: 100%;
+    min-height: 48px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 13px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #68756d;
+  }
+  html body .app-shell > .bottom-nav .nav-item.active {
+    background: var(--green-soft);
+    color: var(--green);
+  }
+  html body .app-shell > .bottom-nav .nav-scan-icon {
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    border-radius: 8px;
+  }
+}
+
