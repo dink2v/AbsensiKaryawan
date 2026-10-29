@@ -1458,3 +1458,37 @@ body { margin: 0; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Pengajuan Web mengikuti kartu jenis pada aplikasi Android */
+.request-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+.request-type-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 16px;
+  background: var(--card, #fff);
+  color: var(--foreground, #17211b);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.request-type-card strong { font-size: 14px; line-height: 1.35; }
+.request-type-card small { font-size: 12px; line-height: 1.45; color: var(--muted, #667085); }
+.request-type-card.selected {
+  border-color: var(--primary, #16804a);
+  background: var(--soft-green, #effaf3);
+  box-shadow: 0 0 0 1px var(--primary, #16804a) inset;
+}
+@media (max-width: 420px) {
+  .request-type-grid { grid-template-columns: 1fr; }
+}
