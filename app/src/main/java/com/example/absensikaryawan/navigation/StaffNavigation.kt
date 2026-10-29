@@ -117,15 +117,16 @@ fun StaffNavigation(
                     controlAdmin.getBoolean("active") == true &&
                     (adminRole == "ADMIN" || adminRole == "OWNER")
 
-            // Peran karyawan tetap didukung dari koleksi users.
-            val snapshot =
-                db.collection("users")
-                    .whereEqualTo("uid", uid)
-                    .limit(1)
-                    .get()
-                    .await()
-
-            val document = snapshot.documents.firstOrNull()
+            // Profil utama memakai UID Firebase sebagai document ID (users/{uid}),
+            // sama dengan UID yang dipakai Authentication dan controlAdmins/{uid}.
+            // Fallback query menjaga kompatibilitas dengan data lama yang ID dokumennya berbeda.
+            val usersRef = db.collection("users")
+            val directUser = usersRef.document(uid).get().await()
+            val document = if (directUser.exists()) {
+                directUser
+            } else {
+                usersRef.whereEqualTo("uid", uid).limit(1).get().await().documents.firstOrNull()
+            }
 
             val jabatan =
                 document?.getString("jabatan")
