@@ -237,15 +237,16 @@ function AppShell({ user }: { user: User }) {
         const nextUserQuery = query(collection(db, "users"), where("uid", "==", outcome.nextUid));
         const nextUserSnapshot = await getDocs(nextUserQuery);
         const nextUserDoc = nextUserSnapshot.docs[0];
-        const nextUser = nextUserDoc?.data();
+        if (!nextUserDoc) throw new Error("Data approver berikutnya tidak ditemukan.");
+        const nextUser = nextUserDoc.data();
         await updateDoc(requestRef, {
-          currentApproverName: String(nextUser?.nama ?? ""),
-          currentApproverJabatan: String(nextUser?.jabatan ?? ""),
+          currentApproverName: String(nextUser.nama ?? ""),
+          currentApproverJabatan: String(nextUser.jabatan ?? ""),
         });
         await addDoc(collection(db, "notifications"), {
           userId: outcome.nextUid, type: "PENGAJUAN_APPROVAL", title: "Pengajuan Menunggu Approval",
           message: `${item.nama} membuat pengajuan ${outcome.jenis} yang menunggu persetujuan Anda.`,
-          timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
+          timestamp: Date.now(), isRead: false, relatedId: item.id,
         });
       }
       setApprovalMessage(status === "Ditolak"
@@ -410,22 +411,24 @@ function AppShell({ user }: { user: User }) {
       // Mirror the Android approval chain: Supervisor -> Manager -> HRD -> Owner.
       const usersSnapshot = await getDocs(collection(db, "users"));
       const approvalRoles = ["Supervisor", "Manager", "HRD", "Owner"];
-      const approvers = approvalRoles.map((role) => {
+      const approvers: Array<{ uid: string; nama: string; jabatan: string }> = [];
+      for (const role of approvalRoles) {
         const matches = usersSnapshot.docs.filter((personDoc) =>
           String(personDoc.data().jabatan ?? "").trim().toLowerCase() === role.toLowerCase()
         );
         if (matches.length !== 1) {
           throw new Error(matches.length === 0
             ? `Approver dengan jabatan ${role} belum tersedia.`
-            : `Ada lebih dari satu approver dengan jabatan ${role}. Hubungi Admin untuk menentukan approver.`);
+            : `Terdapat lebih dari satu karyawan dengan jabatan ${role}. Tentukan satu approver terlebih dahulu.`);
         }
-        const person = matches[0].data();
-        return {
-          uid: String(person.uid ?? matches[0].id).trim(),
+        const personDoc = matches[0];
+        const person = personDoc.data();
+        approvers.push({
+          uid: String(person.uid ?? "").trim() || personDoc.id,
           nama: String(person.nama ?? ""),
           jabatan: String(person.jabatan ?? role),
-        };
-      });
+        });
+      }
       if (approvers.some((person) => !person.uid)) {
         throw new Error("Data UID approver belum lengkap. Hubungi Admin.");
       }
