@@ -155,7 +155,7 @@ function AppShell({ user }: { user: User }) {
     try {
       const { db } = getFirebaseClient();
       const requestRef = doc(db, "pengajuan", item.id);
-      await runTransaction(db, async transaction => {
+      const outcome = await runTransaction(db, async transaction => {
         const snapshot = await transaction.get(requestRef);
         if (!snapshot.exists()) throw new Error("Pengajuan tidak ditemukan.");
         const data = snapshot.data();
@@ -185,7 +185,7 @@ function AppShell({ user }: { user: User }) {
             diprosesOleh: user.uid,
             diprosesPada: serverTimestamp(),
           });
-          return;
+          return { outcome: "rejected" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan"), nextUid: "" };
         }
 
         const nextUid = chain[currentIndex + 1];
@@ -201,7 +201,7 @@ function AppShell({ user }: { user: User }) {
             diprosesOleh: user.uid,
             diprosesPada: serverTimestamp(),
           });
-          return;
+          return { outcome: "approved" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan"), nextUid: "" };
         }
 
         statuses[nextUid] = "menunggu";
@@ -215,7 +215,36 @@ function AppShell({ user }: { user: User }) {
           diprosesOleh: user.uid,
           diprosesPada: serverTimestamp(),
         });
+        return { outcome: "forwarded" as const, requesterUid: String(data.uid ?? ""), jenis: String(data.jenis ?? "Pengajuan"), nextUid };
       });
+      // Match the Android notifications collection/schema after the atomic status update.
+      if (outcome.outcome === "rejected") {
+        if (outcome.requesterUid) await addDoc(collection(db, "notifications"), {
+          userId: outcome.requesterUid, type: "PENGAJUAN_DITOLAK", title: "Pengajuan Ditolak",
+          message: `Pengajuan ${outcome.jenis} Anda ditolak pada tahap persetujuan.`,
+          timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
+        });
+      } else if (outcome.outcome === "approved") {
+        if (outcome.requesterUid) await addDoc(collection(db, "notifications"), {
+          userId: outcome.requesterUid, type: "PENGAJUAN_DISETUJUI", title: "Pengajuan Disetujui",
+          message: `Pengajuan ${outcome.jenis} Anda telah disetujui seluruh approver.`,
+          timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
+        });
+      } else if (outcome.nextUid) {
+        const nextUserQuery = query(collection(db, "users"), where("uid", "==", outcome.nextUid));
+        const nextUserSnapshot = await getDocs(nextUserQuery);
+        const nextUserDoc = nextUserSnapshot.docs[0];
+        const nextUser = nextUserDoc?.data();
+        await updateDoc(requestRef, {
+          currentApproverName: String(nextUser?.nama ?? ""),
+          currentApproverJabatan: String(nextUser?.jabatan ?? ""),
+        });
+        await addDoc(collection(db, "notifications"), {
+          userId: outcome.nextUid, type: "PENGAJUAN_APPROVAL", title: "Pengajuan Menunggu Approval",
+          message: `${item.nama} membuat pengajuan ${outcome.jenis} yang menunggu persetujuan Anda.`,
+          timestamp: Date.now(), isRead: false, read: false, relatedId: item.id,
+        });
+      }
       setApprovalMessage(status === "Ditolak"
         ? `Pengajuan ${item.nama} berhasil ditolak.`
         : `Persetujuan untuk ${item.nama} berhasil diproses sesuai alur approval.`);
