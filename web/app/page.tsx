@@ -148,6 +148,7 @@ function AppShell({ user }: { user: User }) {
         const viewers = Array.isArray(data.approvalViewers) ? data.approvalViewers.map(String) : [];
         const chain = Array.isArray(data.approvalChain) ? data.approvalChain.map(String) : [];
         const statuses = data.approvalStatuses && typeof data.approvalStatuses === "object" ? data.approvalStatuses as Record<string, string> : {};
+        const currentUid = String(data.currentApproverUid ?? "");
         const pending = String(data.status ?? "").toLowerCase() === "menunggu";
         // Show pending requests to authorized approvers and read-only viewers.
         // Any UID in approvalChain may decide immediately; no sequential turn is required.
