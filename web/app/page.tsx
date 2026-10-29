@@ -102,6 +102,8 @@ function AppShell({ user }: { user: User }) {
   const [requestError, setRequestError] = useState("");
   const [employeeRequests, setEmployeeRequests] = useState<Array<{id:string; jenis:string; tanggal:string; jamPulang:string; jamKeluar:string; jamKembali:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
   const [requestLoadError, setRequestLoadError] = useState(false);
+  const [requestStatusFilter, setRequestStatusFilter] = useState("Semua");
+  const [historyRequestFilter, setHistoryRequestFilter] = useState("Semua");
   const [isApprover, setIsApprover] = useState(false);
   const [approvalRequests, setApprovalRequests] = useState<Array<{id:string; uid:string; nama:string; jenis:string; tanggalMulai:string; tanggalSelesai:string; keterangan:string; status:string; createdAt:Date|null}>>([]);
   const [approvalBusyId, setApprovalBusyId] = useState("");
@@ -417,6 +419,17 @@ function AppShell({ user }: { user: User }) {
       setRequestError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
       return;
     }
+    if (requestType === "Cuti Reguler") {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const start = new Date(`${requestStart}T00:00:00`);
+      const end = new Date(`${requestEnd}T00:00:00`);
+      const daysUntilStart = Math.ceil((start.getTime() - today.getTime()) / 86400000);
+      const durationDays = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+      if (daysUntilStart < 7) { setRequestError("Cuti Reguler wajib diajukan minimal H-7."); return; }
+      if (durationDays > 2) { setRequestError("Cuti Reguler maksimal 2 hari."); return; }
+      const sameMonthCount = employeeRequests.filter(item => item.jenis === "Cuti Reguler" && (item.tanggalMulai || item.tanggal).slice(0, 7) === requestStart.slice(0, 7) && !["ditolak", "rejected"].includes(item.status.toLowerCase())).length;
+      if (sameMonthCount >= 2) { setRequestError("Batas Cuti Reguler maksimal 2 kali dalam bulan yang sama."); return; }
+    }
     if (requestType === "Pulang Cepat" && !requestTime) {
       setRequestError("Jam pulang wajib diisi.");
       return;
@@ -462,7 +475,7 @@ function AppShell({ user }: { user: User }) {
         uid: user.uid,
         nama: employeeName,
         jenis: requestType,
-        tanggal: new Date().toLocaleDateString("en-CA"),
+        tanggal: (() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`; })(),
         jamPulang: requestTime,
         jamKeluar: requestExitTime,
         jamKembali: requestReturnTime,
@@ -879,7 +892,7 @@ function AppShell({ user }: { user: User }) {
         historyLoadError ? <div className="empty-state history-empty"><Info size={42} /><strong>Riwayat belum bisa dimuat</strong><p>Periksa koneksi dan aturan akses Firestore, lalu coba lagi.</p></div> :
         attendanceHistory.length === 0 ? <div className="empty-state history-empty"><CalendarDays size={42} /><strong>Belum ada riwayat absensi</strong><p>Data kehadiran akan muncul di sini setelah presensi tersimpan.</p></div> :
         <div className="history-list">{attendanceHistory.map((record) => <article className="history-record" key={record.id}><div className="history-record-date"><CalendarDays size={19} /><strong>{record.tanggal || "Tanggal tidak tersedia"}</strong><span className="status-pill status-present">{record.status}</span></div><div className="history-record-times"><span>Jam Masuk<strong>{record.jamMasuk || "-"}</strong></span><span>Jam Pulang<strong>{record.jamPulang || "-"}</strong></span></div>{record.kantor && <p className="muted history-location"><MapPin size={15} /> {record.kantor}</p>}</article>)}</div>
-      ) : <div className="empty-state history-empty"><FileText size={42} /><strong>Riwayat pengajuan belum terhubung</strong><p>Data pengajuan akan ditampilkan setelah integrasi koleksi pengajuan selesai.</p></div>}
+      ) : requestLoadError ? <div className="empty-state history-empty"><Info size={42} /><strong>Riwayat pengajuan belum bisa dimuat</strong><p>Periksa koneksi dan izin akses Firestore.</p></div> : employeeRequests.filter(item => historyRequestFilter === "Semua" || (historyRequestFilter === "Menunggu" ? ["menunggu","pending"].includes(item.status.toLowerCase()) : historyRequestFilter === "Disetujui" ? ["disetujui","approved"].includes(item.status.toLowerCase()) : ["ditolak","rejected"].includes(item.status.toLowerCase()))).length === 0 ? <div className="empty-state history-empty"><FileText size={42} /><strong>Belum ada riwayat pengajuan</strong><p>Pengajuan sesuai filter akan muncul di sini.</p></div> : <div className="history-list">{employeeRequests.filter(item => historyRequestFilter === "Semua" || (historyRequestFilter === "Menunggu" ? ["menunggu","pending"].includes(item.status.toLowerCase()) : historyRequestFilter === "Disetujui" ? ["disetujui","approved"].includes(item.status.toLowerCase()) : ["ditolak","rejected"].includes(item.status.toLowerCase()))).map(item => <article className="history-record" key={item.id}><div className="history-record-date"><FileText size={19} /><strong>{item.jenis}</strong><span className={`status-pill ${["disetujui","approved"].includes(item.status.toLowerCase()) ? "status-present" : ["ditolak","rejected"].includes(item.status.toLowerCase()) ? "status-error" : "status-waiting"}`}>{item.status}</span></div><div className="history-record-times"><span>Tanggal<strong>{item.tanggalMulai || item.tanggal || "-"}</strong></span><span>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? "Selesai" : "Waktu"}<strong>{item.tanggalSelesai && item.tanggalSelesai !== item.tanggalMulai ? item.tanggalSelesai : item.jamPulang || (item.jamKeluar ? item.jamKeluar + (item.jamKembali ? " – " + item.jamKembali : "") : "-")}</strong></span></div><p className="muted history-location">{item.keterangan}</p></article>)}</div>}
     </main>}
 
     {page === "profile" && <main className="page-content subpage">
