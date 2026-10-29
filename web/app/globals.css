@@ -1445,3 +1445,69 @@ body { margin: 0; }
   }
 }
 
+/* Compact desktop sizing refinement */
+@media screen and (min-width: 700px) {
+  html body .app-shell {
+    width: calc(100% - 204px) !important;
+    margin-left: 204px !important;
+    padding: 22px clamp(20px, 2.4vw, 36px) 28px !important;
+  }
+  html body .app-shell > .bottom-nav {
+    width: 204px;
+    max-width: 204px;
+    padding: 22px 14px;
+    gap: 5px;
+  }
+  html body .app-shell > .bottom-nav::before {
+    font-size: 12px;
+    padding: 6px 10px 20px;
+  }
+  html body .app-shell > .bottom-nav .nav-item {
+    min-height: 42px;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  html body .app-shell > .bottom-nav .nav-scan-icon {
+    width: 26px;
+    height: 26px;
+  }
+  html body .app-shell > .topbar {
+    padding: 4px 0 20px;
+  }
+  html body .app-shell > .page-content .clock-card {
+    padding: 24px 26px 20px;
+    border-radius: 20px;
+  }
+  html body .app-shell > .page-content .clock-time {
+    font-size: clamp(38px, 3.2vw, 46px);
+    margin: 12px 0 18px;
+  }
+  html body .app-shell > .page-content .attendance-action {
+    min-height: 78px;
+    padding: 13px 16px;
+    gap: 12px;
+    border-radius: 15px;
+  }
+  html body .app-shell > .page-content .action-icon {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+  html body .app-shell > .page-content .section-title {
+    font-size: 18px;
+    margin: 20px 0 13px;
+  }
+  html body .app-shell > .page-content .quick-card {
+    min-height: 124px;
+    padding: 12px 7px;
+    border-radius: 18px;
+    gap: 9px;
+  }
+  html body .app-shell > .page-content .quick-card > span {
+    width: 44px;
+    height: 44px;
+  }
+}
+
